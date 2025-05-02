@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netframework48</TargetFramework>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<SpaceEngineersBinCopyLocal>true</SpaceEngineersBinCopyLocal>
+        <Configurations>Release;Debug</Configurations>
+        <Platforms>x64</Platforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+		<PackageReference Include="NUnit3TestAdapter" Version="4.3.2" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+      <PackageReference Include="FakeItEasy" Version="8.3.0" />
+      <PackageReference Include="FakeItEasy.Analyzer.CSharp" Version="6.1.1">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="Mal.Mdk2.References" Version="2.2.4">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="NUnit" Version="4.3.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MotherCoreTest\MotherCoreTest.csproj" />
+    </ItemGroup>
+
+
+</Project>

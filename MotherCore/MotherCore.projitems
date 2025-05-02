@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>8a3cdcc5-4b55-4d87-a415-698a0e1ff06f</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>IngameScript</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ExampleClass.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Commands\BaseModuleCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Commands\IModuleCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Commands\PurgeCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ActivityMonitor\ActivityMonitor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Almanac.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\AlmanacRecord.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Waypoint\GPSWaypoint.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Waypoint\IWaypoint.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Waypoint\NamedWaypoint.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseCoreModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseExtensionModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\BlockCatalogue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\IBlockStateHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Clock\Clock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\BlockMessages.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\CommandBus.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HelpCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\WaypointRoutineQueue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalRoutine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Configuration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\LockConnectorCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\ToggleConnectorCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\UnlockConnectorCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\ConnectorModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorLockedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorReadyToLockEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorUnlockedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Debug\Debug.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\EventBus\EventBus.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\EventBus\IEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ICoreModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IExtensionModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Commands\PingCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestFailedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestReceivedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestSentEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\IntergridMessageObject.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\IntergridMessageService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Request.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Response.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Route.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Router.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\Commands\GetCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\Commands\SetCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\LocalStorage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Log\Log.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\Events\MergeBlockLockedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\Events\MergeBlockOffEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\MergeBlockModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Security\Security.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Commands\ClearCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Commands\PrintCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Terminal.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mother.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\ColorHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\Geometry.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\ISerializable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\MessageFormatter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\PID.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\Serializer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory).gitattributes" />
+    <None Include="$(MSBuildThisFileDirectory).gitignore" />
+    <None Include="$(MSBuildThisFileDirectory)CHANGELOG.md" />
+    <None Include="$(MSBuildThisFileDirectory)ImprovementAreas.md" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE.md" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" />
+  </ItemGroup>
+</Project>
