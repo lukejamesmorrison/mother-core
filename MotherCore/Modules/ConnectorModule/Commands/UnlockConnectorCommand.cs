@@ -20,56 +20,53 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+    /// <summary>
+    /// Command to unlock a connector block.
+    /// </summary>
+    public class UnlockConnectorCommand : BaseModuleCommand
     {
         /// <summary>
-        /// Command to unlock a connector block.
+        /// The ConnectorModule extension module.
         /// </summary>
-        public class UnlockConnectorCommand : BaseModuleCommand
+        readonly ConnectorModule Module;
+
+        /// <summary>
+        /// The name of the command.
+        /// </summary>
+        public override string Name => "connector/unlock";
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="module"></param>
+        public UnlockConnectorCommand(ConnectorModule module)
         {
-            /// <summary>
-            /// The ConnectorModule extension module.
-            /// </summary>
-            readonly ConnectorModule Module;
+            Module = module;
+        }
 
-            /// <summary>
-            /// The name of the command.
-            /// </summary>
-            public override string Name => "connector/unlock";
-
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            /// <param name="module"></param>
-            public UnlockConnectorCommand(ConnectorModule module)
+        /// <summary>
+        /// Executes the command.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
+        public override string Execute(TerminalCommand command)
+        {
+            if (command.Arguments.Count == 0)
             {
-                Module = module;
+                return CommandBus.Messages.NoArgumentsProvided;
             }
-
-            /// <summary>
-            /// Executes the command.
-            /// </summary>
-            /// <param name="command"></param>
-            /// <returns></returns>
-            public override string Execute(TerminalCommand command)
+            else
             {
-                if (command.Arguments.Count == 0)
-                {
-                    return CommandBus.Messages.NoArgumentsProvided;
-                }
-                else
-                {
-                    string connectorName = command.Arguments[0];
+                string connectorName = command.Arguments[0];
 
-                    List<IMyShipConnector> connectors = Module.GetBlocksByName<IMyShipConnector>(connectorName);
+                List<IMyShipConnector> connectors = Module.GetBlocksByName<IMyShipConnector>(connectorName);
 
-                    if (connectors.Count == 0)
-                        return MessageFormatter.Format(BlockMessages.BlockNotFound, connectorName);
+                if (connectors.Count == 0)
+                    return MessageFormatter.Format(BlockMessages.BlockNotFound, connectorName);
 
-                    connectors.ForEach(connector => Module.UnlockConnector(connector));
+                connectors.ForEach(connector => Module.UnlockConnector(connector));
 
-                    return MessageFormatter.Format(BlockMessages.BlockUnlocked, connectorName);
-                }
+                return MessageFormatter.Format(BlockMessages.BlockUnlocked, connectorName);
             }
         }
     }

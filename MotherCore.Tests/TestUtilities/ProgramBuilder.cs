@@ -160,7 +160,10 @@ namespace MotherCore.TestUtilities
 
                 // Manually implement the Me property using a custom fake
                 //var me = GetMe();
-                long randomId = new Random().Next(1, 1000000);
+                var rand = new Random();
+                long randomId = ((long)rand.Next(100000, 1000000)) * 10000000000L
+                   + rand.Next(0, 1000000000); // ensures we stay within 15 digits
+
                 A.CallTo(() => fakeIgc.Me).Returns(randomId);
 
                 return () => fakeIgc;

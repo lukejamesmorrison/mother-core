@@ -20,90 +20,88 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+
+    /// <summary>
+    /// This class manages routines for action at a specific waypoint 
+    /// within a flight plan.
+    /// </summary>
+    public class WaypointRoutineQueue
     {
         /// <summary>
-        /// This class manages routines for action at a specific waypoint 
-        /// within a flight plan.
+        /// Dictionary of waypoints and their associated routine strings.
         /// </summary>
-        public class WaypointRoutineQueue
+        public Dictionary<IWaypoint, string> WaypointRoutines = new Dictionary<IWaypoint, string>();
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public WaypointRoutineQueue() { }
+
+        /// <summary>
+        /// Get the waypoint from the name.
+        /// </summary>
+        /// <param name="waypointName"></param>
+        /// <returns></returns>
+        IWaypoint GetWaypointFromName(string waypointName)
         {
-            /// <summary>
-            /// Dictionary of waypoints and their associated routine strings.
-            /// </summary>
-            public Dictionary<IWaypoint, string> WaypointRoutines = new Dictionary<IWaypoint, string>();
+            return WaypointRoutines.Keys.FirstOrDefault(w => w.GetName() == waypointName);
+        }
 
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            public WaypointRoutineQueue() { }
+        /// <summary>
+        /// Get the routine string for a specific waypoint.
+        /// </summary>
+        /// <param name="waypointName"></param>
+        /// <returns></returns>
+        public string GetRoutineForWaypoint(string waypointName)
+        {
+            IWaypoint waypoint = GetWaypointFromName(waypointName);
 
-            /// <summary>
-            /// Get the waypoint from the name.
-            /// </summary>
-            /// <param name="waypointName"></param>
-            /// <returns></returns>
-            IWaypoint GetWaypointFromName(string waypointName)
-            {
-                return WaypointRoutines.Keys.FirstOrDefault(w => w.GetName() == waypointName);
-            }
+            string routineString = waypoint != null
+                ? WaypointRoutines[waypoint]
+                : "";
 
-            /// <summary>
-            /// Get the routine string for a specific waypoint.
-            /// </summary>
-            /// <param name="waypointName"></param>
-            /// <returns></returns>
-            public string GetRoutineForWaypoint(string waypointName)
-            {
-                IWaypoint waypoint = GetWaypointFromName(waypointName);
+            return routineString;
+        }
 
-                string routineString = waypoint != null
-                    ? WaypointRoutines[waypoint]
-                    : "";
+        /// <summary>
+        /// Check if the queue contains a routine for a specific waypoint.
+        /// </summary>
+        /// <param name="waypointName"></param>
+        /// <returns></returns>
+        public bool ContainsWaypointRoutine(string waypointName)
+        {
+            return GetWaypointFromName(waypointName) != null;
+        }
 
-                return routineString;
-            }
+        /// <summary>
+        /// Add a routine for a specific waypoint.
+        /// </summary>
+        /// <param name="waypoint"></param>
+        /// <param name="routine"></param>
+        public void AddRoutineForWaypoint(IWaypoint waypoint, string routine)
+        {
+            WaypointRoutines[waypoint] = routine;
+        }
 
-            /// <summary>
-            /// Check if the queue contains a routine for a specific waypoint.
-            /// </summary>
-            /// <param name="waypointName"></param>
-            /// <returns></returns>
-            public bool ContainsWaypointRoutine(string waypointName)
-            {
-                return GetWaypointFromName(waypointName) != null;
-            }
+        /// <summary>
+        /// Remove the routine for a waypoint.
+        /// </summary>
+        /// <param name="waypointName"></param>
+        public void RemoveRoutineForWaypoint(string waypointName)
+        {
+            IWaypoint waypoint = GetWaypointFromName(waypointName);
 
-            /// <summary>
-            /// Add a routine for a specific waypoint.
-            /// </summary>
-            /// <param name="waypoint"></param>
-            /// <param name="routine"></param>
-            public void AddRoutineForWaypoint(IWaypoint waypoint, string routine)
-            {
-                WaypointRoutines[waypoint] = routine;
-            }
+            if (waypoint != null)
+                WaypointRoutines.Remove(waypoint);
+        }
 
-            /// <summary>
-            /// Remove the routine for a waypoint.
-            /// </summary>
-            /// <param name="waypointName"></param>
-            public void RemoveRoutineForWaypoint(string waypointName)
-            {
-                IWaypoint waypoint = GetWaypointFromName(waypointName);
-
-                if (waypoint != null)
-                    WaypointRoutines.Remove(waypoint);
-            }
-
-            /// <summary>
-            /// Is the queue empty?
-            /// </summary>
-            /// <returns></returns>
-            public bool IsEmpty()
-            {
-                return WaypointRoutines.Count == 0;
-            }
+        /// <summary>
+        /// Is the queue empty?
+        /// </summary>
+        /// <returns></returns>
+        public bool IsEmpty()
+        {
+            return WaypointRoutines.Count == 0;
         }
     }
 }

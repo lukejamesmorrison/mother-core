@@ -20,103 +20,101 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+
+    /// <summary>
+    /// This class manages data storage for Mother. It leverages 
+    /// Program.Storage to ensure data persists across cycles, 
+    /// errors and in the event of a recompile.
+    /// </summary>
+    public class LocalStorage : BaseCoreModule
     {
         /// <summary>
-        /// This class manages data storage for Mother. It leverages 
-        /// Program.Storage to ensure data persists across cycles, 
-        /// errors and in the event of a recompile.
+        /// The Mother instance.
         /// </summary>
-        public class LocalStorage : BaseCoreModule
+        //readonly Mother Mother;
+
+        /// <summary>
+        /// The storage string.
+        /// </summary>
+        public string StorageString { get; private set; } = "";
+
+        /// <summary>
+        /// The storage dictionary.
+        /// </summary>
+        readonly Dictionary<string, object> StorageDictionary = new Dictionary<string, object>();
+
+        /// <summary>
+        /// Has the storage been modified?
+        /// </summary>
+        bool IsDirty  = false;
+
+        /// <summary>
+        /// Constructor. We use the Program's storage string to manage our state.
+        /// </summary>
+        /// <param name="mother"></param>
+        public LocalStorage(Mother mother) : base (mother)
         {
-            /// <summary>
-            /// The Mother instance.
-            /// </summary>
-            //readonly Mother Mother;
+            //Mother = mother;
+            StorageDictionary = Serializer.DeserializeDictionary(Mother.Program.Storage);
+        }
 
-            /// <summary>
-            /// The storage string.
-            /// </summary>
-            public string StorageString { get; private set; } = "";
+        /// <summary>
+        /// Boot the module. We register commands.
+        /// </summary>
+        public override void Boot()
+        {
+            Mother.GetModule<CommandBus>().RegisterCommand(new SetCommand(this));
+            Mother.GetModule<CommandBus>().RegisterCommand(new GetCommand(this));
+        }
 
-            /// <summary>
-            /// The storage dictionary.
-            /// </summary>
-            readonly Dictionary<string, object> StorageDictionary = new Dictionary<string, object>();
+        /// <summary>
+        /// GetSaveData the storage string to the Program's Storage property.
+        /// </summary>
+        public string GetSaveData()
+        {
+            StorageString = Serializer.SerializeDictionary(StorageDictionary);
+            IsDirty = false;
 
-            /// <summary>
-            /// Has the storage been modified?
-            /// </summary>
-            bool IsDirty  = false;
+            return StorageString;
+        }
 
-            /// <summary>
-            /// Constructor. We use the Program's storage string to manage our state.
-            /// </summary>
-            /// <param name="mother"></param>
-            public LocalStorage(Mother mother) : base (mother)
-            {
-                //Mother = mother;
-                StorageDictionary = Serializer.DeserializeDictionary(Mother.Program.Storage);
-            }
+        /// <summary>
+        /// Clear stored data.
+        /// </summary>
+        /// <returns></returns>
+        public bool Clear()
+        {
+            StorageDictionary.Clear();
+            StorageString = "";
+            return IsDirty = true;
+        }
 
-            /// <summary>
-            /// Boot the module. We register commands.
-            /// </summary>
-            public override void Boot()
-            {
-                Mother.GetModule<CommandBus>().RegisterCommand(new SetCommand(this));
-                Mother.GetModule<CommandBus>().RegisterCommand(new GetCommand(this));
-            }
+        /// <summary>
+        /// Get a value from storage.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public string Get(string key)
+        {
+            string value = "";
 
-            /// <summary>
-            /// GetSaveData the storage string to the Program's Storage property.
-            /// </summary>
-            public string GetSaveData()
-            {
-                StorageString = Serializer.SerializeDictionary(StorageDictionary);
-                IsDirty = false;
+            if (StorageDictionary.ContainsKey(key))
+                value += $"{StorageDictionary[key]}";
 
-                return StorageString;
-            }
+            return value;
+        }
 
-            /// <summary>
-            /// Clear stored data.
-            /// </summary>
-            /// <returns></returns>
-            public bool Clear()
-            {
-                StorageDictionary.Clear();
-                StorageString = "";
-                return IsDirty = true;
-            }
-
-            /// <summary>
-            /// Get a value from storage.
-            /// </summary>
-            /// <param name="key"></param>
-            /// <returns></returns>
-            public string Get(string key)
-            {
-                string value = "";
-
-                if (StorageDictionary.ContainsKey(key))
-                    value += $"{StorageDictionary[key]}";
-
-                return value;
-            }
-
-            /// <summary>
-            /// Set a value in storage.
-            /// </summary>
-            /// <param name="key"></param>
-            /// <param name="value"></param>
-            /// <returns></returns>
-            public bool Set(string key, string value)
-            {
-                StorageDictionary[key] = value;
-                IsDirty = true;
-                return IsDirty;
-            }
+        /// <summary>
+        /// Set a value in storage.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public bool Set(string key, string value)
+        {
+            StorageDictionary[key] = value;
+            IsDirty = true;
+            return IsDirty;
         }
     }
 }

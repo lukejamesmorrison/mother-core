@@ -20,15 +20,12 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+    public interface IModuleCommand
     {
-        public interface IModuleCommand
-        {
-            string GetCommandName();
-            //string GetArguments();
-            //string GetOptions();
+        string GetCommandName();
+        //string GetArguments();
+        //string GetOptions();
 
-            string Execute(TerminalCommand command);
-        }
+        string Execute(TerminalCommand command);
     }
 }

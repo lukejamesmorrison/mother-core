@@ -20,11 +20,8 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
-    {
-        /// <summary>
-        /// This event is emitted when a merge block is locked.
-        /// </summary>
-        public class MergeBlockLockedEvent : IEvent { }
-    }
+    /// <summary>
+    /// This event is emitted when a merge block is locked.
+    /// </summary>
+    public class MergeBlockLockedEvent : IEvent { }
 }

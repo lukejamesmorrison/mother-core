@@ -5,7 +5,7 @@ using MotherCore.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 //using static Sandbox.ModAPI.Ingame.MyGridProgram as Program;
 
-namespace MotherCore.Tests
+namespace MotherCore.Tests.Tests
 {
     /// <summary>
     ///     Sample tests for the <see cref="Program" /> class.

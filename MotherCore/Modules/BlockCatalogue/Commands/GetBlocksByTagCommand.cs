@@ -18,30 +18,28 @@ using VRage;
 using VRageMath;
 using System.Collections.Immutable;
 
-
 namespace IngameScript
 {
-
     /// <summary>
-    /// Command to get a value from the local storage module.
+    /// Command to get all blocks with a specific tag.
     /// </summary>
-    public class GetCommand : BaseModuleCommand
+    public class GetBlocksByTagCommand : BaseModuleCommand
     {
         /// <summary>
-        /// The LocalStorage core module.
+        /// The BlockCatalogue core module.
         /// </summary>
-        readonly LocalStorage Module;
+        readonly BlockCatalogue Module;
 
         /// <summary>
         /// The name of the command.
         /// </summary>
-        public override string Name => "get";
+        public override string Name => "tag/get";
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="module"></param>
-        public GetCommand(LocalStorage module)
+        public GetBlocksByTagCommand(BlockCatalogue module)
         {
             Module = module;
         }
@@ -53,13 +51,15 @@ namespace IngameScript
         /// <returns></returns>
         public override string Execute(TerminalCommand command)
         {
-            if (command.Arguments.Count == 0)
-                return CommandBus.Messages.NoArgumentsProvided;
+            string tag = command.Arguments.FirstOrDefault();
 
-            string key = command.Arguments[0];
-            string value = Module.Get(key);
+            var blocks = Module
+                .GetBlocksByTag(tag)
+                .OrderBy(b => b.CustomName)
+                .ToList();
 
-            return value;
+            string output = $"Found {blocks.Count} blocks with tag: #{tag}\n";
+            return  output + string.Join("\n", blocks.Select(b => $"- {b.CustomName}"));
         }
     }
 }

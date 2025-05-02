@@ -20,24 +20,22 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+
+    /// <summary>
+    /// Interface for waypoints used by Mother.
+    /// </summary>
+    public interface IWaypoint
     {
         /// <summary>
-        /// Interface for waypoints used by Mother.
+        /// Get the vector of the waypoint in 3D.
         /// </summary>
-        public interface IWaypoint
-        {
-            /// <summary>
-            /// Get the vector of the waypoint in 3D.
-            /// </summary>
-            /// <returns></returns>
-            Vector3D GetVector();
+        /// <returns></returns>
+        Vector3D GetVector();
 
-            /// <summary>
-            /// Get the name of the waypoint.
-            /// </summary>
-            /// <returns></returns>
-            string GetName();
-        }
+        /// <summary>
+        /// Get the name of the waypoint.
+        /// </summary>
+        /// <returns></returns>
+        string GetName();
     }
 }

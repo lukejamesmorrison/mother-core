@@ -20,11 +20,8 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
-    {
-        /// <summary>
-        /// This event is emitted when a connector is locked.
-        /// </summary>
-        public class ConnectorLockedEvent : IEvent { }
-    }
+    /// <summary>
+    /// This event is emitted when a connector is locked.
+    /// </summary>
+    public class ConnectorLockedEvent : IEvent { }
 }

@@ -21,24 +21,21 @@ using System.Collections.Immutable;
 
 namespace IngameScript
 {
-	partial class Program
-	{
-        public class PingCommand : BaseModuleCommand
+    public class PingCommand : BaseModuleCommand
+    {
+        readonly Mother Mother;
+
+        public override string Name => "ping";
+
+        public PingCommand(Mother mother)
         {
-            readonly Mother Mother;
-
-            public override string Name => "ping";
-
-            public PingCommand(Mother mother)
-            {
-                Mother = mother;
-            }
-
-            public override string Execute(TerminalCommand command)
-            {
-                Mother.GetModule<IntergridMessageService>().Ping();
-                return "Pinging all grids";
-            }
+            Mother = mother;
         }
-	}
+
+        public override string Execute(TerminalCommand command)
+        {
+            Mother.GetModule<IntergridMessageService>().Ping();
+            return "Pinging all grids";
+        }
+    }
 }

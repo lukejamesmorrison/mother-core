@@ -24,132 +24,130 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+
+    /// <summary>
+    /// This module handles interactions with merge blocks on the grid.
+    /// </summary>
+    public class MergeBlockModule : BaseCoreModule
     {
         /// <summary>
-        /// This module handles interactions with merge blocks on the grid.
+        /// The BlockCatalogue core module.
         /// </summary>
-        public class MergeBlockModule : BaseCoreModule
+        //BlockCatalogue BlockCatalogue;
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="mother"></param>
+        public MergeBlockModule(Mother mother) : base(mother) { }
+
+        /// <summary>
+        /// Boots the module. We reference modules, register commands, subscribe to 
+        /// events, and register blocks for ongoing state monitoring.
+        /// </summary>
+        public override void Boot()
         {
-            /// <summary>
-            /// The BlockCatalogue core module.
-            /// </summary>
-            //BlockCatalogue BlockCatalogue;
+            // Modules
+            //BlockCatalogue = Mother.GetModule<BlockCatalogue>();
 
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            /// <param name="mother"></param>
-            public MergeBlockModule(Mother mother) : base(mother) { }
+            // Commands
+            //RegisterCommand(new LockMergeBlockCommand(this));
+            //RegisterCommand(new UnlockMergeBlockCommand(this));
+            //RegisterCommand(new ToggleMergeBlockCommand(this));
 
-            /// <summary>
-            /// Boots the module. We reference modules, register commands, subscribe to 
-            /// events, and register blocks for ongoing state monitoring.
-            /// </summary>
-            public override void Boot()
+            // Events
+            //Subscribe<MergeBlockLockedEvent>();
+            //Subscribe<MergeBlockUnlockedEvent>();         
+            //Subscribe<MergeBlockReadyToLockEvent>();
+
+            // State Monitoring
+            //RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
+            //    mergeBlock => mergeBlock.State,  // State Selector
+            //    (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state)
+            //);
+        }
+
+        /// <summary>
+        /// Handle state changes for merge blocks. This is called when the state of a merge block changes.
+        /// </summary>
+        /// <param name="mergeBlock"></param>
+        /// <param name="newState"></param>
+        protected void HandleMergeBlockStateChange(IMyShipMergeBlock mergeBlock, object newState)
+        {
+            var status = newState as MergeState?;
+
+            if (status.HasValue)
             {
-                // Modules
-                //BlockCatalogue = Mother.GetModule<BlockCatalogue>();
-
-                // Commands
-                //RegisterCommand(new LockMergeBlockCommand(this));
-                //RegisterCommand(new UnlockMergeBlockCommand(this));
-                //RegisterCommand(new ToggleMergeBlockCommand(this));
-
-                // Events
-                //Subscribe<MergeBlockLockedEvent>();
-                //Subscribe<MergeBlockUnlockedEvent>();         
-                //Subscribe<MergeBlockReadyToLockEvent>();
-
-                // State Monitoring
-                //RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
-                //    mergeBlock => mergeBlock.State,  // State Selector
-                //    (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state)
-                //);
-            }
-
-            /// <summary>
-            /// Handle state changes for merge blocks. This is called when the state of a merge block changes.
-            /// </summary>
-            /// <param name="mergeBlock"></param>
-            /// <param name="newState"></param>
-            protected void HandleMergeBlockStateChange(IMyShipMergeBlock mergeBlock, object newState)
-            {
-                var status = newState as MergeState?;
-
-                if (status.HasValue)
+                switch (status)
                 {
-                    switch (status)
-                    {
-                        // when turning off - unmerged grids
-                        case MergeState.None:
-                            //Mother.Print($"{mergeBlock.CustomName} none.");
-                            Emit<MergeBlockOffEvent>(mergeBlock);
-                            break;
+                    // when turning off - unmerged grids
+                    case MergeState.None:
+                        //Mother.Print($"{mergeBlock.CustomName} none.");
+                        Emit<MergeBlockOffEvent>(mergeBlock);
+                        break;
 
-                        // when finding each other
-                        case MergeState.Constrained:
-                            //Mother.Print($"{mergeBlock.CustomName} constrained.");
-                            break;
+                    // when finding each other
+                    case MergeState.Constrained:
+                        //Mother.Print($"{mergeBlock.CustomName} constrained.");
+                        break;
 
-                        // when locking and merging grids
-                        case MergeState.Locked:
-                            //Mother.Print($"{mergeBlock.CustomName} locked.");
-                            Emit<MergeBlockLockedEvent>(mergeBlock);
-                            break;
-                    }
+                    // when locking and merging grids
+                    case MergeState.Locked:
+                        //Mother.Print($"{mergeBlock.CustomName} locked.");
+                        Emit<MergeBlockLockedEvent>(mergeBlock);
+                        break;
                 }
             }
+        }
 
-            /// <summary>
-            /// Lock a merge block.
-            /// </summary>
-            /// <param name="mergeBlock"></param>
-            public void LockMergeBlock(IMyShipMergeBlock mergeBlock)
-            {
-                mergeBlock.Enabled = true;
-            }
+        /// <summary>
+        /// Lock a merge block.
+        /// </summary>
+        /// <param name="mergeBlock"></param>
+        public void LockMergeBlock(IMyShipMergeBlock mergeBlock)
+        {
+            mergeBlock.Enabled = true;
+        }
 
-            /// <summary>
-            /// Unlock a merge block.
-            /// </summary>
-            /// <param name="mergeBlock"></param>
-            public void UnlockMergeBlock(IMyShipMergeBlock mergeBlock)
-            {
-                mergeBlock.Enabled = false;
-            }
+        /// <summary>
+        /// Unlock a merge block.
+        /// </summary>
+        /// <param name="mergeBlock"></param>
+        public void UnlockMergeBlock(IMyShipMergeBlock mergeBlock)
+        {
+            mergeBlock.Enabled = false;
+        }
 
-            /// <summary>
-            /// Toggle the enabled state of a merge block.
-            /// </summary>
-            /// <param name="mergeBlock"></param>
-            public void ToggleMergeBlock(IMyShipMergeBlock mergeBlock)
-            {
-                if (mergeBlock.Enabled)
-                    UnlockMergeBlock(mergeBlock);
+        /// <summary>
+        /// Toggle the enabled state of a merge block.
+        /// </summary>
+        /// <param name="mergeBlock"></param>
+        public void ToggleMergeBlock(IMyShipMergeBlock mergeBlock)
+        {
+            if (mergeBlock.Enabled)
+                UnlockMergeBlock(mergeBlock);
 
-                else
-                    LockMergeBlock(mergeBlock);
-            }
+            else
+                LockMergeBlock(mergeBlock);
+        }
 
-            /// <summary>
-            /// Handle events emitted by a module if subscribed.
-            /// </summary>
-            /// <param name="e"></param>
-            /// <param name="eventData"></param>
-            public override void HandleEvent(IEvent e, object eventData)
-            {
-                //IMyShipMergeBlock mergeBlock = (IMyShipMergeBlock)eventData;
+        /// <summary>
+        /// Handle events emitted by a module if subscribed.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="eventData"></param>
+        public override void HandleEvent(IEvent e, object eventData)
+        {
+            //IMyShipMergeBlock mergeBlock = (IMyShipMergeBlock)eventData;
 
-                //if (e is MergeBlockLockedEvent)
-                //    BlockCatalogue.RunHook(mergeBlock, "onLock");
+            //if (e is MergeBlockLockedEvent)
+            //    BlockCatalogue.RunHook(mergeBlock, "onLock");
 
-                //else if (e is MergeBlockUnlockedEvent)
-                //    BlockCatalogue.RunHook(mergeBlock, "onUnlock");
+            //else if (e is MergeBlockUnlockedEvent)
+            //    BlockCatalogue.RunHook(mergeBlock, "onUnlock");
 
-                //else if (e is MergeBlockReadyToLockEvent)
-                //    BlockCatalogue.RunHook(mergeBlock, "onReady");
-            }
+            //else if (e is MergeBlockReadyToLockEvent)
+            //    BlockCatalogue.RunHook(mergeBlock, "onReady");
         }
     }
 }

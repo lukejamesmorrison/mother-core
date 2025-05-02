@@ -24,11 +24,6 @@
       </PackageReference>
     </ItemGroup>
 
-    <ItemGroup>
-      <None Remove="Instructions.readme" />
-      <AdditionalFiles Include="Instructions.readme" />
-    </ItemGroup>
-
     <Import Project="..\MotherCore\MotherCore.projitems" Label="Shared" />
 
 </Project>

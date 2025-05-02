@@ -20,57 +20,54 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+    /// <summary>
+    /// This command is used to toggle the state of a connector block on the grid.
+    /// </summary>
+    public class ToggleConnectorCommand : BaseModuleCommand
     {
         /// <summary>
-        /// This command is used to toggle the state of a connector block on the grid.
+        /// The ConnectorModule extension module.
         /// </summary>
-        public class ToggleConnectorCommand : BaseModuleCommand
+        readonly ConnectorModule Module;
+
+        /// <summary>
+        /// The name of the command.
+        /// </summary>
+        public override string Name => "connector/toggle";
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="module"></param>
+        public ToggleConnectorCommand(ConnectorModule module)
         {
-            /// <summary>
-            /// The ConnectorModule extension module.
-            /// </summary>
-            readonly ConnectorModule Module;
+            Module = module;
+        }
 
-            /// <summary>
-            /// The name of the command.
-            /// </summary>
-            public override string Name => "connector/toggle";
-
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            /// <param name="module"></param>
-            public ToggleConnectorCommand(ConnectorModule module)
+        /// <summary>
+        /// Executes the command.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
+        public override string Execute(TerminalCommand command)
+        {
+            if (command.Arguments.Count == 0)
             {
-                Module = module;
+                return CommandBus.Messages.NoArgumentsProvided;
             }
-
-            /// <summary>
-            /// Executes the command.
-            /// </summary>
-            /// <param name="command"></param>
-            /// <returns></returns>
-            public override string Execute(TerminalCommand command)
+            else
             {
-                if (command.Arguments.Count == 0)
-                {
-                    return CommandBus.Messages.NoArgumentsProvided;
-                }
-                else
-                {
-                    string connectorName = command.Arguments[0];
+                string connectorName = command.Arguments[0];
 
-                    List<IMyShipConnector> connectors = Module.GetBlocksByName<IMyShipConnector>(connectorName);
+                List<IMyShipConnector> connectors = Module.GetBlocksByName<IMyShipConnector>(connectorName);
 
-                    if (connectors.Count == 0)
-                        return MessageFormatter.Format(BlockMessages.BlockNotFound, connectorName);
+                if (connectors.Count == 0)
+                    return MessageFormatter.Format(BlockMessages.BlockNotFound, connectorName);
 
-                    connectors.ForEach(connector => Module.ToggleConnector(connector));
+                connectors.ForEach(connector => Module.ToggleConnector(connector));
 
-                    return MessageFormatter.Format(BlockMessages.BlockToggled, connectorName);
+                return MessageFormatter.Format(BlockMessages.BlockToggled, connectorName);
 
-                }
             }
         }
     }

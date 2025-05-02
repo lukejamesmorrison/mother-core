@@ -6,21 +6,18 @@ using Sandbox.ModAPI.Ingame;
 using System.Net.NetworkInformation;
 //using System.Collections.Generic;
 
-namespace MotherCore.Tests
+namespace MotherCore.Tests.Tests
 {
-    public class CommandBusTests
+    public class BaseModuleTests
     {
+        public Program _program;
+        public Mother _mother;
+
         [SetUp]
         public void Setup()
         {
-        }
-
-        [Test]
-        public void It_Can_Be_Instantiated_With_An_Instance_Of_Mother()
-        {
-            //Mother mother = A.Fake<Mother>();
-            
-            Assert.Pass();
+            _program = Gateway.CreateProgram<Program>().Build();
+            _mother = new Mother(_program);
         }
     }
 }

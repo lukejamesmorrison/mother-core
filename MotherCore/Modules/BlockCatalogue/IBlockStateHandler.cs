@@ -20,33 +20,31 @@ using System.Collections.Immutable;
 
 namespace IngameScript
 {
-	partial class Program
-	{
+
+    /// <summary>
+    /// Interface for block state handlers.
+    /// </summary>
+    public interface IBlockStateHandler
+    {
         /// <summary>
-        /// Interface for block state handlers.
+        /// Get the current state of a block.
         /// </summary>
-        public interface IBlockStateHandler
-        {
-            /// <summary>
-            /// Get the current state of a block.
-            /// </summary>
-            /// <param name="block"></param>
-            /// <returns></returns>
-            object GetBlockCurrentState(IMyTerminalBlock block);
+        /// <param name="block"></param>
+        /// <returns></returns>
+        object GetBlockCurrentState(IMyTerminalBlock block);
 
-            /// <summary>
-            /// Compare the current state of a block with a previous state.
-            /// </summary>
-            /// <param name="block"></param>
-            /// <param name="previousState"></param>
-            /// <returns></returns>
-            bool HasBlockStateChanged(IMyTerminalBlock block, object previousState);
+        /// <summary>
+        /// Compare the current state of a block with a previous state.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <param name="previousState"></param>
+        /// <returns></returns>
+        bool HasBlockStateChanged(IMyTerminalBlock block, object previousState);
 
-            /// <summary>
-            /// Handle a state change event.
-            /// </summary>
-            /// <param name="block"></param>
-            void OnBlockStateChanged(IMyTerminalBlock block);
-        }
+        /// <summary>
+        /// Handle a state change event.
+        /// </summary>
+        /// <param name="block"></param>
+        void OnBlockStateChanged(IMyTerminalBlock block);
     }
 }

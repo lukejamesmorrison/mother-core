@@ -20,11 +20,8 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
-    {
-        /// <summary>
-        /// An event that is fired when the IntergridCommunicationService receives a message.
-        /// </summary>
-        public class RequestReceivedEvent : IEvent { }
-    }
+    /// <summary>
+    /// An event that is fired when the IntergridCommunicationService receives a message.
+    /// </summary>
+    public class RequestReceivedEvent : IEvent { }
 }
