@@ -27,15 +27,6 @@ namespace IngameScript
     public abstract class BaseModuleCommand : IModuleCommand
     {
         /// <summary>
-        /// Struct to hold the parsed incremental value, and flags for increment and decrement.
-        /// </summary>
-        protected struct IncrementalValue
-        {
-            public float Value;
-            public bool IsIncrement;
-            public bool IsDecrement;
-        }
-        /// <summary>
         /// The name of the command. This should be unique for each command.
         /// </summary>
         public abstract string Name { get; }
@@ -59,16 +50,14 @@ namespace IngameScript
         /// <summary>
         /// Parses a string representing an incremental value.
         /// </summary>
-        /// <param name="speed"></param>
+        /// <param name="valueString"></param>
         /// <param name="options"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        protected IncrementalValue ParseIncrementalValue(string speed, Dictionary<string, string> options)
+        protected float GetIncrementalValue(string valueString, Dictionary<string, string> options)
         {
-            // Assume value is always in the second position
-            string valueString = speed;
-
             float parsedValue;
+
             if (!float.TryParse(valueString, out parsedValue))
                 throw new ArgumentException("Invalid numerical value provided.");
 
@@ -76,23 +65,16 @@ namespace IngameScript
             bool isIncrement = options.ContainsKey("add");
             bool isDecrement = options.ContainsKey("sub");
 
-            return new IncrementalValue
-            {
-                Value = parsedValue,
-                IsIncrement = isIncrement,
-                IsDecrement = isDecrement
-            };
-        }
+            // we assume no increment or decrement by default
+            float output = 0;
 
-        protected float ApplyIncrementalChange(float currentValue, IncrementalValue parsedValue)
-        {
-            if (parsedValue.IsIncrement)
-                return currentValue + parsedValue.Value;
+            if (isIncrement)
+                output = parsedValue;
 
-            else if (parsedValue.IsDecrement)
-                return currentValue - parsedValue.Value;
+            else if (isDecrement)
+                output = -parsedValue;
 
-            return parsedValue.Value; // Default case (set value directly)
+            return output;
         }
     }
 }

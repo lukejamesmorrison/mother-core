@@ -55,6 +55,16 @@ namespace IngameScript
         public Dictionary<string, string> Options = new Dictionary<string, string>();
 
         /// <summary>
+        /// The increment value for the command.
+        /// </summary>
+        public bool IsIncrement = false;
+
+        /// <summary>
+        /// The decrement value for the command.
+        /// </summary>
+        public bool IsDecrement = false;
+
+        /// <summary>
         /// Creates a new terminal command from a command string.
         /// </summary>
         /// <param name="commandString"></param>
@@ -90,6 +100,7 @@ namespace IngameScript
         {
             foreach (string term in SplitInputIntoTerms(CommandString))
             {
+                // If the term starts with '--', it's an option.
                 if (term.StartsWith("--"))
                 {
                     string[] parts = term.Split('=');
@@ -97,11 +108,17 @@ namespace IngameScript
                     // Set key & remove leading '--'.
                     string key = parts[0].Substring(2);
 
-                    // Set value. 
+                    // Set value if it exists, otherwise set to "true". 
                     if (parts.Length == 2)
                         Options.Add(key, parts[1]);
+
                     else
                         Options.Add(key, "true");
+                        // Check for increment or decrement flags
+                        //if (key == "sub")
+                        //    IsDecrement = true;
+                        //else if (key == "add")
+                        //    IsIncrement = true;
                 }
                 else
                 {

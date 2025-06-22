@@ -21,7 +21,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The IntergridMessageObject class is a generalized class for representing messages 
     /// send via the intergrid communication system.  Due to data format limitations, 
