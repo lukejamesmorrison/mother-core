@@ -336,31 +336,41 @@ namespace IngameScript
             //    return;
             //}
 
-            if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
+            if(SystemState == States.UNINITIALIZED)
             {
-                GetModule<CommandBus>().RunTerminalCommand(argument);
-                GetModule<Terminal>().UpdateTerminal();
-                return;
+                // If the system is uninitialized, we initialize it.
+                Boot();
             }
 
-            // If the update source is the intergrid communication system,
-            // we process the incoming communications.
-            if (updateType == UpdateType.IGC)
+            if(SystemState == States.WORKING)
             {
-                GetModule<IntergridMessageService>().HandleIncomingIGCMessages();
-                return;
+                if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
+                {
+                    GetModule<CommandBus>().RunTerminalCommand(argument);
+                    GetModule<Terminal>().UpdateTerminal();
+                    return;
+                }
+
+                // If the update source is the intergrid communication system,
+                // we process the incoming communications.
+                if (updateType == UpdateType.IGC)
+                {
+                    GetModule<IntergridMessageService>().HandleIncomingIGCMessages();
+                    return;
+                }
+
+                // If our program has changed due to merging
+                // with another grid, we will reboot.
+                //if (Program != null && Program.Me.EntityId != ProgrammableBlock.EntityId)
+                //{
+                //    Reboot(program);
+                //}
+
+                // Otherwise we run all modules and assume a runtime update.
+                RunModules();
+                OtherRuntimeItems();
             }
-
-            // If our program has changed due to merging
-            // with another grid, we will reboot.
-            //if (Program != null && Program.Me.EntityId != ProgrammableBlock.EntityId)
-            //{
-            //    Reboot(program);
-            //}
-
-            // Otherwise we run all modules and assume a runtime update.
-            RunModules();
-            OtherRuntimeItems();
+       
         }
 
         /// <summary>
