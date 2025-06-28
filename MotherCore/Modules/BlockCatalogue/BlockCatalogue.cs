@@ -158,6 +158,16 @@ namespace IngameScript
 
             // Events
             SubscribeToEvents();
+
+            // print block summary to terminal
+            Mother.Print($"Loaded {TerminalBlocks.Count} blocks on {LocalGridIds.Count} grids.", false);
+            // print mechanical blocks
+            Mother.Print($"Found {GetBlocks<IMyMechanicalConnectionBlock>().Count()} mechanical connection blocks.", false);
+
+            // print lcd panels & cockpit screens
+            var lcdPanels = GetBlocks<IMyTextPanel>();
+            Mother.Print($"Found {lcdPanels.Count} LCD panels", false);
+
         }
 
         /// <summary>
@@ -738,6 +748,62 @@ namespace IngameScript
             //    Mother.Print("Error with remote control block assignment");
             //}
         }
+
+        //class GridWithDepth
+        //{
+        //    public IMyCubeGrid Grid;
+        //    public int Depth;
+
+        //    public GridWithDepth(IMyCubeGrid grid, int depth)
+        //    {
+        //        Grid = grid;
+        //        Depth = depth;
+        //    }
+        //}
+
+
+        //void LoadLocalGridIds(IMyCubeGrid startingGrid, int maxDepth = 1)
+        //{
+        //    var localGridIds = new HashSet<long>();
+        //    var gridsToCheck = new Queue<GridWithDepth>();
+
+        //    var connectionBlocks = new List<IMyMechanicalConnectionBlock>();
+        //    Mother.GridTerminalSystem.GetBlocksOfType(connectionBlocks);
+
+        //    gridsToCheck.Enqueue(new GridWithDepth(startingGrid, 0));
+
+        //    while (gridsToCheck.Count > 0)
+        //    {
+        //        var entry = gridsToCheck.Dequeue();
+        //        var currentGrid = entry.Grid;
+        //        var depth = entry.Depth;
+
+        //        if (!localGridIds.Add(currentGrid.EntityId))
+        //            continue;
+
+        //        if (depth >= maxDepth)
+        //            continue;
+
+        //        foreach (var block in connectionBlocks)
+        //        {
+        //            if (block.CubeGrid == currentGrid && block.TopGrid != null)
+        //            {
+        //                if (!localGridIds.Contains(block.TopGrid.EntityId))
+        //                    gridsToCheck.Enqueue(new GridWithDepth(block.TopGrid, depth + 1));
+        //            }
+        //            else if (block.TopGrid == currentGrid && block.CubeGrid != null)
+        //            {
+        //                if (!localGridIds.Contains(block.CubeGrid.EntityId))
+        //                    gridsToCheck.Enqueue(new GridWithDepth(block.CubeGrid, depth + 1));
+        //            }
+        //        }
+        //    }
+
+        //    LocalGridIds = localGridIds;
+        //}
+
+
+
 
         /// <summary>
         /// Load local grid IDs. This includes the main grid and any grids connected via a hinge, 
