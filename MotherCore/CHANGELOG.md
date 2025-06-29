@@ -11,8 +11,9 @@
 - Rename `nav/set-flight-plan` to `fp/set`
 
 
-## [0.2.13] - 2025-06-2X]
+## [0.2.13] - 2025-06-28]
 ### Added
+- Add `boot` command to trigger system boot process.
 
 ###
 - Fixed critical bug preventing large grids from booting due to a "script too complex" error.  The boot process has been refactored this appears to have resolved the issues. This comes at the cost of a slightly longer boot depending on the number of registered modules.
