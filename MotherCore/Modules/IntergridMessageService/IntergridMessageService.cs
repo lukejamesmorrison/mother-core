@@ -208,7 +208,8 @@ namespace IngameScript
         {
             if (request == null) return;
 
-            EventBus.Emit<RequestReceivedEvent>();
+            //EventBus.Emit<RequestReceivedEvent>();
+            Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
 
             string id = request.HString("OriginId");
             string name = request.HString("OriginName");
@@ -225,13 +226,13 @@ namespace IngameScript
             );
 
             record.AddNickname(name);
-            Almanac.AddRecord(record);
+            //Almanac.AddRecord(record);
+            Mother.GetModule<Almanac>().AddRecord(record);
 
-            // send response
-            //string path = request.HString("Path");
             Response response = Router.HandleRoute(request.HString("Path"), request);
-
-            SendUnicastRequest(response.HLong("TargetId"), response, null);
+            
+            if(response != null)
+                SendUnicastRequest(response.HLong("TargetId"), response, null);
         }
 
 
@@ -270,15 +271,15 @@ namespace IngameScript
 
             // Send the message via unicast
             string outgoingMessage = UseEncryption ?
-                Security.Encrypt(message.Serialize()) :
+                Mother.GetModule<Security>().Encrypt(message.Serialize()) :
                 message.Serialize();
 
             bool success = Mother.IGC.SendUnicastMessage(TargetId, "default", outgoingMessage);
 
             if (success)
-                EventBus.Emit<RequestSentEvent>();
+                Mother.GetModule<EventBus>().Emit<RequestSentEvent>();
             else
-                EventBus.Emit<RequestFailedEvent>();
+                Mother.GetModule<EventBus>().Emit<RequestFailedEvent>();
 
         }
 

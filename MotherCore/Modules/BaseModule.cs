@@ -76,6 +76,16 @@ namespace IngameScript
         public virtual void Boot() { }
 
         /// <summary>
+        /// Boot the module as a coroutine.
+        /// </summary>
+        /// <returns></returns>
+        public virtual IEnumerator<double> BootCoroutine()
+        {
+            Boot();
+            yield return 0.0; // Allow the coroutine to yield control back to the main loop
+        }
+
+        /// <summary>
         /// Handle events that are sent to the module.  You should subscribe 
         /// to events in the Boot() method so that they are handled here. 
         /// This method should be overridden by an implementation.

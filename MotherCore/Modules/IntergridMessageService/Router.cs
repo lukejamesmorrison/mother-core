@@ -32,7 +32,7 @@ namespace IngameScript
         /// <summary>
         /// Dictionary of routes.
         /// </summary>
-        readonly List<Route> Routes = new List<Route>();
+        public readonly List<Route> Routes = new List<Route>();
 
         /// <summary>
         /// Constructor.

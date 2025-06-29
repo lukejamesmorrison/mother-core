@@ -61,6 +61,16 @@ namespace IngameScript
         /// </summary>
         readonly Queue<ScheduledTask> QueuedTasks = new Queue<ScheduledTask>();
 
+        // NEW: Simple coroutine class
+        class Coroutine
+        {
+            public IEnumerator<double> Enumerator;
+            public double WaitTime;
+        }
+
+        // NEW: List to hold active coroutines
+        readonly List<Coroutine> Coroutines = new List<Coroutine>();
+
         /// <summary>
         /// The Program instance.
         /// </summary>
@@ -106,6 +116,15 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Start a coroutine that runs over multiple game cycles.
+        /// </summary>
+        /// <param name="routine"></param>
+        public void StartCoroutine(IEnumerable<double> routine)
+        {
+            Coroutines.Add(new Coroutine { Enumerator = routine.GetEnumerator(), WaitTime = 0 });
+        }
+
+        /// <summary>
         /// Run the Clock eac program cycle. The clock will run scheduled 
         /// tasks and any tasks queued for execution with a time delay.
         /// </summary>
@@ -138,6 +157,26 @@ namespace IngameScript
                     task.Task.Invoke();
                     // Remove task after execution
                     QueuedTasks.Dequeue();
+                }
+            }
+
+            // NEW: Execute coroutines
+            for (int i = Coroutines.Count - 1; i >= 0; i--)
+            {
+                var coroutine = Coroutines[i];
+                coroutine.WaitTime -= deltaTime;
+
+                if (coroutine.WaitTime <= 0)
+                {
+                    if (coroutine.Enumerator.MoveNext())
+                    {
+                        coroutine.WaitTime = coroutine.Enumerator.Current;
+                    }
+                    else
+                    {
+                        coroutine.Enumerator.Dispose();
+                        Coroutines.RemoveAt(i);
+                    }
                 }
             }
         }

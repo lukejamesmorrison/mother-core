@@ -68,7 +68,7 @@ namespace IngameScript
         /// Set of local grid IDs. This includes the main grid and any grids connected 
         /// via rotors, hinges and pistons to represent a single "construct".
         /// </summary>
-        HashSet<long> LocalGridIds = new HashSet<long>();
+        public HashSet<long> LocalGridIds = new HashSet<long>();
 
         /// <summary>
         /// Reference to the primary Remote Control block.
@@ -83,7 +83,7 @@ namespace IngameScript
         /// <summary>
         /// List of all Terminal Blocks on the grid.
         /// </summary>
-        List<IMyTerminalBlock> TerminalBlocks  = new List<IMyTerminalBlock>();
+        public List<IMyTerminalBlock> TerminalBlocks  = new List<IMyTerminalBlock>();
 
         /// <summary>
         /// Dictionary of all block configurations on the grid.  This allows 
@@ -159,14 +159,7 @@ namespace IngameScript
             // Events
             SubscribeToEvents();
 
-            // print block summary to terminal
-            Mother.Print($"Loaded {TerminalBlocks.Count} blocks on {LocalGridIds.Count} grids.", false);
-            // print mechanical blocks
-            Mother.Print($"Found {GetBlocks<IMyMechanicalConnectionBlock>().Count()} mechanical connection blocks.", false);
-
-            // print lcd panels & cockpit screens
-            var lcdPanels = GetBlocks<IMyTextPanel>();
-            Mother.Print($"Found {lcdPanels.Count} LCD panels", false);
+     
 
         }
 

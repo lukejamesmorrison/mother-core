@@ -30,7 +30,9 @@ namespace IngameScript
             mother = new Mother(this);
 
             // Register Extension Modules
-            mother.RegisterModules(new List<IExtensionModule>() { });
+            mother.RegisterModules(new List<IExtensionModule>() {
+                new PistonModule(mother),
+            });
 
             // Boot Mother with all registered modules.
             mother.Boot();

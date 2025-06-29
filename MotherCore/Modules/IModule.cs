@@ -35,6 +35,12 @@ namespace IngameScript
         void Boot();
 
         /// <summary>
+        /// Boot the module as a coroutine.
+        /// </summary>
+        /// <returns></returns>
+        IEnumerator<double> BootCoroutine();
+
+        /// <summary>
         /// Run the module every program cycle. If you don't need to run processes 
         /// during each cycle, consider scheduling an action with the Clock.
         /// </summary>

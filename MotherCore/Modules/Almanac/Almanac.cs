@@ -117,7 +117,7 @@ namespace IngameScript
         /// </summary>
         void LoadFromLocalStorage()
         {
-            string serializedAlmanac = LocalStorage.Get("almanac") ?? "";
+            string serializedAlmanac = Mother.GetModule<LocalStorage>().Get("almanac") ?? "";
 
             if (serializedAlmanac != "")
             {
@@ -139,7 +139,7 @@ namespace IngameScript
         {
             var recordDict = Records.ToDictionary(record => record.Id, record => (object) record);
 
-            LocalStorage.Set("almanac", Serializer.SerializeDictionary(recordDict));
+            Mother.GetModule<LocalStorage>().Set("almanac", Serializer.SerializeDictionary(recordDict));
         }
 
         /// <summary>

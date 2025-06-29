@@ -1,4 +1,4 @@
-# Changelog
+# Changelog - Mother Core
 
 ## [Unreleased]
 
@@ -13,19 +13,14 @@
 
 ## [0.2.13] - 2025-06-2X]
 ### Added
-- Add `light/brightness` command to enable players to set the brightness of a light. This command supports the `add` and `sub` options to increment or decrement the brightness of a light.
-- The `rotor/speed` command now accepts a `free` option to allow free movement by default. This allows stationary rotors to move if they have previously been locked at a specific angle.
-- The `hinge/speed` command now accepts a `free` option to allow free movement by default. This allows stationary hinges to move if they have previously been locked at a specific angle.
-- The `piston/distance` command can now we incremented or decremented using the `add` and `sub` options.
-- - The `hinge/rotate` command can now we incremented or decremented using the `add` and `sub` options.
-- The `rotor/rotate` command can now we incremented or decremented using the `add` and `sub` options. **Note:** This command is slightly imprecise and accuracy will improve in future versions.
+
+###
+- Fixed critical bug preventing large grids from booting due to a "script too complex" error.  The boot process has been refactored this appears to have resolved the issues. This comes at the cost of a slightly longer boot depending on the number of registered modules.
 
 ### Updated
 - Updated how increments are handled in `BaseModuleCommand`.
 
 ### Fixed
-
-
 
 ## [0.2.12] - 2025-04-29]
 ### Added

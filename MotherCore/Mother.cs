@@ -166,8 +166,6 @@ namespace IngameScript
         public Mother(MyGridProgram program)
         {
             Initialize(program);
-            //MotherCore core = new MotherCore();
-            //Print(core.Print());
         }
 
         /// <summary>
@@ -185,7 +183,6 @@ namespace IngameScript
             CubeGrid = ProgrammableBlock.CubeGrid;
             GridTerminalSystem = Program.GridTerminalSystem;
             Runtime = Program.Runtime;
-            //Storage = Program.Storage;
 
             // Set up important properties
             Id = IGC.Me;
@@ -238,6 +235,24 @@ namespace IngameScript
             SystemState = state;
         }
 
+        //IEnumerable<double> TestCoroutineSequence()
+        //{
+        //    int counter = 0;
+        //    Print("Starting coroutine test...");
+
+        //    while (counter >= 0)
+        //    {
+        //        if(counter > 0)
+        //        {
+        //            Print($"{counter} second has passed");
+        //        }
+
+        //        counter++;
+        //        yield return 1.0; // Wait 1 second
+
+        //    }
+        //}
+
         /// <summary>
         /// Boot the system. This is called after all core and extension modules have been registered. 
         /// Core modules are booted before extension modules. Modules are booted in the order they 
@@ -247,14 +262,17 @@ namespace IngameScript
         {
             SetState(States.BOOT);
 
+            Print("Booting Mother OS...");
+
             // Set any boot time config that the modules need.
             SetBootTimeConfig();
 
             // Register the core commands that are not associated with a module.
             RegisterCoreCommands();
 
-            // Boot all modules.
-            BootModules();
+            // Boot all modules as co-routines in sequence to reduce complexity
+            //BootModules();
+            GetModule<Clock>().StartCoroutine(BootModulesSequence());
 
             // TESTING
             //RunTests();
@@ -263,26 +281,97 @@ namespace IngameScript
             SetState(States.WORKING);
 
             // CONFIRMATION
-            GetModule<Log>()?.Info($"Mother is online.");
+            //Print($"Mother is online.");
+            //Print("Clearing console in 5 seconds...");
 
-            //GetModule<BlockCatalogue>()?.GetBlocks<IMyShipDrill>()[0]?.TerrainClearingMode = true;
+            //// Wait 5 seconds before clearing the console
+            //GetModule<Clock>().QueueForLater(() =>
+            //{
+            //    GetModule<Terminal>()?.ClearConsole();
+            //}, 5.0);
         }
 
         /// <summary>
-        /// Boot all modules. This is called during the boot process. Core modules are 
-        /// booted before extension modules in the order that they are registered.
+        /// Boot all modules in a coroutine sequence. This allows us to 
+        /// boot modules one at a time allowing us to reduce the 
+        /// complexity of the boot process.
         /// </summary>
-        void BootModules()
+        /// <returns></returns>
+        IEnumerable<double> BootModulesSequence()
         {
+            var bootModules = BootModulesCoroutine().GetEnumerator();
+
+            while (bootModules.MoveNext())
+            {
+                yield return bootModules.Current;
+            }
+
+            // Done booting
+            SetState(States.WORKING);
+
+            Print("Mother OS is online.");
+            Print("Clearing console in 2 seconds...");
+            Print("The Empire must grow.");
+
+            GetModule<Clock>().QueueForLater(() =>
+            {
+                GetModule<Terminal>()?.ClearConsole();
+
+                //BlockCatalogue blockCatalogue = GetModule<BlockCatalogue>();
+
+                //// print block summary to terminal
+                //Print($"Loaded {blockCatalogue.TerminalBlocks.Count} blocks on {blockCatalogue.LocalGridIds.Count} grids.", false);
+                //// print mechanical blocks
+                //Print($"Found {blockCatalogue.GetBlocks<IMyMechanicalConnectionBlock>().Count} mechanical connection blocks.", false);
+
+                //// connectors
+                //Print($"Found {blockCatalogue.GetBlocks<IMyShipConnector>().Count} connectors.", false);
+
+                //// print light blocks
+                //Print($"Found {blockCatalogue.GetBlocks<IMyLightingBlock>().Count} light blocks.", false);
+
+                //// print lcd panels & cockpit screens
+                //var lcdPanels = blockCatalogue.GetBlocks<IMyTextPanel>();
+                //Print($"Found {lcdPanels.Count} LCD panels", false);
+            }, 2.0);
+        }
+
+
+        /// <summary>
+        /// Coroutine that boots each module one-by-one. This method yields control 
+        /// between module boots, allowing each module to perform a multi-tick 
+        /// boot process via its own coroutine if necessary.
+        /// </summary>
+        /// <returns>
+        /// A sequence of yield durations (in seconds) representing the total boot process.
+        /// </returns>
+        IEnumerable<double> BootModulesCoroutine()
+        {
+            int total = AllModules.Count;
+            int current = 0;
+
             foreach (KeyValuePair<string, IModule> entry in AllModules)
             {
-                // Boot module  
-                entry.Value.Boot();
+                current++;
 
-                // Register module commands
-                RegisterCommands(entry.Value.GetCommands());
+                Print($"Booting modules: ({current} / {total})");
+
+                var module = entry.Value;
+                //Print($"Booting {entry.Key}...");
+
+                // Run its coroutine boot sequence
+                var coroutine = module.BootCoroutine();
+                while (coroutine.MoveNext())
+                {
+                    yield return coroutine.Current;
+                }
+
+                RegisterCommands(module.GetCommands());
             }
+
+            Print("All modules booted.");
         }
+
 
         /// <summary>
         /// Set the boot time configuration. This is used to set up additional properties on 
@@ -300,6 +389,7 @@ namespace IngameScript
         void RegisterCoreCommands()
         {
             RegisterCommand(new PurgeCommand(this));
+            RegisterCommand(new BootCommand(this));
         }
 
         /// <summary>
@@ -342,7 +432,13 @@ namespace IngameScript
                 Boot();
             }
 
-            if(SystemState == States.WORKING)
+            else if (SystemState == States.BOOT)
+            {
+                // run terminal module
+                GetModule<Terminal>()?.UpdateTerminal();
+            }
+
+            else if (SystemState == States.WORKING)
             {
                 if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
                 {
