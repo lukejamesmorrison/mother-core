@@ -85,7 +85,7 @@ namespace IngameScript
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        public Response HandleIncomingCommandRequest(Request request)
+        Response HandleIncomingCommandRequest(Request request)
         {
             string command = request.BString("Command").Trim();
             string originName = request.HString("OriginName");
@@ -137,7 +137,7 @@ namespace IngameScript
         /// Processes and executes a routine (multiple routines in a sequence).
         /// </summary>
         /// <param name="terminalRoutine"></param>
-        public void HandleRoutine(TerminalRoutine terminalRoutine)
+        void HandleRoutine(TerminalRoutine terminalRoutine)
         {
             var target = terminalRoutine.Target;
             var commands = terminalRoutine.Commands;
@@ -210,7 +210,7 @@ namespace IngameScript
         /// </summary>
         /// <param name="command"></param>
         /// <returns></returns>
-        public bool HandleCommand(TerminalCommand command)
+        bool HandleCommand(TerminalCommand command)
         {
             string commandString = command.CommandString;
 

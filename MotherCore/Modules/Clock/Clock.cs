@@ -61,7 +61,10 @@ namespace IngameScript
         /// </summary>
         readonly Queue<ScheduledTask> QueuedTasks = new Queue<ScheduledTask>();
 
-        // NEW: Simple coroutine class
+        /// <summary>
+        /// A coroutine that can yield execution over multiple game cycles
+        /// with an optional wait time.
+        /// </summary>
         class Coroutine
         {
             public IEnumerator<double> Enumerator;

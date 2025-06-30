@@ -434,7 +434,7 @@ namespace IngameScript
 
             else if (SystemState == States.BOOT)
             {
-                // run terminal module
+                // run terminal module to provide player with immediate feedback
                 GetModule<Terminal>()?.UpdateTerminal();
             }
 
@@ -504,11 +504,11 @@ namespace IngameScript
         /// Reboot the system. This is used to reset the system and reinitialize 
         /// without requiring a recompile.
         /// </summary>
-        public void Reboot()
-        {
-            //Initialize(Program);
-            //Boot();
-        }
+        //public void Reboot()
+        //{
+        //    //Initialize(Program);
+        //    //Boot();
+        //}
 
         /// <summary>
         /// UNUSED

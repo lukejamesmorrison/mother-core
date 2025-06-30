@@ -26,22 +26,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
-
-    //class BlockHandlerBinding
-    //{
-    //    public IMyTerminalBlock Block;
-    //    public IBlockStateHandler Handler;
-    //    public object PreviousState;
-
-    //    public BlockHandlerBinding(IMyTerminalBlock block, IBlockStateHandler handler, object initialState)
-    //    {
-    //        Block = block;
-    //        Handler = handler;
-    //        PreviousState = initialState;
-    //    }
-    //}
-
     /// <summary>
     /// The BlockCatalogue module manages blocks and block groups. Mother 
     /// uses is to track all blocks on the grid, their state changes, 
@@ -116,10 +100,6 @@ namespace IngameScript
         /// </summary>
         readonly Dictionary<IMyTerminalBlock, IBlockStateHandler> BlocksToMonitor = new Dictionary<IMyTerminalBlock, IBlockStateHandler>();
 
-
-        //List<BlockHandlerBinding> BlockHandlerBindings; // flat list of all (block, handler) pairs
-
-
         /// <summary>
         /// The current index for processing blocks in each program cycle.
         /// </summary>
@@ -158,9 +138,6 @@ namespace IngameScript
 
             // Events
             SubscribeToEvents();
-
-     
-
         }
 
         /// <summary>
@@ -169,10 +146,8 @@ namespace IngameScript
         /// </summary>
         public void LoadBlocks()
         {
-            //GetBlocks<IMyTerminalBlock>(TerminalBlocks);
-
             GetBlocksFromGridTerminalSystem(TerminalBlocks);
-
+            //GetBlocks<IMyTerminalBlock>(TerminalBlocks);
             //TerminalBlocks = GetBlocks<IMyTerminalBlock>();
 
             // Load remote control - we should improve this implementation later. 
@@ -243,34 +218,6 @@ namespace IngameScript
             if (CurrentIndex >= totalBlocks)
                 CurrentIndex = 0;
         }
-        //void CheckBlocksForStateChange()
-        //{
-        //    int totalBindings = BlockHandlerBindings.Count;
-
-        //    var bindingsToProcess = BlockHandlerBindings
-        //        .Skip(CurrentIndex)
-        //        .Take(BLOCKS_PER_CYCLE)
-        //        .ToList();
-
-        //    foreach (var binding in bindingsToProcess)
-        //    {
-        //        var block = binding.Block;
-        //        var handler = binding.Handler;
-
-        //        object currentState = handler.GetBlockCurrentState(block);
-
-        //        if (handler.HasBlockStateChanged(block, binding.PreviousState))
-        //        {
-        //            handler.OnBlockStateChanged(block);
-        //            binding.PreviousState = currentState; // Update stored state
-        //        }
-        //    }
-
-        //    CurrentIndex += BLOCKS_PER_CYCLE;
-
-        //    if (CurrentIndex >= totalBindings)
-        //        CurrentIndex = 0;
-        //}
 
         /// <summary>
         /// Handle events that are sent to the module. If a connector status 
@@ -741,62 +688,6 @@ namespace IngameScript
             //    Mother.Print("Error with remote control block assignment");
             //}
         }
-
-        //class GridWithDepth
-        //{
-        //    public IMyCubeGrid Grid;
-        //    public int Depth;
-
-        //    public GridWithDepth(IMyCubeGrid grid, int depth)
-        //    {
-        //        Grid = grid;
-        //        Depth = depth;
-        //    }
-        //}
-
-
-        //void LoadLocalGridIds(IMyCubeGrid startingGrid, int maxDepth = 1)
-        //{
-        //    var localGridIds = new HashSet<long>();
-        //    var gridsToCheck = new Queue<GridWithDepth>();
-
-        //    var connectionBlocks = new List<IMyMechanicalConnectionBlock>();
-        //    Mother.GridTerminalSystem.GetBlocksOfType(connectionBlocks);
-
-        //    gridsToCheck.Enqueue(new GridWithDepth(startingGrid, 0));
-
-        //    while (gridsToCheck.Count > 0)
-        //    {
-        //        var entry = gridsToCheck.Dequeue();
-        //        var currentGrid = entry.Grid;
-        //        var depth = entry.Depth;
-
-        //        if (!localGridIds.Add(currentGrid.EntityId))
-        //            continue;
-
-        //        if (depth >= maxDepth)
-        //            continue;
-
-        //        foreach (var block in connectionBlocks)
-        //        {
-        //            if (block.CubeGrid == currentGrid && block.TopGrid != null)
-        //            {
-        //                if (!localGridIds.Contains(block.TopGrid.EntityId))
-        //                    gridsToCheck.Enqueue(new GridWithDepth(block.TopGrid, depth + 1));
-        //            }
-        //            else if (block.TopGrid == currentGrid && block.CubeGrid != null)
-        //            {
-        //                if (!localGridIds.Contains(block.CubeGrid.EntityId))
-        //                    gridsToCheck.Enqueue(new GridWithDepth(block.CubeGrid, depth + 1));
-        //            }
-        //        }
-        //    }
-
-        //    LocalGridIds = localGridIds;
-        //}
-
-
-
 
         /// <summary>
         /// Load local grid IDs. This includes the main grid and any grids connected via a hinge, 
