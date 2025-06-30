@@ -3,6 +3,7 @@ using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using Sandbox.ModAPI.Interfaces.Terminal;
+using SpaceEngineers.Game.Entities.Blocks;
 using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
 using System.Collections;
@@ -465,6 +466,8 @@ namespace IngameScript
                 // Otherwise we run all modules and assume a runtime update.
                 RunModules();
                 OtherRuntimeItems();
+
+
             }
        
         }
@@ -483,6 +486,8 @@ namespace IngameScript
         /// </summary>
         void OtherRuntimeItems()
         {
+            // get list of jukeboxes
+
             //Dictionary<string, List<IMyTerminalBlock>> tags = BlockCatalogue.BlockTags;
             //string tagsString = "";
 
