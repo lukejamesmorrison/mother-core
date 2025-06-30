@@ -43,8 +43,7 @@ namespace IngameScript
         readonly Dictionary<string, string> MotherConfigDefaults = new Dictionary<string, string>()
         {
             { "general.debug", "false" },
-            { "security.encrypt_messages", "false" },
-            { "security.passcodes", "" },
+            { "channels.*", "" },
         };
 
         /// <summary>
@@ -70,12 +69,12 @@ namespace IngameScript
         /// <exception cref="Exception"></exception>
         public Configuration(Mother mother) : base(mother)
         {
-            //Mother = mother;
-
             MyIniParseResult result;
 
             if (!Ini.TryParse(mother.ProgrammableBlock.CustomData, out result))
                 throw new Exception($"{result}");
+
+            mother.ProgrammableBlock.CustomData = new VersionManager(Ini).Run().ToString();
         }
 
         /// <summary>

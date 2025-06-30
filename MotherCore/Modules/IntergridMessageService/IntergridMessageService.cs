@@ -137,6 +137,19 @@ namespace IngameScript
         /// </summary>
         void RegisterIGCListeners()
         {
+            //List<string> channels = new List<string>()
+            //{
+            //    "default"
+            //};
+
+            //channels.ForEach(channel =>
+            //{
+            //    if (Mother.IGC.UnicastListener == null)
+            //        Mother.IGC.UnicastListener = Mother.IGC.RegisterUnicastListener(channel);
+            //    if (Mother.IGC.BroadcastListener == null)
+            //        Mother.IGC.BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel);
+            //});
+
             UnicastListener = Mother.IGC.UnicastListener;
             BroadcastListener = Mother.IGC.RegisterBroadcastListener("default");
 
@@ -226,7 +239,8 @@ namespace IngameScript
             );
 
             record.AddNickname(name);
-            //Almanac.AddRecord(record);
+
+
             Mother.GetModule<Almanac>().AddRecord(record);
 
             Response response = Router.HandleRoute(request.HString("Path"), request);

@@ -34,6 +34,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\WaypointRoutineQueue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalRoutine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\VersionManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Configuration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\LockConnectorCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\ToggleConnectorCommand.cs" />
