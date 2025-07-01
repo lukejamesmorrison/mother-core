@@ -266,6 +266,7 @@ namespace IngameScript
                     UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedResponse);
                     HandleIncomingResponse(deserializedResponse);
                 }
+
                 else
                     Log.Error(Messages.MessageDeserializationFailed);
             }
@@ -486,6 +487,7 @@ namespace IngameScript
             );
         }
 
+
         Dictionary<string, object> GetStandardHeader()
         {
             Vector3D currentPosition = Mother.CubeGrid.GetPosition();
@@ -507,42 +509,42 @@ namespace IngameScript
 
         /// <summary>
         /// Create a Request object to a specified path with a standard Header. Optional 
-        /// body and header parameters may be included for further customization of 
+        /// customBody and customHeader parameters may be included for further customization of 
         /// the message payload.
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="body"></param>
-        /// <param name="header"></param>
+        /// <param name="customBody"></param>
+        /// <param name="customHeader"></param>
         /// <returns></returns>
-        public Request CreateRequest(string path, Dictionary<string, object> body = null, Dictionary<string, object> header = null)
+        public Request CreateRequest(string path, Dictionary<string, object> customBody = null, Dictionary<string, object> customHeader = null)
         {
             Vector3D currentPosition = Mother.CubeGrid.GetPosition();
 
-            Dictionary<string, object> requestHeader = GetStandardHeader();
-            requestHeader["Path"] = path; // add the path to the header
+            Dictionary<string, object> header = GetStandardHeader();
+            header["Path"] = path; // add the path to the customHeader
 
-            Dictionary<string, object> requestBody = new Dictionary<string, object>();
+            Dictionary<string, object> body = new Dictionary<string, object>();
 
             // merge headers with defaults
-            if (header != null)
-                foreach (KeyValuePair<string, object> entry in header)
+            if (customHeader != null)
+                foreach (KeyValuePair<string, object> entry in customHeader)
                 {
-                    requestHeader[entry.Key] = entry.Value;
+                    header[entry.Key] = entry.Value;
                 }
 
-            // merge body with defaults
-            if (body != null)
-                foreach (KeyValuePair<string, object> entry in body)
+            // merge customBody with defaults
+            if (customBody != null)
+                foreach (KeyValuePair<string, object> entry in customBody)
                 {
-                    requestBody[entry.Key] = entry.Value;
+                    body[entry.Key] = entry.Value;
                 }
 
-            return new Request(requestBody, requestHeader);
+            return new Request(body, header);
         }
 
         /// <summary>
         /// Create a Response object for a received Request with a status code and 
-        /// standard header. Option body and header parameters may be included. 
+        /// standard customHeader. Option customBody and customHeader parameters may be included. 
         /// </summary>
         /// <param name="request"></param>
         /// <param name="code"></param>
@@ -570,12 +572,12 @@ namespace IngameScript
                 { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
             };
 
-            // merge header with defaults
+            // merge customHeader with defaults
             if (header != null)
                 foreach (KeyValuePair<string, object> entry in header)
                     responseHeader[entry.Key] = entry.Value;
 
-            // merge body with defaults
+            // merge customBody with defaults
             if (body != null)
                 foreach (KeyValuePair<string, object> entry in body)
                     responseBody[entry.Key] = entry.Value;
