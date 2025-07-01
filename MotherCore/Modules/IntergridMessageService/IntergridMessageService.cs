@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Channels;
 
@@ -481,54 +482,41 @@ namespace IngameScript
 
         /// <summary>
         /// Create a Request object to a specified path with a standard Header. Optional 
-        /// body and header parameters may be included for further customization of 
+        /// customBody and customHeader parameters may be included for further customization of 
         /// the message payload.
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="body"></param>
-        /// <param name="header"></param>
+        /// <param name="customBody"></param>
+        /// <param name="customHeader"></param>
         /// <returns></returns>
-        public Request CreateRequest(string path, Dictionary<string, object> body = null, Dictionary<string, object> header = null)
+        public Request CreateRequest(string path, Dictionary<string, object> customBody = null, Dictionary<string, object> customHeader = null)
         {
-            Vector3D currentPosition = Mother.CubeGrid.GetPosition();
+            // Create a standard message customHeader with the path
+            Dictionary<string, object> header = GetStandardMessageHeader();
+            header["Path"] = path;
 
-            /// THIS HAS VERY SIMILAR FIELDS TO THE RESPONSE DEFINITION. MAYBE WE SHOULD ABSTRACT TO "STANDARD HEADER" \+ TYPE HEADER"
-            Dictionary<string, object> requestHeader = new Dictionary<string, object>
-            {
-                { "OriginId", $"{Mother.Id}" },
-                { "OriginName", Mother.CubeGrid.CustomName },
-                { "Path", path },
-                { "px", $"{currentPosition}" },
-                { "x", $"{currentPosition.X}" },
-                { "y", $"{currentPosition.Y}" },
-                { "z", $"{currentPosition.Z}" },
-                { "SafeRadius", $"{Mother.SafeZone.Radius}" },
-                { "gravity", $"{Mother.GetGravity()}"   },
-                { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
-            };
+            Dictionary<string, object> body = new Dictionary<string, object>();
 
-            Dictionary<string, object> requestBody = new Dictionary<string, object>();
-
-            // merge headers with defaults
-            if (header != null)
-                foreach (KeyValuePair<string, object> entry in header)
+            // merge custom customHeader and customBody with defaults
+            if (customHeader != null)
+                foreach (KeyValuePair<string, object> entry in customHeader)
                 {
-                    requestHeader[entry.Key] = entry.Value;
+                    header[entry.Key] = entry.Value;
                 }
 
-            // merge body with defaults
-            if (body != null)
-                foreach (KeyValuePair<string, object> entry in body)
+            // merge customBody with defaults
+            if (customBody != null)
+                foreach (KeyValuePair<string, object> entry in customBody)
                 {
-                    requestBody[entry.Key] = entry.Value;
+                    body[entry.Key] = entry.Value;
                 }
 
-            return new Request(requestBody, requestHeader);
+            return new Request(body, header);
         }
 
         /// <summary>
         /// Create a Response object for a received Request with a status code and 
-        /// standard header. Option body and header parameters may be included. 
+        /// standard customHeader. Option customBody and customHeader parameters may be included. 
         /// </summary>
         /// <param name="request"></param>
         /// <param name="code"></param>
@@ -556,12 +544,12 @@ namespace IngameScript
                 { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
             };
 
-            // merge header with defaults
+            // merge customHeader with defaults
             if (header != null)
                 foreach (KeyValuePair<string, object> entry in header)
                     responseHeader[entry.Key] = entry.Value;
 
-            // merge body with defaults
+            // merge customBody with defaults
             if (body != null)
                 foreach (KeyValuePair<string, object> entry in body)
                     responseBody[entry.Key] = entry.Value;
@@ -582,6 +570,7 @@ namespace IngameScript
             SendOpenBroadcastRequest(request, OnPingResponse);
         }
 
+
         /// <summary>
         /// Create a ping response to a ping request. This is used to to share the 
         /// grid's position details with other grids.
@@ -590,21 +579,56 @@ namespace IngameScript
         /// <returns></returns>
         public Response CreatePingResponse(Request request)
         {
+            //Vector3D currentPosition = Mother.CubeGrid.GetPosition();
+
+            //Dictionary<string, object> responseBody = new Dictionary<string, object>()
+            //{
+            //    { "x", $"{currentPosition.X}" },
+            //    { "y", $"{currentPosition.Y}" },
+            //    { "z", $"{currentPosition.Z}" },
+            //    { "px", $"{currentPosition}" },
+            //    //{ "speed", $"{speed}" },
+            //    { "OriginName", Mother.Name },
+            //    { "OriginId", $"{Mother.Id}" },
+            //    { "SafeRadius", $"{Mother.SafeZone.Radius}" }
+            //};
+
+            //Dictionary<string, object> responseBody = GetStandardMessageHeader();
+
+            return CreateResponse(
+                request, 
+                Response.ResponseStatusCodes.OK,
+                // header in place of body for now. We can remove this once the
+                // ping is working exclusively with header data.
+                GetStandardMessageHeader() 
+            );
+        }
+
+        Dictionary<string, object> GetStandardMessageHeader()
+        {
             Vector3D currentPosition = Mother.CubeGrid.GetPosition();
 
-            Dictionary<string, object> responseBody = new Dictionary<string, object>()
+            return new Dictionary<string, object>
             {
+                // Identifiers
+                { "OriginId", $"{Mother.Id}" },
+                { "OriginName", Mother.CubeGrid.CustomName },
+                //{ "Path", path },
+
+                // Positional and speed data
+                { "px", $"{currentPosition}" },
                 { "x", $"{currentPosition.X}" },
                 { "y", $"{currentPosition.Y}" },
                 { "z", $"{currentPosition.Z}" },
-                { "px", $"{currentPosition}" },
-                //{ "speed", $"{speed}" },
-                { "Name", Mother.Name },
-                { "Id", $"{Mother.Id}" },
-                { "SafeRadius", $"{Mother.SafeZone.Radius}" }
-            };
+                { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" },
 
-            return CreateResponse(request, Response.ResponseStatusCodes.OK, responseBody);
+                // Environmental
+                { "SafeRadius", $"{Mother.SafeZone.Radius}" },
+                { "gravity", $"{Mother.GetGravity()}"   },
+
+                // Stores - we could send over data on energy, oxygen, hydrogen stores
+                // Flight Plan - we can transmit our currently active flight plan for remote use
+            };
         }
 
         /// <summary>
@@ -614,7 +638,7 @@ namespace IngameScript
         void OnPingResponse(IntergridMessageObject response)
         {
             AlmanacRecord almanacRecord = new AlmanacRecord(
-                response.BString("Id"),
+                response.BString("OriginId"),
                 "grid",
                 new Vector3D(
                     response.BDouble("x"),
