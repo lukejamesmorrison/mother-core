@@ -504,9 +504,9 @@ namespace IngameScript
             //terminal.Highlight($"Friendly Entities: {friendlyRecords.Count}");
 
             //Print the active comms channels
-            var channels = GetModule<IntergridMessageService>().Channels;
-            string channelDetails = string.Join("\n", channels.Select(c => $"{c.Key}: {c.Value}"));
-            terminal.Highlight($"Channels:\n{channelDetails}");
+            //var channels = GetModule<IntergridMessageService>().Channels;
+            //string channelDetails = string.Join("\n", channels.Select(c => $"{c.Key}: {c.Value}"));
+            //terminal.Highlight($"Channels:\n{channelDetails}");
 
             // flatten the list of AlmanacRecord.Channels and count occurances of each isntance
             var channelCounts = new Dictionary<string, int>();

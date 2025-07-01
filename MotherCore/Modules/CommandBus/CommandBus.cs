@@ -124,6 +124,7 @@ namespace IngameScript
         /// <returns></returns>
         public bool RunTerminalCommand(string commandString)
         {
+
             if (commandString.Length > 0)
             {
                 HandleRoutine(new TerminalRoutine(commandString));
