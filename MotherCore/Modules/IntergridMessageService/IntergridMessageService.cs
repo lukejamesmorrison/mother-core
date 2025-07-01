@@ -516,7 +516,11 @@ namespace IngameScript
         /// <param name="customBody"></param>
         /// <param name="customHeader"></param>
         /// <returns></returns>
-        public Request CreateRequest(string path, Dictionary<string, object> customBody = null, Dictionary<string, object> customHeader = null)
+        public Request CreateRequest(
+            string path, 
+            Dictionary<string, object> customBody = null, 
+            Dictionary<string, object> customHeader = null
+        )
         {
             Vector3D currentPosition = Mother.CubeGrid.GetPosition();
 
@@ -551,7 +555,12 @@ namespace IngameScript
         /// <param name="body"></param>
         /// <param name="header"></param>
         /// <returns></returns>
-        public Response CreateResponse(Request request, Response.ResponseStatusCodes code, Dictionary<string, object> body = null, Dictionary<string, object> header = null)
+        public Response CreateResponse(
+            Request request, 
+            Response.ResponseStatusCodes code, 
+            Dictionary<string, object> body = null, 
+            Dictionary<string, object> header = null
+        )
         {
             Vector3D currentPosition = Mother.CubeGrid.GetPosition();
 
@@ -596,6 +605,13 @@ namespace IngameScript
             request.Channels = new HashSet<string>(channels);
 
             SendOpenBroadcastRequest(request, null);
+        }
+
+        bool OriginIsLocal(long originId)
+        {
+            return Mother.GetModule<BlockCatalogue>()
+                .GetBlocks<IMyProgrammableBlock>()
+                .Any(pb => pb.EntityId == originId);
         }
 
         /// <summary>
@@ -653,11 +669,6 @@ namespace IngameScript
         //    //Almanac.AddRecord(almanacRecord);
         //}
 
-        bool OriginIsLocal(long originId)
-        {
-            return Mother.GetModule<BlockCatalogue>()
-                .GetBlocks<IMyProgrammableBlock>()
-                .Any(pb => pb.EntityId == originId);
-        }
+
     }
 }
