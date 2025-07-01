@@ -228,11 +228,10 @@ namespace IngameScript
             if (messageData.StartsWith("REQUEST::"))
             {
                 Request deserializedRequest = Request.Deserialize(messageData);
+                deserializedRequest.Channels.Add(message.Tag);
 
                 if (deserializedRequest != null)
-                    //HandleIncomingRequest(deserializedRequest);
-                    HandleIncomingRequest(deserializedRequest, message.Tag);
-
+                    HandleIncomingRequest(deserializedRequest);
                 else
                     Log.Error(Messages.MessageDeserializationFailed);
             }
@@ -241,6 +240,7 @@ namespace IngameScript
             else if (messageData.StartsWith("RESPONSE::"))
             {
                 Response deserializedResponse = Response.Deserialize(messageData);
+                deserializedResponse.Channels.Add(message.Tag);
 
                 if (deserializedResponse != null)
                     HandleIncomingResponse(deserializedResponse);
@@ -249,52 +249,72 @@ namespace IngameScript
             }
         }
 
-        AlmanacRecord CreateAlmanacRecordFromIncomingRequest(Request request)
+        /// <summary>
+        /// Update or create an AlmanacRecord from an incoming Request.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(Request request)
         {
             long originId = request.HLong("OriginId");
             string name = request.HString("OriginName");
             float x = request.HFloat("x");
             float y = request.HFloat("y");
             float z = request.HFloat("z");
+            float speed = request.HFloat("speed");
 
-            // attempt to update almanac with request data
-            AlmanacRecord record = new AlmanacRecord(
-                $"{originId}",
-                "grid",
-                new Vector3D(x, y, z),
-                0f
-            );
+            AlmanacRecord record;
+            AlmanacRecord existingRecord = Almanac.GetRecord($"{originId}");
 
-            // set IFF code
-            if (OriginIsLocal(originId))
-                record.IFFCode = AlmanacRecord.TransponderCode.Local;
+            // if record exists, update it with request data
+            if (existingRecord != null)
+            {
+                existingRecord.Position = new Vector3D(x, y, z);
+                existingRecord.Speed = speed;
 
-            // add channel
-            record.Channels = request.Channels;
+                // add request channels to existing record channels
+                existingRecord.Channels.UnionWith(request.Channels);
 
-            // set nickname
-            record.AddNickname(name);
+                record = existingRecord;
+            }
+
+            // if record does not exist, create a new one
+            else
+            {
+                record = new AlmanacRecord(
+                    $"{originId}",
+                    "grid",
+                    new Vector3D(x, y, z),
+                    speed
+                );
+
+                // set IFF code
+                if (OriginIsLocal(originId))
+                    record.IFFCode = AlmanacRecord.TransponderCode.Local;
+
+                // add channel
+                record.Channels = request.Channels;
+
+                // set nickname
+                record.AddNickname(name);
+            }
+
+            Mother.GetModule<Almanac>().AddRecord(record);
 
             return record;
         }
 
         /// <summary>
         /// Handle and incoming Request.
-        /// </summary>`
+        /// </summary>
         /// <param name="request"></param>
-        /// <param name="channel"></param>
-        void HandleIncomingRequest(Request request, string channel)
+        void HandleIncomingRequest(Request request)
         {
             if (request == null) return;
 
-            // mark request as coming from specific channel
-            request.Channels.Add(channel);
-
             Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
 
-            AlmanacRecord record = CreateAlmanacRecordFromIncomingRequest(request);
-
-            Mother.GetModule<Almanac>().AddRecord(record);
+            AlmanacRecord record = UpdateOrCreateAlmanacRecordFromIncomingRequest(request);
 
             // Get the Response from a Route
             Response response = Router.HandleRoute(
@@ -305,7 +325,6 @@ namespace IngameScript
             if(response != null)
                 SendUnicastRequest(response.HLong("TargetId"), response, null);
         }
-
 
         /// <summary>
         /// Handle incoming Response. We expect to receive a Response 
@@ -356,7 +375,6 @@ namespace IngameScript
                 if (success)
                     break;
             }
-
 
             // Send the message via unicast
             //string outgoingMessage = UseEncryption ?

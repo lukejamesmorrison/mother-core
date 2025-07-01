@@ -72,18 +72,18 @@ namespace IngameScript
         {
             Configuration = Mother.GetModule<Configuration>();
 
-            USE_ENCRYPTION = GetUseEncryptionFromConfig();
-            CONFIG_PASSKEYS = Configuration.Get("security.passcodes");
+            //USE_ENCRYPTION = GetUseEncryptionFromConfig();
+            //CONFIG_PASSKEYS = Configuration.Get("security.passcodes");
         }
 
         /// <summary>
         /// Get whether encryption should be used from Mother's configuration.
         /// </summary>
         /// <returns></returns>
-        bool GetUseEncryptionFromConfig()
-        {
-            return Configuration.Get("security.encrypt_messages") == "true";
-        }
+        //bool GetUseEncryptionFromConfig()
+        //{
+        //    return Configuration.Get("security.encrypt_messages") == "true";
+        //}
 
         /// <summary>
         /// Check if a message is encrypted.  This is done by checking if the message 
@@ -103,17 +103,23 @@ namespace IngameScript
         /// <param name="passcode"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static string Encrypt(string input, string passcode)
+        public static string Encrypt(string input, string passcode = "")
         {
-            if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(passcode))
-                throw new ArgumentException("Input and passcode cannot be null or empty.");
+            //if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(passcode))
+            //    throw new ArgumentException("Input and passcode cannot be null or empty.");
 
-            var encryptedChars = new char[input.Length];
+            if (passcode == "")
+                return input;
+            else
+            {
+                var encryptedChars = new char[input.Length];
 
-            for (int i = 0; i < input.Length; i++)
-                encryptedChars[i] = (char)(input[i] ^ passcode[i % passcode.Length]);
+                for (int i = 0; i < input.Length; i++)
+                    encryptedChars[i] = (char)(input[i] ^ passcode[i % passcode.Length]);
 
-            return IDENTIFIER + new string(encryptedChars);
+                return IDENTIFIER + new string(encryptedChars);
+            }
+
         }
 
         /// <summary>
@@ -121,10 +127,10 @@ namespace IngameScript
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public string Encrypt(string message)
-        {
-            return Encrypt(message, CONFIG_PASSKEYS);
-        }
+        //public string Encrypt(string message)
+        //{
+        //    return Encrypt(message, CONFIG_PASSKEYS);
+        //}
 
         /// <summary>
         /// Decrypt a string using a provided passcode.
@@ -154,9 +160,9 @@ namespace IngameScript
         /// </summary>
         /// <param name="encryptedInput"></param>
         /// <returns></returns>
-        public string Decrypt(string encryptedInput)
-        {
-            return Decrypt(encryptedInput, CONFIG_PASSKEYS);
-        }
+        //public string Decrypt(string encryptedInput)
+        //{
+        //    return Decrypt(encryptedInput, CONFIG_PASSKEYS);
+        //}
     }
 }
