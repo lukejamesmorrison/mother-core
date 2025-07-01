@@ -138,7 +138,7 @@ namespace IngameScript
             RegisterIGCListeners();
 
             // ROUTES
-            Router.AddRoute("ping", (request) => CreatePingResponse(request));
+            Router.AddRoute("ping", (request) => CreateResponse(request, Response.ResponseStatusCodes.OK));
 
             Clock.Schedule(Ping, 2);
         }
@@ -595,7 +595,7 @@ namespace IngameScript
             Request request = CreateRequest("ping");
             request.Channels = new HashSet<string>(channels);
 
-            SendOpenBroadcastRequest(request, OnPingResponse);
+            SendOpenBroadcastRequest(request, null);
         }
 
         /// <summary>
@@ -604,54 +604,54 @@ namespace IngameScript
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        public Response CreatePingResponse(Request request)
-        {
-            Vector3D currentPosition = Mother.CubeGrid.GetPosition();
+        //public Response CreatePingResponse(Request request)
+        //{
+        //    //Vector3D currentPosition = Mother.CubeGrid.GetPosition();
 
-            Dictionary<string, object> responseBody = new Dictionary<string, object>()
-            {
-                { "x", $"{currentPosition.X}" },
-                { "y", $"{currentPosition.Y}" },
-                { "z", $"{currentPosition.Z}" },
-                { "px", $"{currentPosition}" },
-                //{ "speed", $"{speed}" },
-                { "Name", Mother.Name },
-                { "Id", $"{Mother.Id}" },
-                { "SafeRadius", $"{Mother.SafeZone.Radius}" }
-            };
+        //    //Dictionary<string, object> responseBody = new Dictionary<string, object>()
+        //    //{
+        //    //    { "x", $"{currentPosition.X}" },
+        //    //    { "y", $"{currentPosition.Y}" },
+        //    //    { "z", $"{currentPosition.Z}" },
+        //    //    { "px", $"{currentPosition}" },
+        //    //    //{ "speed", $"{speed}" },
+        //    //    { "Name", Mother.Name },
+        //    //    { "Id", $"{Mother.Id}" },
+        //    //    { "SafeRadius", $"{Mother.SafeZone.Radius}" }
+        //    //};
 
-            return CreateResponse(request, Response.ResponseStatusCodes.OK, responseBody);
-        }
+        //    return CreateResponse(request, Response.ResponseStatusCodes.OK);
+        //}
 
         /// <summary>
         /// Handle a ping response.
         /// </summary>
         /// <param name="response"></param>
-        void OnPingResponse(IntergridMessageObject response)
-        {
-            AlmanacRecord almanacRecord = new AlmanacRecord(
-                response.BString("Id"),
-                "grid",
-                new Vector3D(
-                    response.BDouble("x"),
-                    response.BDouble("y"),
-                    response.BDouble("z")
-                )
-            )
-            {
-                SafeRadius = response.HDouble("SafeRadius"),
-            };
+        //void OnPingResponse(IntergridMessageObject response)
+        //{
+        //    //AlmanacRecord almanacRecord = new AlmanacRecord(
+        //    //    response.BString("Id"),
+        //    //    "grid",
+        //    //    new Vector3D(
+        //    //        response.BDouble("x"),
+        //    //        response.BDouble("y"),
+        //    //        response.BDouble("z")
+        //    //    )
+        //    //)
+        //    //{
+        //    //    SafeRadius = response.HDouble("SafeRadius"),
+        //    //};
 
-            almanacRecord.AddNickname(response.HString("OriginName"));
+        //    //almanacRecord.AddNickname(response.HString("OriginName"));
 
-            bool IsLocal = OriginIsLocal(response.HLong("OriginId"));
+        //    //bool IsLocal = OriginIsLocal(response.HLong("OriginId"));
 
-            if(IsLocal)
-                almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
+        //    //if(IsLocal)
+        //    //    almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
 
-            //if (!almanacRecord.IsLocal)
-            Almanac.AddRecord(almanacRecord);
-        }
+        //    ////if (!almanacRecord.IsLocal)
+        //    //Almanac.AddRecord(almanacRecord);
+        //}
 
         bool OriginIsLocal(long originId)
         {
