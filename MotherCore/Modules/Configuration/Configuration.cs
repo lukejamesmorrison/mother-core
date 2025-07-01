@@ -43,7 +43,7 @@ namespace IngameScript
         readonly Dictionary<string, string> MotherConfigDefaults = new Dictionary<string, string>()
         {
             { "general.debug", "false" },
-            { "channels.*", "" },
+            //{ "channels.*", "" },
         };
 
         /// <summary>

@@ -7,6 +7,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.Remoting.Channels;
+
 //using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using VRage;
@@ -220,7 +222,6 @@ namespace IngameScript
             // Decrypt message if it is encrypted
             messageData = Security.IsEncrypted(messageData) ?
                 DecryptIncomingMessage(message) :
-                //Security.Decrypt(messageData) :
                 messageData;
 
             // Handle an incoming Request
@@ -248,20 +249,8 @@ namespace IngameScript
             }
         }
 
-        /// <summary>
-        /// Handle and incoming Request.
-        /// </summary>`
-        /// <param name="request"></param>
-        /// <param name="channel"></param>
-        void HandleIncomingRequest(Request request, string channel)
+        AlmanacRecord CreateAlmanacRecordFromIncomingRequest(Request request)
         {
-            if (request == null) return;
-
-            // mark request as coming from specific channel
-            request.Channels.Add(channel);
-
-            Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
-
             long originId = request.HLong("OriginId");
             string name = request.HString("OriginName");
             float x = request.HFloat("x");
@@ -281,11 +270,29 @@ namespace IngameScript
                 record.IFFCode = AlmanacRecord.TransponderCode.Local;
 
             // add channel
-            record.Channels.Add(channel);
+            record.Channels = request.Channels;
 
             // set nickname
             record.AddNickname(name);
 
+            return record;
+        }
+
+        /// <summary>
+        /// Handle and incoming Request.
+        /// </summary>`
+        /// <param name="request"></param>
+        /// <param name="channel"></param>
+        void HandleIncomingRequest(Request request, string channel)
+        {
+            if (request == null) return;
+
+            // mark request as coming from specific channel
+            request.Channels.Add(channel);
+
+            Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
+
+            AlmanacRecord record = CreateAlmanacRecordFromIncomingRequest(request);
 
             Mother.GetModule<Almanac>().AddRecord(record);
 
@@ -334,17 +341,29 @@ namespace IngameScript
             // Register the message callback
             activeRequests[$"{message.Header["Id"]}"] = onResponse;
 
-            // get first channel
-            // we will later refactor to get the channel's passcode
-            //string channel = Channels.FirstOrDefault() ?? "default";
+            bool success = false;
+
+            // sort message.Channels so that public is last
+            var orderedChannels = message.Channels.OrderBy(c => c == "*").ToHashSet();
+
+            foreach (string channel in orderedChannels)
+            {
+                string passcode = Channels.ContainsKey(channel) ? Channels[channel] : "";
+                string outgoingMessage = Security.Encrypt(message.Serialize(), passcode);
+
+                success = Mother.IGC.SendUnicastMessage(TargetId, channel, outgoingMessage);
+
+                if (success)
+                    break;
+            }
 
 
             // Send the message via unicast
-            string outgoingMessage = UseEncryption ?
-                Mother.GetModule<Security>().Encrypt(message.Serialize()) :
-                message.Serialize();
+            //string outgoingMessage = UseEncryption ?
+            //    Mother.GetModule<Security>().Encrypt(message.Serialize()) :
+            //    message.Serialize();
 
-            bool success = Mother.IGC.SendUnicastMessage(TargetId, "default", outgoingMessage);
+            //bool success = Mother.IGC.SendUnicastMessage(TargetId, "default", outgoingMessage);
 
             if (success)
                 Mother.GetModule<EventBus>().Emit<RequestSentEvent>();
@@ -363,11 +382,20 @@ namespace IngameScript
             // Register the message callback
             activeRequests[request.Id] = onResponse;
 
-            string outgoingMessage = UseEncryption ?
-                Security.Encrypt(request.Serialize()) :
-                request.Serialize();
+            // sort message.Channels so that public is last
+            foreach (var channel in Channels)
+            {
+                string passcode = Channels.ContainsKey(channel.Key) ? Channels[channel.Key] : "";
+                string outgoingMessage = Security.Encrypt(request.Serialize(), passcode);
 
-            Mother.IGC.SendBroadcastMessage("default", outgoingMessage);
+                Mother.IGC.SendBroadcastMessage(channel.Key, outgoingMessage);
+            }
+
+            //string outgoingMessage = UseEncryption ?
+            //    Security.Encrypt(request.Serialize()) :
+            //    request.Serialize();
+
+            //Mother.IGC.SendBroadcastMessage("default", outgoingMessage);
 
             EventBus.Emit<RequestSentEvent>();
         }
@@ -513,7 +541,12 @@ namespace IngameScript
         /// </summary>
         public void Ping()
         {
-            SendOpenBroadcastRequest(CreateRequest("ping"), OnPingResponse);
+            var channels = Channels.Keys.ToList();
+
+            Request request = CreateRequest("ping");
+            request.Channels = new HashSet<string>(channels);
+
+            SendOpenBroadcastRequest(request, OnPingResponse);
         }
 
         /// <summary>
@@ -562,11 +595,6 @@ namespace IngameScript
             almanacRecord.AddNickname(response.HString("OriginName"));
 
             bool IsLocal = OriginIsLocal(response.HLong("OriginId"));
-
-                //Mother
-                //.GetModule<BlockCatalogue>()
-                //.GetBlocks<IMyProgrammableBlock>()
-                //.Any(pb =>pb.EntityId == response.HLong("OriginId"));
 
             if(IsLocal)
                 almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;

@@ -39,7 +39,7 @@ namespace IngameScript
         public Dictionary<string, object> Body = new Dictionary<string, object>();
 
         /// <summary>
-        /// The channels that the request should be sent via.
+        /// The channels that the message should be sent via.
         /// </summary>
         public HashSet<string> Channels = new HashSet<string>();
 

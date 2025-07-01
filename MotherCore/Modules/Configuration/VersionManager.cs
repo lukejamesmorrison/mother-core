@@ -74,12 +74,17 @@ namespace IngameScript
             // update comms channels
             if (!Config.ContainsSection("channels"))
             {
+                //string useEnc = Config.Get("security", "passcodes").ToString();
                 // set channels section with the public channel open
-                Config.Set("channels", "*", "");
+                //Config.Set("channels", "*", "");
 
                 // get current passcodes
                 string passcodes = Config.Get("security", "passcodes").ToString();
-                Config.Set("channels", "default", passcodes);
+
+                if(passcodes != "")
+                    Config.Set("channels", "default", passcodes);
+                else
+                    Config.AddSection("channels");
 
                 // delete security section as it is now redundant
                 if (Config.ContainsSection("security"))
