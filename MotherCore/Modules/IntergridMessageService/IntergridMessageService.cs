@@ -487,20 +487,28 @@ namespace IngameScript
             );
         }
 
-
+        /// <summary>
+        /// Get a standard header for all messages sent via the IntergridMessageService. This 
+        /// includes common identifiers as well as positional and environmental data.
+        /// </summary>
+        /// <returns></returns>
         Dictionary<string, object> GetStandardHeader()
         {
             Vector3D currentPosition = Mother.CubeGrid.GetPosition();
 
             return new Dictionary<string, object>
             {
+                // Identifiers
                 { "OriginId", $"{Mother.Id}" },
                 { "OriginName", Mother.CubeGrid.CustomName },
-                //{ "Path", path },
+
+                // Position
                 { "px", $"{currentPosition}" },
                 { "x", $"{currentPosition.X}" },
                 { "y", $"{currentPosition.Y}" },
                 { "z", $"{currentPosition.Z}" },
+
+                // Environment
                 { "SafeRadius", $"{Mother.SafeZone.Radius}" },
                 { "gravity", $"{Mother.GetGravity()}"   },
                 { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
@@ -532,16 +540,12 @@ namespace IngameScript
             // merge headers with defaults
             if (customHeader != null)
                 foreach (KeyValuePair<string, object> entry in customHeader)
-                {
                     header[entry.Key] = entry.Value;
-                }
 
             // merge customBody with defaults
             if (customBody != null)
                 foreach (KeyValuePair<string, object> entry in customBody)
-                {
                     body[entry.Key] = entry.Value;
-                }
 
             return new Request(body, header);
         }
@@ -552,43 +556,57 @@ namespace IngameScript
         /// </summary>
         /// <param name="request"></param>
         /// <param name="code"></param>
-        /// <param name="body"></param>
-        /// <param name="header"></param>
+        /// <param name="customBody"></param>
+        /// <param name="customHeader"></param>
         /// <returns></returns>
         public Response CreateResponse(
             Request request, 
             Response.ResponseStatusCodes code, 
-            Dictionary<string, object> body = null, 
-            Dictionary<string, object> header = null
+            Dictionary<string, object> customBody = null, 
+            Dictionary<string, object> customHeader = null
         )
         {
-            Vector3D currentPosition = Mother.CubeGrid.GetPosition();
-
-            Dictionary<string, object> responseBody = new Dictionary<string, object>();
+            Dictionary<string, object> standardHeader = GetStandardHeader();
             Dictionary<string, object> responseHeader = new Dictionary<string, object>()
             {
                 { "status", $"{Response.GetResponseCodeValue(code)}" },
-                { "OriginId", $"{Mother.Id}" },
-                { "OriginName", Mother.Name },
                 { "TargetId", request.Header["OriginId"] },
                 { "TargetName", request.Header["OriginName"] },
                 { "RespondingToId", request.Header["Id"] },
-                { "x", $"{currentPosition.X}" },
-                { "y", $"{currentPosition.Y}" },
-                { "z", $"{currentPosition.Z}" },
-                { "SafeRadius", $"{Mother.SafeZone.Radius}" },
-                { "gravity", $"{Mother.GetGravity()}"   },
-                { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
             };
+            Dictionary<string, object> responseBody = new Dictionary<string, object>();
+
+            // merge default headers
+            foreach (KeyValuePair<string, object> entry in standardHeader)
+                responseHeader[entry.Key] = entry.Value;
+
+            //Vector3D currentPosition = Mother.CubeGrid.GetPosition();
+
+            //Dictionary<string, object> responseBody = new Dictionary<string, object>();
+            //Dictionary<string, object> responseHeader = new Dictionary<string, object>()
+            //{
+            //    { "status", $"{Response.GetResponseCodeValue(code)}" },
+            //    { "OriginId", $"{Mother.Id}" },
+            //    { "OriginName", Mother.Name },
+            //    { "TargetId", request.Header["OriginId"] },
+            //    { "TargetName", request.Header["OriginName"] },
+            //    { "RespondingToId", request.Header["Id"] },
+            //    { "x", $"{currentPosition.X}" },
+            //    { "y", $"{currentPosition.Y}" },
+            //    { "z", $"{currentPosition.Z}" },
+            //    { "SafeRadius", $"{Mother.SafeZone.Radius}" },
+            //    { "gravity", $"{Mother.GetGravity()}"   },
+            //    { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
+            //};
 
             // merge customHeader with defaults
-            if (header != null)
-                foreach (KeyValuePair<string, object> entry in header)
+            if (customHeader != null)
+                foreach (KeyValuePair<string, object> entry in customHeader)
                     responseHeader[entry.Key] = entry.Value;
 
             // merge customBody with defaults
-            if (body != null)
-                foreach (KeyValuePair<string, object> entry in body)
+            if (customBody != null)
+                foreach (KeyValuePair<string, object> entry in customBody)
                     responseBody[entry.Key] = entry.Value;
 
             return new Response(responseBody, responseHeader);
@@ -607,6 +625,12 @@ namespace IngameScript
             SendOpenBroadcastRequest(request, null);
         }
 
+        /// <summary>
+        /// Check if the origin of a message is a programmable block 
+        /// on the local grid.
+        /// </summary>
+        /// <param name="originId"></param>
+        /// <returns></returns>
         bool OriginIsLocal(long originId)
         {
             return Mother.GetModule<BlockCatalogue>()
@@ -668,7 +692,5 @@ namespace IngameScript
         //    ////if (!almanacRecord.IsLocal)
         //    //Almanac.AddRecord(almanacRecord);
         //}
-
-
     }
 }
