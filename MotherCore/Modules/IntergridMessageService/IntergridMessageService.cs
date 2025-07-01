@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Channels;
 
@@ -485,6 +486,25 @@ namespace IngameScript
             );
         }
 
+        Dictionary<string, object> GetStandardHeader()
+        {
+            Vector3D currentPosition = Mother.CubeGrid.GetPosition();
+
+            return new Dictionary<string, object>
+            {
+                { "OriginId", $"{Mother.Id}" },
+                { "OriginName", Mother.CubeGrid.CustomName },
+                //{ "Path", path },
+                { "px", $"{currentPosition}" },
+                { "x", $"{currentPosition.X}" },
+                { "y", $"{currentPosition.Y}" },
+                { "z", $"{currentPosition.Z}" },
+                { "SafeRadius", $"{Mother.SafeZone.Radius}" },
+                { "gravity", $"{Mother.GetGravity()}"   },
+                { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
+            };
+        }
+
         /// <summary>
         /// Create a Request object to a specified path with a standard Header. Optional 
         /// body and header parameters may be included for further customization of 
@@ -498,20 +518,8 @@ namespace IngameScript
         {
             Vector3D currentPosition = Mother.CubeGrid.GetPosition();
 
-            /// THIS HAS VERY SIMILAR FIELDS TO THE RESPONSE DEFINITION. MAYBE WE SHOULD ABSTRACT TO "STANDARD HEADER" \+ TYPE HEADER"
-            Dictionary<string, object> requestHeader = new Dictionary<string, object>
-            {
-                { "OriginId", $"{Mother.Id}" },
-                { "OriginName", Mother.CubeGrid.CustomName },
-                { "Path", path },
-                { "px", $"{currentPosition}" },
-                { "x", $"{currentPosition.X}" },
-                { "y", $"{currentPosition.Y}" },
-                { "z", $"{currentPosition.Z}" },
-                { "SafeRadius", $"{Mother.SafeZone.Radius}" },
-                { "gravity", $"{Mother.GetGravity()}"   },
-                { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
-            };
+            Dictionary<string, object> requestHeader = GetStandardHeader();
+            requestHeader["Path"] = path; // add the path to the header
 
             Dictionary<string, object> requestBody = new Dictionary<string, object>();
 
