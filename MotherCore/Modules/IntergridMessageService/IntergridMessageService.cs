@@ -97,7 +97,8 @@ namespace IngameScript
         bool UseEncryption;
 
         /// <summary>
-        /// The channels that are used for intergrid communication.
+        /// The channels that are used for intergrid communication 
+        /// as name=>passcode pairs.
         /// </summary>
         public Dictionary<string, string> Channels = new Dictionary<string, string>();
 
@@ -109,7 +110,6 @@ namespace IngameScript
         {
             //Mother = mother;
             Router = new Router();
-
         }
 
         /// <summary>
@@ -215,16 +215,12 @@ namespace IngameScript
         /// <param name="message"></param>
         public void HandleIncomingIGCMessage(MyIGCMessage message)
         {
-            //string messageData = DecryptIncomingMessage(message);
-
-
-            //Mother.Print($"Channel: {message.Tag}");
-
             string messageData = $"{message.Data}";
 
             // Decrypt message if it is encrypted
             messageData = Security.IsEncrypted(messageData) ?
-                Security.Decrypt(messageData) :
+                DecryptIncomingMessage(message) :
+                //Security.Decrypt(messageData) :
                 messageData;
 
             // Handle an incoming Request
@@ -233,8 +229,8 @@ namespace IngameScript
                 Request deserializedRequest = Request.Deserialize(messageData);
 
                 if (deserializedRequest != null)
-                    HandleIncomingRequest(deserializedRequest);
-                //HandleIncomingRequest(deserializedRequest, message.Tag);
+                    //HandleIncomingRequest(deserializedRequest);
+                    HandleIncomingRequest(deserializedRequest, message.Tag);
 
                 else
                     Log.Error(Messages.MessageDeserializationFailed);
@@ -254,14 +250,16 @@ namespace IngameScript
 
         /// <summary>
         /// Handle and incoming Request.
-        /// </summary>
+        /// </summary>`
         /// <param name="request"></param>
         /// <param name="channel"></param>
-        void HandleIncomingRequest(Request request)
+        void HandleIncomingRequest(Request request, string channel)
         {
             if (request == null) return;
 
-            //EventBus.Emit<RequestReceivedEvent>();
+            // mark request as coming from specific channel
+            request.Channels.Add(channel);
+
             Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
 
             long originId = request.HLong("OriginId");
@@ -283,7 +281,7 @@ namespace IngameScript
                 record.IFFCode = AlmanacRecord.TransponderCode.Local;
 
             // add channel
-            //record.Channels.Add(channel);
+            record.Channels.Add(channel);
 
             // set nickname
             record.AddNickname(name);
@@ -291,7 +289,11 @@ namespace IngameScript
 
             Mother.GetModule<Almanac>().AddRecord(record);
 
-            Response response = Router.HandleRoute(request.HString("Path"), request);
+            // Get the Response from a Route
+            Response response = Router.HandleRoute(
+                request.HString("Path"), 
+                request
+            );
             
             if(response != null)
                 SendUnicastRequest(response.HLong("TargetId"), response, null);
@@ -320,6 +322,7 @@ namespace IngameScript
             }
         }
 
+       
         /// <summary>
         /// Send a unicast request to a specific grid.
         /// </summary>
@@ -387,7 +390,7 @@ namespace IngameScript
                 SendUnicastRequest(record.GetLongId(), request, null);
             }
         }
-        
+
         /// <summary>
         /// Send a Request to all grids from a Terminal Routine.
         /// This is done using the remote command syntax.

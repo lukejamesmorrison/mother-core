@@ -39,6 +39,11 @@ namespace IngameScript
         public Dictionary<string, object> Body = new Dictionary<string, object>();
 
         /// <summary>
+        /// The channels that the request should be sent via.
+        /// </summary>
+        public HashSet<string> Channels = new HashSet<string>();
+
+        /// <summary>
         /// The unique identifier of the message object.
         /// </summary>
         public string Id { get; } = GenerateUniqueId();
