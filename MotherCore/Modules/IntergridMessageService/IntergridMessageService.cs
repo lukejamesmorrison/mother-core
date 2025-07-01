@@ -95,6 +95,11 @@ namespace IngameScript
         IMyBroadcastListener BroadcastListener;
 
         /// <summary>
+        /// List of BroadcastListeners for receiving broadcast messages.
+        /// </summary>
+        List<IMyBroadcastListener> BroadcastListeners = new List<IMyBroadcastListener>();
+
+        /// <summary>
         /// Is the IntergridMessageService using encryption.
         /// </summary>
         //bool UseEncryption;
@@ -179,6 +184,8 @@ namespace IngameScript
                 // Register broadcast listener for each channel
                 BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel.Key);
                 BroadcastListener.SetMessageCallback();
+
+                //BroadcastListeners.Add(Mother.IGC.RegisterBroadcastListener(channel.Key));
             }
         }
 
@@ -192,7 +199,15 @@ namespace IngameScript
                 while (UnicastListener.HasPendingMessage)
                     HandleIncomingIGCMessage(UnicastListener.AcceptMessage());
 
-            // broadcast
+            //BroadcastListeners.ForEach(listener =>
+            //{
+            //    if (listener.HasPendingMessage)
+            //        while (listener.HasPendingMessage)
+            //            HandleIncomingIGCMessage(listener.AcceptMessage());
+            //});
+
+
+            //// broadcast
             if (BroadcastListener != null && BroadcastListener.HasPendingMessage)
                 while (BroadcastListener.HasPendingMessage)
                     HandleIncomingIGCMessage(BroadcastListener.AcceptMessage());
