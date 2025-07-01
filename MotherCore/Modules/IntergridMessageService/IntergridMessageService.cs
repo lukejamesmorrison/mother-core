@@ -60,7 +60,7 @@ namespace IngameScript
         /// <summary>
         /// The Security core module.
         /// </summary>
-        Security Security;
+        //Security Security;
 
         /// <summary>
         /// The Almanac core module.
@@ -96,7 +96,7 @@ namespace IngameScript
         /// <summary>
         /// Is the IntergridMessageService using encryption.
         /// </summary>
-        bool UseEncryption;
+        //bool UseEncryption;
 
         /// <summary>
         /// The channels that are used for intergrid communication 
@@ -123,11 +123,11 @@ namespace IngameScript
         {
             Clock = Mother.GetModule<Clock>();
             Log = Mother.GetModule<Log>();
-            Security = Mother.GetModule<Security>();
+            //Security = Mother.GetModule<Security>();
             Almanac = Mother.GetModule<Almanac>();
             EventBus = Mother.GetModule<EventBus>();
 
-            UseEncryption = Security.USE_ENCRYPTION;
+            //UseEncryption = Security.USE_ENCRYPTION;
 
             // Register commands
             Mother.RegisterCommand(new PingCommand(Mother));
@@ -142,6 +142,12 @@ namespace IngameScript
             Clock.Schedule(Ping, 2);
         }
 
+        /// <summary>
+        /// Load channels from the configuration. Channels are defined in the "channels" 
+        /// section of the programmable block's custom data. The channel name acts as 
+        /// the key, and the passcode as its value. If a channel is not defined, 
+        /// it will not be available for communication.
+        /// </summary>
         void LoadChannels()
         {
             var config = Mother.GetModule<Configuration>();
@@ -194,6 +200,15 @@ namespace IngameScript
             activeRequests.Clear();
         }
 
+
+        /// <summary>
+        /// Decrypt an incoming IGC message. The message is expected to be encrypted 
+        /// with a passcode specific to the communication channel. If the passcode
+        /// is not set, the message is returned as is representing an 
+        /// unsecure message.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
         string DecryptIncomingMessage(MyIGCMessage message)
         {
             string messageData = $"{message.Data}";
@@ -205,7 +220,6 @@ namespace IngameScript
             // Decrypt message if it is encrypted
             if(passcode == "")
                 return messageData;
-
             else
                 return Security.Decrypt(messageData, passcode);
         }
