@@ -242,10 +242,14 @@ namespace IngameScript
             if (messageData.StartsWith("REQUEST::"))
             {
                 Request deserializedRequest = Request.Deserialize(messageData);
-                deserializedRequest.Channels.Add(message.Tag);
 
                 if (deserializedRequest != null)
+                {
+                    deserializedRequest.Channels.Add(message.Tag);
+                    UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedRequest);
                     HandleIncomingRequest(deserializedRequest);
+                }
+            
                 else
                     Log.Error(Messages.MessageDeserializationFailed);
             }
@@ -254,10 +258,13 @@ namespace IngameScript
             else if (messageData.StartsWith("RESPONSE::"))
             {
                 Response deserializedResponse = Response.Deserialize(messageData);
-                deserializedResponse.Channels.Add(message.Tag);
 
                 if (deserializedResponse != null)
+                {
+                    deserializedResponse.Channels.Add(message.Tag);
+                    UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedResponse);
                     HandleIncomingResponse(deserializedResponse);
+                }
                 else
                     Log.Error(Messages.MessageDeserializationFailed);
             }
@@ -266,28 +273,28 @@ namespace IngameScript
         /// <summary>
         /// Update or create an AlmanacRecord from an incoming Request.
         /// </summary>
-        /// <param name="request"></param>
+        /// <param name="message"></param>
         /// <returns></returns>
-        AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(Request request)
+        AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(IntergridMessageObject message)
         {
-            long originId = request.HLong("OriginId");
-            string name = request.HString("OriginName");
-            float x = request.HFloat("x");
-            float y = request.HFloat("y");
-            float z = request.HFloat("z");
-            float speed = request.HFloat("speed");
+            long originId = message.HLong("OriginId");
+            string name = message.HString("OriginName");
+            float x = message.HFloat("x");
+            float y = message.HFloat("y");
+            float z = message.HFloat("z");
+            float speed = message.HFloat("speed");
 
             AlmanacRecord record;
             AlmanacRecord existingRecord = Almanac.GetRecord($"{originId}");
 
-            // if record exists, update it with request data
+            // if record exists, update it with message data
             if (existingRecord != null)
             {
                 existingRecord.Position = new Vector3D(x, y, z);
                 existingRecord.Speed = speed;
 
-                // add request channels to existing record channels
-                existingRecord.Channels.UnionWith(request.Channels);
+                // add message channels to existing record channels
+                existingRecord.Channels.UnionWith(message.Channels);
 
                 record = existingRecord;
             }
@@ -307,7 +314,7 @@ namespace IngameScript
                     record.IFFCode = AlmanacRecord.TransponderCode.Local;
 
                 // add channel
-                record.Channels = request.Channels;
+                record.Channels = message.Channels;
 
                 // set nickname
                 record.AddNickname(name);
@@ -328,7 +335,6 @@ namespace IngameScript
 
             Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
 
-            AlmanacRecord record = UpdateOrCreateAlmanacRecordFromIncomingRequest(request);
 
             // Get the Response from a Route
             Response response = Router.HandleRoute(
@@ -364,7 +370,7 @@ namespace IngameScript
 
        
         /// <summary>
-        /// Send a unicast request to a specific grid.
+        /// Send a unicast message to a specific grid.
         /// </summary>
         /// <param name="TargetId"></param>
         /// <param name="message"></param>
@@ -405,7 +411,7 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Send an open broadcast request to all grids.
+        /// Send an open broadcast message to all grids.
         /// </summary>
         /// <param name="request"></param>
         /// <param name="onResponse"></param>
@@ -424,8 +430,8 @@ namespace IngameScript
             }
 
             //string outgoingMessage = UseEncryption ?
-            //    Security.Encrypt(request.Serialize()) :
-            //    request.Serialize();
+            //    Security.Encrypt(message.Serialize()) :
+            //    message.Serialize();
 
             //Mother.IGC.SendBroadcastMessage("default", outgoingMessage);
 
@@ -570,7 +576,7 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Send a ping request to all grids running Mother.
+        /// Send a ping message to all grids running Mother.
         /// </summary>
         public void Ping()
         {
@@ -583,7 +589,7 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Create a ping response to a ping request. This is used to to share the 
+        /// Create a ping response to a ping message. This is used to to share the 
         /// grid's position details with other grids.
         /// </summary>
         /// <param name="request"></param>
