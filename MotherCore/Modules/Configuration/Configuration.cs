@@ -63,6 +63,11 @@ namespace IngameScript
         public readonly MyIni Ini = new MyIni();
 
         /// <summary>
+        /// Raw MyIni object. This is used to access the raw configuration data.
+        /// </summary>
+        public MyIni Raw => Ini;
+
+        /// <summary>
         /// Constructor. We load the configuration of the programmable block running Mother.
         /// </summary>
         /// <param name="mother"></param>

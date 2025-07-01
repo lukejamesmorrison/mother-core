@@ -97,6 +97,11 @@ namespace IngameScript
         bool UseEncryption;
 
         /// <summary>
+        /// The channels that are used for intergrid communication.
+        /// </summary>
+        public Dictionary<string, string> Channels = new Dictionary<string, string>();
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
@@ -105,7 +110,6 @@ namespace IngameScript
             //Mother = mother;
             Router = new Router();
 
-            RegisterIGCListeners();
         }
 
         /// <summary>
@@ -126,10 +130,31 @@ namespace IngameScript
             // Register commands
             Mother.RegisterCommand(new PingCommand(Mother));
 
+            // Load channels
+            LoadChannels();
+            RegisterIGCListeners();
+
             // ROUTES
             Router.AddRoute("ping", (request) => CreatePingResponse(request));
 
             Clock.Schedule(Ping, 2);
+        }
+
+        void LoadChannels()
+        {
+            var config = Mother.GetModule<Configuration>();
+
+            // channels are keys
+            var keys = new List<MyIniKey>();
+
+            config.Raw.GetKeys("channels", keys);
+
+            foreach (MyIniKey key in keys)
+            {
+                var value = config.Raw.Get(key.Section, key.Name);
+                Channels[key.Name] = $"{value}";
+            }
+     
         }
 
         /// <summary>
@@ -137,24 +162,15 @@ namespace IngameScript
         /// </summary>
         void RegisterIGCListeners()
         {
-            //List<string> channels = new List<string>()
-            //{
-            //    "default"
-            //};
-
-            //channels.ForEach(channel =>
-            //{
-            //    if (Mother.IGC.UnicastListener == null)
-            //        Mother.IGC.UnicastListener = Mother.IGC.RegisterUnicastListener(channel);
-            //    if (Mother.IGC.BroadcastListener == null)
-            //        Mother.IGC.BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel);
-            //});
-
             UnicastListener = Mother.IGC.UnicastListener;
-            BroadcastListener = Mother.IGC.RegisterBroadcastListener("default");
+            UnicastListener.SetMessageCallback();
 
-            UnicastListener.SetMessageCallback("default");
-            BroadcastListener.SetMessageCallback("default");
+            foreach (var channel in Channels)
+            {
+                // Register broadcast listener for each channel
+                BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel.Key);
+                BroadcastListener.SetMessageCallback();
+            }
         }
 
         /// <summary>
@@ -163,17 +179,33 @@ namespace IngameScript
         public void HandleIncomingIGCMessages()
         {
             // unicast
-            if (UnicastListener.HasPendingMessage)
+            if (UnicastListener != null && UnicastListener.HasPendingMessage)
                 while (UnicastListener.HasPendingMessage)
                     HandleIncomingIGCMessage(UnicastListener.AcceptMessage());
 
             // broadcast
-            if (BroadcastListener.HasPendingMessage)
+            if (BroadcastListener != null && BroadcastListener.HasPendingMessage)
                 while (BroadcastListener.HasPendingMessage)
                     HandleIncomingIGCMessage(BroadcastListener.AcceptMessage());
 
             // clear active requests after handling incoming messages
             activeRequests.Clear();
+        }
+
+        string DecryptIncomingMessage(MyIGCMessage message)
+        {
+            string messageData = $"{message.Data}";
+            string channel = message.Tag;
+
+            // get channel from available channels
+            string passcode = Channels.ContainsKey(channel) ? Channels[channel] : "";
+
+            // Decrypt message if it is encrypted
+            if(passcode == "")
+                return messageData;
+
+            else
+                return Security.Decrypt(messageData, passcode);
         }
 
         /// <summary>
@@ -183,6 +215,11 @@ namespace IngameScript
         /// <param name="message"></param>
         public void HandleIncomingIGCMessage(MyIGCMessage message)
         {
+            //string messageData = DecryptIncomingMessage(message);
+
+
+            //Mother.Print($"Channel: {message.Tag}");
+
             string messageData = $"{message.Data}";
 
             // Decrypt message if it is encrypted
@@ -197,6 +234,8 @@ namespace IngameScript
 
                 if (deserializedRequest != null)
                     HandleIncomingRequest(deserializedRequest);
+                //HandleIncomingRequest(deserializedRequest, message.Tag);
+
                 else
                     Log.Error(Messages.MessageDeserializationFailed);
             }
@@ -217,6 +256,7 @@ namespace IngameScript
         /// Handle and incoming Request.
         /// </summary>
         /// <param name="request"></param>
+        /// <param name="channel"></param>
         void HandleIncomingRequest(Request request)
         {
             if (request == null) return;
@@ -224,7 +264,7 @@ namespace IngameScript
             //EventBus.Emit<RequestReceivedEvent>();
             Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
 
-            string id = request.HString("OriginId");
+            long originId = request.HLong("OriginId");
             string name = request.HString("OriginName");
             float x = request.HFloat("x");
             float y = request.HFloat("y");
@@ -232,12 +272,20 @@ namespace IngameScript
 
             // attempt to update almanac with request data
             AlmanacRecord record = new AlmanacRecord(
-                $"{id}",
+                $"{originId}",
                 "grid",
                 new Vector3D(x, y, z),
                 0f
             );
 
+            // set IFF code
+            if (OriginIsLocal(originId))
+                record.IFFCode = AlmanacRecord.TransponderCode.Local;
+
+            // add channel
+            //record.Channels.Add(channel);
+
+            // set nickname
             record.AddNickname(name);
 
 
@@ -282,6 +330,11 @@ namespace IngameScript
         {
             // Register the message callback
             activeRequests[$"{message.Header["Id"]}"] = onResponse;
+
+            // get first channel
+            // we will later refactor to get the channel's passcode
+            //string channel = Channels.FirstOrDefault() ?? "default";
+
 
             // Send the message via unicast
             string outgoingMessage = UseEncryption ?
@@ -505,14 +558,25 @@ namespace IngameScript
 
             almanacRecord.AddNickname(response.HString("OriginName"));
 
-            // TODO: get this working to support IFF build out
-            almanacRecord.IsLocal = Mother
-                .GetModule<BlockCatalogue>()
-                .GetBlocks<IMyProgrammableBlock>()
-                .Any(pb =>pb.EntityId == response.HLong("OriginId"));
+            bool IsLocal = OriginIsLocal(response.HLong("OriginId"));
 
-            if (!almanacRecord.IsLocal)
-                Almanac.AddRecord(almanacRecord);
+                //Mother
+                //.GetModule<BlockCatalogue>()
+                //.GetBlocks<IMyProgrammableBlock>()
+                //.Any(pb =>pb.EntityId == response.HLong("OriginId"));
+
+            if(IsLocal)
+                almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
+
+            //if (!almanacRecord.IsLocal)
+            Almanac.AddRecord(almanacRecord);
+        }
+
+        bool OriginIsLocal(long originId)
+        {
+            return Mother.GetModule<BlockCatalogue>()
+                .GetBlocks<IMyProgrammableBlock>()
+                .Any(pb => pb.EntityId == originId);
         }
     }
 }

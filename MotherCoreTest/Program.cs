@@ -35,7 +35,7 @@ namespace IngameScript
             });
 
             // Boot Mother with all registered modules.
-            mother.Boot();
+            //mother.Boot();
         }
 
         public void Save()

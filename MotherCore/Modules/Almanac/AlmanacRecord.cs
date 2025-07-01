@@ -47,7 +47,7 @@ namespace IngameScript
         /// The transponder codes for each entity. These are set 
         /// based up communication channel. 
         /// </summary>
-        public enum TransponderStatus
+        public enum TransponderCode
         {
             Local,
             Friendly,
@@ -81,7 +81,7 @@ namespace IngameScript
         /// Is the entity local? This is true when an entity is of type "grid" 
         /// and is on the same construct as the current Programmable Block.
         /// </summary>
-        public bool IsLocal = false;
+        //public bool IsLocal = false;
 
         /// <summary>
         /// The safe radius of the entity. This is used t ensure we never 
@@ -101,6 +101,17 @@ namespace IngameScript
         /// </summary>
         public List<string> Nicknames = new List<string>();
 
+        ///<summary>
+        /// The transponder code for the entity. This is used to 
+        /// categorize the entity for communications and combat.
+        /// </summary>
+        public TransponderCode IFFCode { get; set; }
+
+        /// <summary>
+        /// The communication channels the entity is subscribed to.
+        /// </summary>
+        public HashSet<string> Channels = new HashSet<string>();
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -115,6 +126,9 @@ namespace IngameScript
             Position = position;
             Speed = speed;
             EntityType = entityType;
+
+            //if(EntityType == EntityTypes["grid"])
+            IFFCode = TransponderCode.Neutral;
         }
 
         /// <summary>
@@ -132,6 +146,30 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Is the entity friendly?
+        /// </summary>
+        /// <returns></returns>
+        public bool IsFriendly() => IFFCode == TransponderCode.Friendly;
+
+        /// <summary>
+        /// Is the entity hostile?
+        /// </summary>
+        /// <returns></returns>
+        public bool IsHostile() => IFFCode == TransponderCode.Hostile;
+
+        /// <summary>
+        /// Is the entity neutral?
+        /// </summary>
+        /// <returns></returns>
+        public bool IsNeutral() => IFFCode == TransponderCode.Neutral;
+
+        /// <summary>
+        /// Is the entity local?
+        /// </summary>
+        /// <returns></returns>
+        public bool IsLocalEntity() => IFFCode == TransponderCode.Local;
+
+        /// <summary>
         /// Serialize the AlmanacRecord object to a string. This is used to 
         /// save the record, or transmit it via a message.
         /// </summary>
@@ -142,7 +180,7 @@ namespace IngameScript
             {
                 { "Id", $"{Id}" },
                 { "UpdatedAt", $"{UpdatedAt.Ticks}" },
-                { "IsLocal", $"{IsLocal}" },
+                { "IsLocal", $"{IsLocalEntity()}" },
                 { "pos", $"{Position}" },
                 { "LastKnownSpeed", $"{Speed}" },
                 { "EntityType", EntityTypes[EntityType] },
@@ -168,7 +206,6 @@ namespace IngameScript
             double y = double.Parse(vectorParts[1].Substring(2));
             double z = double.Parse(vectorParts[2].Substring(2));
             string entityType = $"{dict["EntityType"]}";
-            //bool isLocal = bool.Parse(dict["IsLocal"].ToString());
 
             AlmanacRecord almanacRecord = new AlmanacRecord(
                 $"{dict["Id"]}",
@@ -176,6 +213,12 @@ namespace IngameScript
                 new Vector3D(x, y, z),
                 0
             );
+
+            // is the entity local?
+            bool isLocal = bool.Parse(dict["IsLocal"].ToString());
+
+            if (isLocal)
+                almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
 
             // add nicknames
             string[] nicknames = $"{dict["Nicknames"]}".Split(',');

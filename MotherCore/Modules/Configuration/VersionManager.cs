@@ -79,7 +79,7 @@ namespace IngameScript
 
                 // get current passcodes
                 string passcodes = Config.Get("security", "passcodes").ToString();
-                Config.Set("channels", "Channel1", passcodes);
+                Config.Set("channels", "default", passcodes);
 
                 // delete security section as it is now redundant
                 if (Config.ContainsSection("security"))

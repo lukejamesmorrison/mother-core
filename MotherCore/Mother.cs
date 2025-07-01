@@ -486,34 +486,22 @@ namespace IngameScript
         /// </summary>
         void OtherRuntimeItems()
         {
-            // get list of jukeboxes
+            // get list of local almanac records if local
+            var localRecords = GetModule<Almanac>().Records.FindAll(record => record.IsLocalEntity());
+            var neutralRecords = GetModule<Almanac>().Records.FindAll(record => record.IsNeutral());
+            var friendlyRecords = GetModule<Almanac>().Records.FindAll(record => record.IsFriendly());
 
-            //Dictionary<string, List<IMyTerminalBlock>> tags = BlockCatalogue.BlockTags;
-            //string tagsString = "";
+            Terminal terminal  = GetModule<Terminal>();
 
-            //// print out the tag, and then the name of the related blocks
+            terminal.Highlight($"Local Entities: {localRecords.Count}");
+            terminal.Highlight($"Neutral Entities: {neutralRecords.Count}");
+            terminal.Highlight($"Friendly Entities: {friendlyRecords.Count}");
 
-            //foreach (var tag in tags) {
-            //    tagsString += $"{tag.Key}: {tag.Value.Count}\n";
-
-            //    foreach (var block in tag.Value)
-            //    {
-            //        tagsString += $"- {block.CustomName}\n";
-            //    }
-            //}
-
-            //Terminal.Highlight(tagsString);
+            //Print the active comms channels
+            var channels = GetModule<IntergridMessageService>().Channels;
+            string channelDetails = string.Join("\n", channels.Select(c => $"{c.Key}: {c.Value}"));
+            terminal.Highlight($"Channels:\n{channelDetails}");
         }
-
-        /// <summary>
-        /// Reboot the system. This is used to reset the system and reinitialize 
-        /// without requiring a recompile.
-        /// </summary>
-        //public void Reboot()
-        //{
-        //    //Initialize(Program);
-        //    //Boot();
-        //}
 
         /// <summary>
         /// UNUSED
