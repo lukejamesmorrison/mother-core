@@ -302,8 +302,11 @@ namespace IngameScript
                 // add message channels to existing record channels
                 existingRecord.Channels.UnionWith(message.Channels);
 
+                existingRecord.UpdatedAt = DateTime.Now;
+
                 record = existingRecord;
             }
+
 
             // if record does not exist, create a new one
             else
@@ -325,6 +328,10 @@ namespace IngameScript
                 // set nickname
                 record.AddNickname(name);
             }
+
+            // if the message channel is not the public channel "*", then we will set to friendly
+            if (!message.Channels.Contains("*") && record.IFFCode == AlmanacRecord.TransponderCode.Neutral)
+                record.IFFCode = AlmanacRecord.TransponderCode.Friendly;
 
             Mother.GetModule<Almanac>().AddRecord(record);
 

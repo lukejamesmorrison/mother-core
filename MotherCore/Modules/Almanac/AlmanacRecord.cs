@@ -180,7 +180,7 @@ namespace IngameScript
             {
                 { "Id", $"{Id}" },
                 { "UpdatedAt", $"{UpdatedAt.Ticks}" },
-                { "IsLocal", $"{IsLocalEntity()}" },
+                //{ "IsLocal", $"{IsLocalEntity()}" },
                 { "pos", $"{Position}" },
                 { "LastKnownSpeed", $"{Speed}" },
                 { "EntityType", EntityTypes[EntityType] },
@@ -215,10 +215,10 @@ namespace IngameScript
             );
 
             // is the entity local?
-            bool isLocal = bool.Parse(dict["IsLocal"].ToString());
+            //bool isLocal = bool.Parse(dict["IsLocal"].ToString());
 
-            if (isLocal)
-                almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
+            //if (isLocal)
+            //    almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
 
             // add nicknames
             string[] nicknames = $"{dict["Nicknames"]}".Split(',');

@@ -472,8 +472,6 @@ namespace IngameScript
                 // Otherwise we run all modules and assume a runtime update.
                 RunModules();
                 OtherRuntimeItems();
-
-
             }
        
         }
@@ -493,37 +491,33 @@ namespace IngameScript
         void OtherRuntimeItems()
         {
             // get list of local almanac records if local
-            var localRecords = GetModule<Almanac>().Records.FindAll(record => record.IsLocalEntity());
-            var neutralRecords = GetModule<Almanac>().Records.FindAll(record => record.IsNeutral());
-            var friendlyRecords = GetModule<Almanac>().Records.FindAll(record => record.IsFriendly());
+            //var localRecords = GetModule<Almanac>().Records.FindAll(record => record.IsLocalEntity());
+            //var neutralRecords = GetModule<Almanac>().Records.FindAll(record => record.IsNeutral());
+            //var friendlyRecords = GetModule<Almanac>().Records.FindAll(record => record.IsFriendly());
 
-            Terminal terminal  = GetModule<Terminal>();
+            //Terminal terminal  = GetModule<Terminal>();
 
             //terminal.Highlight($"Local Entities: {localRecords.Count}");
             //terminal.Highlight($"Neutral Entities: {neutralRecords.Count}");
             //terminal.Highlight($"Friendly Entities: {friendlyRecords.Count}");
 
-            //Print the active comms channels
-            //var channels = GetModule<IntergridMessageService>().Channels;
-            //string channelDetails = string.Join("\n", channels.Select(c => $"{c.Key}: {c.Value}"));
-            //terminal.Highlight($"Channels:\n{channelDetails}");
 
-            // flatten the list of AlmanacRecord.Channels and count occurances of each isntance
-            var channelCounts = new Dictionary<string, int>();
-            foreach (var record in GetModule<Almanac>().Records)
-            {
-                foreach (var channel in record.Channels)
-                {
-                    if (channelCounts.ContainsKey(channel))
-                        channelCounts[channel]++;
-                    else
-                        channelCounts[channel] = 1;
-                }
-            }
+            //// flatten the list of AlmanacRecord.Channels and count occurances of each isntance
+            //var channelCounts = new Dictionary<string, int>();
+            //foreach (var record in GetModule<Almanac>().Records)
+            //{
+            //    foreach (var channel in record.Channels)
+            //    {
+            //        if (channelCounts.ContainsKey(channel))
+            //            channelCounts[channel]++;
+            //        else
+            //            channelCounts[channel] = 1;
+            //    }
+            //}
 
-            // Print the channel counts
-            string channelCountDetails = string.Join("\n", channelCounts.Select(c => $"{c.Key}: {c.Value}"));
-            terminal.Highlight($"Channel Counts:\n{channelCountDetails}");
+            //// Print the channel counts
+            //string channelCountDetails = string.Join("\n", channelCounts.Select(c => $"{c.Key}: {c.Value}"));
+            //terminal.Highlight($"Channel Counts:\n{channelCountDetails}");
         }
 
         /// <summary>
@@ -533,10 +527,10 @@ namespace IngameScript
         /// the program speed. This is currently unused and is subject to ongoing 
         /// experimentation.
         /// </summary>
-        public void SetUpdateFrequency()
-        {
-            //Runtime.UpdateFrequency = Configuration.Get("general.update_frequency") == "10" ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
-        }
+        //public void SetUpdateFrequency()
+        //{
+        //    //Runtime.UpdateFrequency = Configuration.Get("general.update_frequency") == "10" ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
+        //}
 
         /// <summary>
         /// Save the storage string to the Program's Storage property. We do this to 
@@ -651,9 +645,9 @@ namespace IngameScript
         {
             Terminal terminal = GetModule<Terminal>();
 
+            // Use default echo if Terminal module is not available
             if (terminal == null)
                 Program.Echo(message);
-
             else
                 terminal.Print(message, trim);
         }

@@ -11,6 +11,15 @@
 - Rename `nav/set-flight-plan` to `fp/set`
 
 
+## [0.2.14] - 2025-07-XX]
+
+### Added
+- Add `ALMANAC` display target to print the list of Alamanc records to the screen as a companion for the `MAP` display.
+- Add `VersionManager` as part of Configuration module which will automatically update the programmable blocks Custom Data to help players update versions. This will be closely maintained and controlled for bloat as new versions are released.  
+
+### Updated
+- The communications system has been refactored to support simultaneous communication on multiple channels at once. This requires changes to the programmable block's custom data.
+
 ## [0.2.13] - 2025-06-28]
 ### Added
 - Add `boot` command to trigger system boot process.
