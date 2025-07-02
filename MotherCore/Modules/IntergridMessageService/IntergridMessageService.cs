@@ -92,7 +92,7 @@ namespace IngameScript
         /// <summary>
         /// The BroadcastListener instance for receiving broadcast messages.
         /// </summary>
-        IMyBroadcastListener BroadcastListener;
+        //IMyBroadcastListener BroadcastListener;
 
         /// <summary>
         /// List of BroadcastListeners for receiving broadcast messages.
@@ -182,10 +182,7 @@ namespace IngameScript
             foreach (var channel in Channels)
             {
                 // Register broadcast listener for each channel
-                BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel.Key);
-                BroadcastListener.SetMessageCallback();
-
-                //BroadcastListeners.Add(Mother.IGC.RegisterBroadcastListener(channel.Key));
+                BroadcastListeners.Add(Mother.IGC.RegisterBroadcastListener(channel.Key));
             }
         }
 
@@ -194,28 +191,20 @@ namespace IngameScript
         /// </summary>
         public void HandleIncomingIGCMessages()
         {
-            // unicast
-            if (UnicastListener != null && UnicastListener.HasPendingMessage)
-                while (UnicastListener.HasPendingMessage)
-                    HandleIncomingIGCMessage(UnicastListener.AcceptMessage());
+            // unicast message
+            while (UnicastListener?.HasPendingMessage == true)
+                HandleIncomingIGCMessage(UnicastListener.AcceptMessage());
 
-            //BroadcastListeners.ForEach(listener =>
-            //{
-            //    if (listener.HasPendingMessage)
-            //        while (listener.HasPendingMessage)
-            //            HandleIncomingIGCMessage(listener.AcceptMessage());
-            //});
-
-
-            //// broadcast
-            if (BroadcastListener != null && BroadcastListener.HasPendingMessage)
-                while (BroadcastListener.HasPendingMessage)
-                    HandleIncomingIGCMessage(BroadcastListener.AcceptMessage());
+            // broadcast message
+            BroadcastListeners.ForEach(listener =>
+            {
+                while (listener?.HasPendingMessage == true)
+                    HandleIncomingIGCMessage(listener.AcceptMessage());
+            });
 
             // clear active requests after handling incoming messages
             activeRequests.Clear();
         }
-
 
         /// <summary>
         /// Decrypt an incoming IGC message. The message is expected to be encrypted 
@@ -446,12 +435,6 @@ namespace IngameScript
                 Mother.IGC.SendBroadcastMessage(channel.Key, outgoingMessage);
             }
 
-            //string outgoingMessage = UseEncryption ?
-            //    Security.Encrypt(message.Serialize()) :
-            //    message.Serialize();
-
-            //Mother.IGC.SendBroadcastMessage("default", outgoingMessage);
-
             EventBus.Emit<RequestSentEvent>();
         }
 
@@ -652,60 +635,5 @@ namespace IngameScript
                 .GetBlocks<IMyProgrammableBlock>()
                 .Any(pb => pb.EntityId == originId);
         }
-
-        /// <summary>
-        /// Create a ping response to a ping message. This is used to to share the 
-        /// grid's position details with other grids.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        //public Response CreatePingResponse(Request request)
-        //{
-        //    //Vector3D currentPosition = Mother.CubeGrid.GetPosition();
-
-        //    //Dictionary<string, object> responseBody = new Dictionary<string, object>()
-        //    //{
-        //    //    { "x", $"{currentPosition.X}" },
-        //    //    { "y", $"{currentPosition.Y}" },
-        //    //    { "z", $"{currentPosition.Z}" },
-        //    //    { "px", $"{currentPosition}" },
-        //    //    //{ "speed", $"{speed}" },
-        //    //    { "Name", Mother.Name },
-        //    //    { "Id", $"{Mother.Id}" },
-        //    //    { "SafeRadius", $"{Mother.SafeZone.Radius}" }
-        //    //};
-
-        //    return CreateResponse(request, Response.ResponseStatusCodes.OK);
-        //}
-
-        /// <summary>
-        /// Handle a ping response.
-        /// </summary>
-        /// <param name="response"></param>
-        //void OnPingResponse(IntergridMessageObject response)
-        //{
-        //    //AlmanacRecord almanacRecord = new AlmanacRecord(
-        //    //    response.BString("Id"),
-        //    //    "grid",
-        //    //    new Vector3D(
-        //    //        response.BDouble("x"),
-        //    //        response.BDouble("y"),
-        //    //        response.BDouble("z")
-        //    //    )
-        //    //)
-        //    //{
-        //    //    SafeRadius = response.HDouble("SafeRadius"),
-        //    //};
-
-        //    //almanacRecord.AddNickname(response.HString("OriginName"));
-
-        //    //bool IsLocal = OriginIsLocal(response.HLong("OriginId"));
-
-        //    //if(IsLocal)
-        //    //    almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
-
-        //    ////if (!almanacRecord.IsLocal)
-        //    //Almanac.AddRecord(almanacRecord);
-        //}
     }
 }
