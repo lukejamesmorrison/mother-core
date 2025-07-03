@@ -110,13 +110,13 @@ namespace IngameScript
 
             output +=
                 //"------------------------------------------------------\n" +
-                $" {Mother.SYSTEM_NAME}          {GetIndicators()}   ({Clock.GetLoader()})\n" +
+                $" {Mother.SYSTEM_NAME}          {GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
                 $" {Mother.Name} *{Mother.ShortId}\n" +
                 $"------------------------------------------------------\n" +
                 //$"{GetTestStrings()}\n";
                 "";
 
-            if(Highlights != "")
+            if (Highlights != "")
                 output +=
                     $"{GetHighlights()}" +
                     $"------------------------------------------------------\n" +
@@ -154,7 +154,9 @@ namespace IngameScript
             string almanacCount = $"{Mother.GetModule<Almanac>().Records.Count()}";
             string autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ";
             string commandQueueIndicator = Mother.GetModule<CommandBus>().WaypointRoutineQueue.WaypointRoutines.Count > 0 ? "Q" : "   ";
-            string waitQueueIndicator = Clock.QueuedTaskCount > 0 ? "W" : "   ";
+            string waitQueueIndicator = Mother.GetModule<Clock>().QueuedTaskCount > 0 ? "W" : "   ";
+
+            //return "";
 
             return String.Join(
                 "  ",
@@ -165,6 +167,7 @@ namespace IngameScript
                 activityMonitorIndicator,
                 almanacCount
             );
+
         }
 
         /// <summary>

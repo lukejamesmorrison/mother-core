@@ -33,7 +33,8 @@ namespace IngameScript
     public class Mother
     {
         /// <summary>
-        /// The Program wrapper. This is used to access the Programmable Block's API.
+        /// The Program wrapper. This is used to access the 
+        /// Programmable Block's API.
         /// </summary>
         public MyGridProgram Program;
 
@@ -43,7 +44,8 @@ namespace IngameScript
         public const string SYSTEM_NAME = "Mother OS";
 
         /// <summary>
-        /// The command line tool used to parse Arguments and options from the Space Engineers terminal.
+        /// The command line tool used to parse Arguments and 
+        /// options from the Space Engineers terminal.
         /// </summary>
         public MyCommandLine commandLine;
 
@@ -86,8 +88,8 @@ namespace IngameScript
         public IMyGridProgramRuntimeInfo Runtime;
 
         /// <summary>
-        /// The Id of the system. This is equal to IGC.Me to ensure uniqueness when
-        /// communications with other grids.
+        /// The Id of the system. This is equal to IGC.Me to ensure 
+        /// uniqueness when communications with other grids.
         /// </summary>
         public long Id;
 
@@ -102,7 +104,9 @@ namespace IngameScript
         public long GridId;
 
         /// <summary>
-        /// The name of the current grid.
+        /// The name of the grid. This can be used by 
+        /// other players or grids to run commands on this grid.
+        /// <see cref="AlmanacRecord.Nicknames"/>
         /// </summary>
         public string Name;
 
@@ -116,19 +120,39 @@ namespace IngameScript
         /// The various system states of Mother Core. They represent the 
         /// top level state of the Program.
         /// </summary>
-        public enum States
+        public enum SystemStates
         {
-            UNINITIALIZED,  // Mother has not been initialized yet.
-            BOOT,           // Mother is booting up.
-            WORKING,        // Mother is running.
-            TEST,           // Mother is in test mode.
-            FAIL,           // Mother has failed. This may require a Reboot or Recompile.
+            /// <summary>
+            /// The system is uninitialized. This is the initial 
+            /// state of Mother.
+            /// </summary>
+            UNINITIALIZED,
+            /// <summary>
+            /// The system is booting up. Mother will boot all 
+            /// registered modules in order or registration.
+            /// </summary>
+            BOOT,
+            /// <summary>
+            /// The system is working. Mother has booted all modules 
+            /// and is running as expected.
+            /// </summary>
+            WORKING,    
+            /// <summary>
+            /// The system is in test mode. This is used for debugging 
+            /// and testing purposes.
+            /// </summary>
+            TEST,           
+            /// <summary>
+            /// The system has failed. This is used when Mother 
+            /// encounters an unrecoverable error.
+            /// </summary>
+            FAIL,           
         }
 
         /// <summary>
         /// The current system state.
         /// </summary>
-        public States SystemState = States.UNINITIALIZED;
+        public SystemStates SystemState = SystemStates.UNINITIALIZED;
 
         /// <summary>
         /// Is debug mode enabled?
@@ -225,7 +249,7 @@ namespace IngameScript
                 // FUNCTIONAL
                 new Terminal(this),
 
-                // BLOCK BASED
+                // BLOCK BASED (FOR CONNECTIONS)
                 new ConnectorModule(this),
                 new MergeBlockModule(this),
             };
@@ -237,7 +261,7 @@ namespace IngameScript
         /// Set the system state.
         /// </summary>
         /// <param name="state"></param>
-        void SetState(States state)
+        void SetState(SystemStates state)
         {
             SystemState = state;
         }
@@ -267,7 +291,7 @@ namespace IngameScript
         /// </summary>
         public void Boot()
         {
-            SetState(States.BOOT);
+            SetState(SystemStates.BOOT);
 
             Print("Booting Mother OS...");
 
@@ -285,17 +309,7 @@ namespace IngameScript
             //RunTests();
 
             // Boot successful, the system is not working.
-            SetState(States.WORKING);
-
-            // CONFIRMATION
-            //Print($"Mother is online.");
-            //Print("Clearing console in 5 seconds...");
-
-            //// Wait 5 seconds before clearing the console
-            //GetModule<Clock>().QueueForLater(() =>
-            //{
-            //    GetModule<Terminal>()?.ClearConsole();
-            //}, 5.0);
+            SetState(SystemStates.WORKING);
         }
 
         /// <summary>
@@ -314,7 +328,7 @@ namespace IngameScript
             }
 
             // Done booting
-            SetState(States.WORKING);
+            SetState(SystemStates.WORKING);
 
             Print("Mother OS is online.");
             Print("Clearing console in 2 seconds...");
@@ -342,7 +356,6 @@ namespace IngameScript
                 //Print($"Found {lcdPanels.Count} LCD panels", false);
             }, 2.0);
         }
-
 
         /// <summary>
         /// Coroutine that boots each module one-by-one. This method yields control 
@@ -433,19 +446,19 @@ namespace IngameScript
             //    return;
             //}
 
-            if(SystemState == States.UNINITIALIZED)
+            if(SystemState == SystemStates.UNINITIALIZED)
             {
                 // If the system is uninitialized, we initialize it.
                 Boot();
             }
 
-            else if (SystemState == States.BOOT)
+            else if (SystemState == SystemStates.BOOT)
             {
                 // run terminal module to provide player with immediate feedback
                 GetModule<Terminal>()?.UpdateTerminal();
             }
 
-            else if (SystemState == States.WORKING)
+            else if (SystemState == SystemStates.WORKING)
             {
                 if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
                 {
