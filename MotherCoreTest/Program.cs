@@ -33,9 +33,6 @@ namespace IngameScript
             mother.RegisterModules(new List<IExtensionModule>() {
                 new PistonModule(mother),
             });
-
-            // Boot Mother with all registered modules.
-            //mother.Boot();
         }
 
         public void Save()
