@@ -19,6 +19,9 @@
 
 ### Updated
 - The communications system has been refactored to support simultaneous communication on multiple channels at once. This requires changes to the programmable block's custom data.
+    - All communications are now set in the `[channels]` section of the custom data.
+    - Players can communication on the open public channel using the `*` channel name without a password ie. `*=`
+    - Players can communication on a private channel using `<channel>=<passcode>` ie. `Channel1=secret123`
 
 ## [0.2.13] - 2025-06-28]
 ### Added
