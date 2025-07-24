@@ -97,7 +97,7 @@ namespace IngameScript
         /// <summary>
         /// List of BroadcastListeners for receiving broadcast messages.
         /// </summary>
-        List<IMyBroadcastListener> BroadcastListeners = new List<IMyBroadcastListener>();
+        readonly List<IMyBroadcastListener> BroadcastListeners = new List<IMyBroadcastListener>();
 
         /// <summary>
         /// Is the IntergridMessageService using encryption.
@@ -145,6 +145,9 @@ namespace IngameScript
             // ROUTES
             Router.AddRoute("ping", (request) => CreateResponse(request, Response.ResponseStatusCodes.OK));
 
+
+            // Ping local, then schedule recurring ping every 2 seconds.
+            //PingLocal();
             Clock.Schedule(Ping, 2);
         }
 
@@ -163,12 +166,18 @@ namespace IngameScript
 
             config.Raw.GetKeys("channels", keys);
 
-            foreach (MyIniKey key in keys)
+            //foreach (MyIniKey key in keys)
+            //{
+            //    var value = config.Raw.Get(key.Section, key.Name);
+            //    Channels[key.Name] = $"{value}";
+            //}
+
+            keys.ForEach(key =>
             {
                 var value = config.Raw.Get(key.Section, key.Name);
                 Channels[key.Name] = $"{value}";
-            }
-     
+            });
+
         }
 
         /// <summary>
@@ -395,7 +404,7 @@ namespace IngameScript
 
             bool success = false;
 
-            // sort message.Channels so that public is last
+            // sort message.Channels so that public is prioritized last
             var orderedChannels = message.Channels.OrderBy(c => c == "*").ToHashSet();
 
             foreach (string channel in orderedChannels)
@@ -405,8 +414,7 @@ namespace IngameScript
 
                 success = Mother.IGC.SendUnicastMessage(TargetId, channel, outgoingMessage);
 
-                if (success)
-                    break;
+                if (success) break;
             }
 
             // Send the message via unicast
@@ -626,6 +634,30 @@ namespace IngameScript
 
             Request request = CreateRequest("ping");
             request.Channels = new HashSet<string>(channels);
+
+            SendOpenBroadcastRequest(request, null);
+        }
+
+        /// <summary>
+        /// Send a ping message to all programmable blocks on the local grid. 
+        /// This is used during boot to identify cooperative scripts.
+        /// </summary>
+        public void LocalPing()
+        {
+            // send lean message only with entity id and mode=master/extension/both on local channel to conduct local handshake.
+            string channel = "local";
+
+            Request request = new Request(
+                null,
+                new Dictionary<string, object>
+                {
+                    { "mode", "both" },
+                    { "OriginId", $"{Mother.Id}" },
+                    { "OriginName", Mother.Name },
+                }
+            );
+
+            request.Channels.Add( channel );
 
             SendOpenBroadcastRequest(request, null);
         }
