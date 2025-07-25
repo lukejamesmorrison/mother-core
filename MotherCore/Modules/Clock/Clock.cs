@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The Clock class is our system timer.  All actions and commands run by Mother are 
     /// controlled by this class.  It uses the yield keyword to operate across game 

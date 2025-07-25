@@ -41,7 +41,7 @@ namespace IngameScript
         /// <summary>
         /// The Name of the system.
         /// </summary>
-        public const string SYSTEM_NAME = "Mother OS";
+        public string SYSTEM_NAME = "Mother OS";
 
         /// <summary>
         /// The command line tool used to parse Arguments and 
@@ -181,7 +181,7 @@ namespace IngameScript
         /// The list of all commands registered with Mother. These commands are used 
         /// to interact with the system.
         /// </summary>
-        public MemorySafeList<IModuleCommand> Commands = new MemorySafeList<IModuleCommand>();
+        public List<IModuleCommand> Commands = new List<IModuleCommand>();
 
         /// <summary>
         /// The list commands defined within the programmable block's Custom Data.

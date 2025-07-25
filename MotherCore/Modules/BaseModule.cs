@@ -55,7 +55,7 @@ namespace IngameScript
         /// <summary>
         /// The list of commands for this module.
         /// </summary>
-        public MemorySafeList<IModuleCommand> Commands = new MemorySafeList<IModuleCommand>();
+        public List<IModuleCommand> Commands = new List<IModuleCommand>();
 
         public BaseModule(Mother mother)
         {
@@ -239,7 +239,7 @@ namespace IngameScript
         /// Get the commands for this module.
         /// </summary>
         /// <returns></returns>
-        public MemorySafeList<IModuleCommand> GetCommands()
+        public List<IModuleCommand> GetCommands()
         {
             return Commands;
         }

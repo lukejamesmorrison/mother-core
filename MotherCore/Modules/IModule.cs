@@ -65,6 +65,6 @@ namespace IngameScript
         /// register to commands with Mother during boot.
         /// </summary>
         /// <returns></returns>
-        MemorySafeList<IModuleCommand> GetCommands();
+        List<IModuleCommand> GetCommands();
     }
 }
