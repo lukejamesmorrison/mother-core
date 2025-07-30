@@ -20,42 +20,39 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program
+    /// <summary>
+    /// A named waypoint representing a waypoint saved by Mother for future 
+    /// reference. Named waypoints are used in flight plans in 
+    /// place of full GPS waypoint definitions.
+    /// </summary>
+    public class NamedWaypoint : IWaypoint
     {
         /// <summary>
-        /// A named waypoint representing a waypoint saved by Mother for future 
-        /// reference. Named waypoints are used in flight plans in 
-        /// place of full GPS waypoint definitions.
+        /// The vector (position) of the waypoint.
         /// </summary>
-        public class NamedWaypoint : IWaypoint
+        readonly Vector3D Vector;
+
+        /// <summary>
+        /// The name of the waypoint.
+        /// </summary>
+        readonly string Name;
+
+        /// <summary>
+        /// Get the vector (position) of the waypoint.
+        /// </summary>
+        /// <returns></returns>
+        public Vector3D GetVector()
         {
-            /// <summary>
-            /// The vector (position) of the waypoint.
-            /// </summary>
-            readonly Vector3D Vector;
+            return Vector;
+        }
 
-            /// <summary>
-            /// The name of the waypoint.
-            /// </summary>
-            readonly string Name;
-
-            /// <summary>
-            /// Get the vector (position) of the waypoint.
-            /// </summary>
-            /// <returns></returns>
-            public Vector3D GetVector()
-            {
-                return Vector;
-            }
-
-            /// <summary>
-            /// Get the name of the waypoint.
-            /// </summary>
-            /// <returns></returns>
-            public string GetName()
-            {
-                return Name;
-            }
+        /// <summary>
+        /// Get the name of the waypoint.
+        /// </summary>
+        /// <returns></returns>
+        public string GetName()
+        {
+            return Name;
         }
     }
 }
