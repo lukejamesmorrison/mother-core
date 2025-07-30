@@ -293,6 +293,9 @@ namespace IngameScript
         {
             SetState(SystemStates.BOOT);
 
+            // clear clock schedule
+            GetModule<Clock>().ClearScheduledTasks();
+
             Print("Booting Mother OS...");
 
             // Set any boot time config that the modules need.

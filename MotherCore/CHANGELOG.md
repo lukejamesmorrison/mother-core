@@ -5,13 +5,10 @@
 ## [0.3.0] - UPCOMING
 
 ### BREAKING CHANGES TO IMPLEMENT
-- Rename `[Commands]` section to [commands] in programmable block
-- Refactor Ping logic to use request header data and not body data
-- Allow IntergridMessageService to use multiple channels, each with own encyption
 - Rename `nav/set-flight-plan` to `fp/set`
 
 
-## [0.2.14] - 2025-07-XX]
+## [0.2.14] - 2025-07-XX
 
 ### Added
 - Add `ALMANAC` display target to print the list of Alamanc records to the screen as a companion for the `MAP` display.
@@ -22,8 +19,9 @@
     - All communications are now set in the `[channels]` section of the custom data.
     - Players can communication on the open public channel using the `*` channel name without a password ie. `*=`
     - Players can communication on a private channel using `<channel>=<passcode>` ie. `Channel1=secret123`
+- Position data is now send in default message headers reducing the complexity of the ping operation.
 
-## [0.2.13] - 2025-06-28]
+## [0.2.13] - 2025-06-28
 ### Added
 - Add `boot` command to trigger system boot process.
 
@@ -35,7 +33,7 @@
 
 ### Fixed
 
-## [0.2.12] - 2025-04-29]
+## [0.2.12] - 2025-04-29
 ### Added
 - Add Air Vent hooks:
     - `onPressurized` => triggered when state is *Pressurized*.

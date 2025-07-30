@@ -106,7 +106,12 @@ namespace IngameScript
         {
             SystemTasks.Add(new ScheduledTask { Task = task, Interval = interval, TimeRemaining = interval });
         }
-            
+
+        public void ClearScheduledTasks()
+        {
+            SystemTasks.Clear();
+        }
+
         /// <summary>
         /// Queue a task for execution after a time delay (wait time).
         /// </summary>

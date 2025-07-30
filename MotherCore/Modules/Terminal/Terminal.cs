@@ -2,21 +2,22 @@
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
-using System.Collections.Generic;
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using System;
+using VRage;
 using VRage.Collections;
+using VRage.Game;
 using VRage.Game.Components;
 using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ModAPI.Ingame;
+using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
-using VRage.Game;
-using VRage;
+using VRage.Scripting;
 using VRageMath;
-using System.Collections.Immutable;
 
 namespace IngameScript
 {
@@ -53,10 +54,7 @@ namespace IngameScript
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
-        public Terminal(Mother mother) : base(mother)
-		{
-			//Mother = mother;
-		}
+        public Terminal(Mother mother) : base(mother) { }
 
         /// <summary>
         /// Boot the module. We schedule the terminal update every program cycle.
@@ -71,6 +69,7 @@ namespace IngameScript
             CommandBus.RegisterCommand(new ClearCommand(this));
             CommandBus.RegisterCommand(new PrintCommand(this));
 
+            // clear terminal window
             Clock.Schedule(UpdateTerminal);
         }
 
@@ -200,6 +199,11 @@ namespace IngameScript
         public virtual void Echo(string message)
         {
             Mother.Program.Echo(message);
+        }
+
+        public void Flush()
+        {
+            Mother.Program.Echo("");
         }
 
         /// <summary>
