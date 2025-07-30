@@ -81,7 +81,7 @@ namespace IngameScript
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static double AngleBetween(Vector3D a, Vector3D b)
+        public static double GetAngleBetween(Vector3D a, Vector3D b)
         {
             if (Vector3D.IsZero(a) || Vector3D.IsZero(b))
                 return 0;
@@ -118,6 +118,29 @@ namespace IngameScript
         public static float ClampAngle(float angle, float min, float max)
         {
             return Math.Max(min, Math.Min(max, angle));
+        }
+
+        /// <summary>
+        /// Converts a GPS string into a Vector3D.
+        /// 
+        /// Supports long and short GPS formats:
+        /// 1. Long format: "GPS:TopSecretBase:1234.56:7890.12:3456.78:#1F2B3D"
+        /// 2. Short format: "1234.56:7890.12:3456.78"
+        /// 
+        /// </summary>
+        /// <param name="gpsString"></param>
+        /// <returns></returns>
+        public static Vector3D GetVectorFromGPSString(string gpsString)
+        {
+            string[] parts = gpsString.Split(':');
+
+            int offset = (parts[0] == "GPS") ? 2 : 0;
+
+            return new Vector3D(
+                double.Parse(parts[offset]),
+                double.Parse(parts[offset + 1]),
+                double.Parse(parts[offset + 2])
+            );
         }
 
         /// <summary>

@@ -41,7 +41,7 @@ namespace IngameScript
         /// <summary>
         /// The Name of the system.
         /// </summary>
-        public string SYSTEM_NAME = "Mother OS";
+        public string SystemName = "Mother OS";
 
         /// <summary>
         /// The command line tool used to parse Arguments and 

@@ -19,16 +19,20 @@ namespace IngameScript
         /// </summary>
         public static class Messages
         {
+            /// <summary>
+            /// Message indicating that a command was not found.
+            /// </summary>
             public const string CommandNotFound = "Command not found: {0}";
+            /// <summary>
+            /// Message indicating that no arguments were provided for a command.
+            /// </summary>
             public const string NoArgumentsProvided = "No arguments provided";
+            /// <summary>
+            /// Message indicating that a command was executed successfully.
+            /// </summary>
             public const string InvalidCommandFormat = "Invalid command format.";
         }
-
-        /// <summary>
-        /// The Mother instance.
-        /// </summary>
-        //readonly Mother Mother;
-
+        
         /// <summary>
         /// The Clock core module.
         /// </summary>

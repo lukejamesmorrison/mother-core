@@ -110,7 +110,7 @@ namespace IngameScript
 
             output +=
                 //"------------------------------------------------------\n" +
-                $" {Mother.SYSTEM_NAME}          {GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
+                $" {Mother.SystemName}          {GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
                 $" {Mother.Name} *{Mother.ShortId}\n" +
                 $"------------------------------------------------------\n" +
                 //$"{GetTestStrings()}\n";
