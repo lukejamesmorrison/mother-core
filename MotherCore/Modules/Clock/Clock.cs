@@ -90,9 +90,15 @@ namespace IngameScript
         public Clock(Mother mother) : base (mother)
         {
             Program = mother.Program;
-            //Program.Runtime.UpdateFrequency = UpdateFrequency.Update1;
             Program.Runtime.UpdateFrequency = UpdateFrequency.Update10;
+        }
 
+        /// <summary>
+        /// Boot the Clock module. We schedule the loader indicator 
+        /// to refresh every 1 second.
+        /// </summary>
+        public override void Boot()
+        {
             // Schedule loader to update each second to assist with visual feedback.
             Schedule(UpdateLoader, 1);
         }
@@ -107,6 +113,10 @@ namespace IngameScript
             SystemTasks.Add(new ScheduledTask { Task = task, Interval = interval, TimeRemaining = interval });
         }
 
+        /// <summary>
+        /// Clear all scheduled tasks. This should be used when rebooting 
+        /// to ensure scheduled tasks are not persisted across reboots.
+        /// </summary>
         public void ClearScheduledTasks()
         {
             SystemTasks.Clear();
@@ -130,6 +140,7 @@ namespace IngameScript
         {
             Coroutines.Add(new Coroutine { Enumerator = routine.GetEnumerator(), WaitTime = 0 });
         }
+
 
         /// <summary>
         /// Run the Clock eac program cycle. The clock will run scheduled 

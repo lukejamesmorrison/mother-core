@@ -10,7 +10,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BootCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ExampleClass.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BaseModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\IModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\PurgeCommand.cs" />
@@ -73,10 +72,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Mother.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\ColorHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\Geometry.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Utilities\ISerializable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\Serializer\ISerializable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\MessageFormatter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\PID.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Utilities\Serializer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\Serializer\Serializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory).gitattributes" />
@@ -85,5 +84,8 @@
     <None Include="$(MSBuildThisFileDirectory)ImprovementAreas.md" />
     <None Include="$(MSBuildThisFileDirectory)LICENSE.md" />
     <None Include="$(MSBuildThisFileDirectory)README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />
   </ItemGroup>
 </Project>

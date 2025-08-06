@@ -35,8 +35,11 @@ namespace IngameScript
             if (!positions.Any())
                 return new BoundingBoxD(Vector3D.Zero, Vector3D.Zero);
 
-            Vector3D min = new Vector3D(double.MaxValue, double.MaxValue, double.MaxValue);
-            Vector3D max = new Vector3D(double.MinValue, double.MinValue, double.MinValue);
+            double maxValue = double.MaxValue;
+            double minValue = double.MinValue;
+
+            Vector3D min = new Vector3D(maxValue, maxValue, maxValue);
+            Vector3D max = new Vector3D(minValue, minValue, minValue);
 
             foreach (var position in positions)
             {
@@ -56,9 +59,9 @@ namespace IngameScript
         public static Vector3D ClampToBoundingBox(Vector3D point, BoundingBoxD box)
         {
             return new Vector3D(
-                    MathHelper.Clamp(point.X, box.Min.X, box.Max.X),
-                    MathHelper.Clamp(point.Y, box.Min.Y, box.Max.Y),
-                    MathHelper.Clamp(point.Z, box.Min.Z, box.Max.Z)
+                MathHelper.Clamp(point.X, box.Min.X, box.Max.X),
+                MathHelper.Clamp(point.Y, box.Min.Y, box.Max.Y),
+                MathHelper.Clamp(point.Z, box.Min.Z, box.Max.Z)
             );
         }
 
@@ -72,7 +75,7 @@ namespace IngameScript
         {
             Vector3D direction = Vector3D.Normalize(sphere.Center - externalPoint);
 
-            return sphere.Center - direction * sphere.Radius;
+            return sphere.Center - (direction * sphere.Radius);
         }
 
         /// <summary>
@@ -86,7 +89,11 @@ namespace IngameScript
             if (Vector3D.IsZero(a) || Vector3D.IsZero(b))
                 return 0;
 
-            return Math.Acos(MathHelper.Clamp(Vector3D.Dot(a, b) / (a.Length() * b.Length()), -1, 1));
+            return Math.Acos(MathHelper.Clamp(
+                Vector3D.Dot(a, b) / (a.Length() * b.Length()), 
+                -1, 
+                1
+            ));
         }
 
         /// <summary>
@@ -135,6 +142,11 @@ namespace IngameScript
             string[] parts = gpsString.Split(':');
 
             int offset = (parts[0] == "GPS") ? 2 : 0;
+
+            //Func<string, double> getDouble = (value) =>
+            //{
+            //    return double.Parse(value);
+            //};
 
             return new Vector3D(
                 double.Parse(parts[offset]),

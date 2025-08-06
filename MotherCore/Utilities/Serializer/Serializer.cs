@@ -25,14 +25,15 @@ namespace IngameScript
     /// <summary>
     /// NESTED LISTS NOT WORKING!!!
     /// 
-    /// This class is for serializing and de-serializing dictionaries 
-    /// and lists. This is commonly used in intergrid communications as we send message 
+    /// This class is for serializing and de-serializing dictionaries and lists. 
+    /// This is commonly used in intergrid communications as we send message 
     /// payloads as a string.
     /// </summary>
     public class Serializer
     {
         /// <summary>
-        /// Serializes a dictionary to a string. The dictionary can contain nested dictionaries and lists.
+        /// Serializes a dictionary to a string. The dictionary can contain 
+        /// nested dictionaries and lists.
         /// </summary>
         /// <param name="dict"></param>
         /// <returns></returns>
@@ -41,6 +42,7 @@ namespace IngameScript
         {
             var sb = new StringBuilder();
             sb.Append("{");
+
             foreach (var kvp in dict)
             {
                 sb.Append("\"").Append(Escape(kvp.Key)).Append("\":");
@@ -48,25 +50,19 @@ namespace IngameScript
                 // Check if value implements ISerializable
                 var serializable = kvp.Value as ISerializable;
                 if (serializable != null)
-                {
                     sb.Append(serializable.Serialize());
-                }
+
                 else if (kvp.Value is Dictionary<string, object>)
-                {
                     sb.Append(SerializeDictionary((Dictionary<string, object>)kvp.Value));
-                }
+
                 else if (kvp.Value is List<object>)
-                {
                     sb.Append(SerializeList((List<object>)kvp.Value));
-                }
+
                 else if (kvp.Value is string)
-                {
                     sb.Append("\"").Append(Escape((string)kvp.Value)).Append("\"");
-                }
+
                 else
-                {
                     throw new InvalidOperationException("Unsupported value type: " + kvp.Value?.GetType().Name);
-                }
 
                 sb.Append(",");
             }
@@ -155,6 +151,7 @@ namespace IngameScript
 
                 // Skip to the next key-value pair
                 i = section.IndexOf(',', i) + 1;
+
                 if (i == 0) break;
             }
 
@@ -173,35 +170,34 @@ namespace IngameScript
 
             foreach (var item in list)
             {
-                if (item is List<object>) // Explicitly handle nested lists
-                {
+                // serialize lists
+                if (item is List<object>)
                     sb.Append(SerializeList((List<object>)item));
-                }
+
+                // Serialize dictionaries
                 else if (item is Dictionary<string, object>)
-                {
-                    // Serialize dictionaries
                     sb.Append(SerializeDictionary((Dictionary<string, object>)item));
-                }
+
+                // Serialize strings with escaping
                 else if (item is string)
-                {
-                    // Serialize strings with escaping
                     sb.Append("\"").Append(Escape((string)item)).Append("\"");
-                }
+
+                // Serialize objects implementing ISerializable
                 else if (item is ISerializable)
-                {
-                    // Serialize objects implementing ISerializable
                     sb.Append(((ISerializable)item).Serialize());
-                }
+
+                // Fallback for other objects
                 else
-                {
-                    // Fallback for other objects
                     sb.Append("\"").Append(Escape(item != null ? item.ToString() : string.Empty)).Append("\"");
-                }
+
                 sb.Append(",");
             }
 
-            if (sb.Length > 1) sb.Length--; // Remove trailing comma
+            // Remove trailing comma
+            if (sb.Length > 1) sb.Length--;
+
             sb.Append("]");
+
             return sb.ToString();
         }
 

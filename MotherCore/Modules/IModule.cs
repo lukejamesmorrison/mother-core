@@ -59,7 +59,6 @@ namespace IngameScript
         /// <returns></returns>
         string GetModuleName();
 
-
         /// <summary>
         /// Get the list of commands for this module.  This is used to to 
         /// register to commands with Mother during boot.

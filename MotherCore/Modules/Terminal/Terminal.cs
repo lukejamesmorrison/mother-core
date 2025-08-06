@@ -16,6 +16,7 @@ using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
+using VRage.Input;
 using VRage.Scripting;
 using VRageMath;
 
@@ -106,10 +107,11 @@ namespace IngameScript
         public virtual string GetConsoleHeader()
         {
             string output = "";
+            string systemName = (Mother.SystemName ?? "").PadRight(15).Substring(0, 15);
 
             output +=
                 //"------------------------------------------------------\n" +
-                $" {Mother.SystemName}          {GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
+                $" {systemName}   {GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
                 $" {Mother.Name} *{Mother.ShortId}\n" +
                 $"------------------------------------------------------\n" +
                 //$"{GetTestStrings()}\n";
@@ -122,8 +124,6 @@ namespace IngameScript
                     $"";
 
             return output;
-
-                
         }
 
         /// <summary>

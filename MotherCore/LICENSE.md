@@ -10,11 +10,11 @@ Mother Core is an open-source framework for developing programmable block script
 
 ## Attribution Requirement
 
-Any script using Mother Core should include clear visible credit:
+Any script using Mother Core should include clear visible credit in its Steam Workshop, Mod.io, or other marketplace description:
 
 > **Powered by Mother**
 
-This acknowledgment ensures transparency and supports the open-source ecosystem.
+This acknowledgment ensures transparency and supports the open-source ecosystem. Plus, if a player knows your scripts runs with Mother Core, then they know it will work their other Mother-powered scripts. Win-win.
 
 ## Questions or Exceptions
 
@@ -22,7 +22,7 @@ For commercial use, special licensing arrangements, or clarification on appropri
 
 ## MIT License
 
-Copyright &copy; 2025 Luke Morrison
+Copyright &copy; 2025 Luke Morrison (a.k.a. Agentluke)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
