@@ -34,11 +34,9 @@ Tough one. How can users run logical operations against values provided, or a va
 
 ## Mother cleanup opportunities:
 
-- delegate functional block registration to the modules	- the block catalogue should expose an API for adding blocks rather than depend on the BlockCatalogue itself to register and manage blocks.  This will allow further modular expansion without depending on changes to core modules.
-
 - Consider improving request/response serialization	- we can pass an object type via the IGC, which means we do not need to stringify the entire request payload. Instead we can simplify to a generic object and then rebuild on receipt.
  
-- Consider using MyIni module for serialization vs. Custom implementation. This 
+- Consider using MyIni module for serialization vs. Custom implementation. 
 
 - Add Extension Modules	
     - Antenna block		

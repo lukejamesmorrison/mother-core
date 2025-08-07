@@ -22,7 +22,7 @@ For commercial use, special licensing arrangements, or clarification on appropri
 
 ## MIT License
 
-Copyright &copy; 2025 Luke Morrison (a.k.a. Agentluke)
+Copyright &copy; 2025 Luke Morrison (a.k.a. [Agentluke](https://steamcommunity.com/id/agentluke))
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
