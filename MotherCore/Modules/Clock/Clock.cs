@@ -158,6 +158,7 @@ namespace IngameScript
                 if (task.TimeRemaining <= 0)
                 {
                     task.Task.Invoke();
+
                     // Reset the timer for continuous tasks
                     task.TimeRemaining = task.Interval; 
                 }
@@ -173,12 +174,13 @@ namespace IngameScript
                 if (task.TimeRemaining <= 0)
                 {
                     task.Task.Invoke();
+
                     // Remove task after execution
                     QueuedTasks.Dequeue();
                 }
             }
 
-            // NEW: Execute coroutines
+            // Execute coroutines
             for (int i = Coroutines.Count - 1; i >= 0; i--)
             {
                 var coroutine = Coroutines[i];
@@ -187,9 +189,8 @@ namespace IngameScript
                 if (coroutine.WaitTime <= 0)
                 {
                     if (coroutine.Enumerator.MoveNext())
-                    {
                         coroutine.WaitTime = coroutine.Enumerator.Current;
-                    }
+
                     else
                     {
                         coroutine.Enumerator.Dispose();
@@ -210,18 +211,12 @@ namespace IngameScript
         /// <summary>
         /// Update the loader indicator state.
         /// </summary>
-        void UpdateLoader()
-        {
-            LoaderLeft = !LoaderLeft;
-        }
+        void UpdateLoader() => LoaderLeft = !LoaderLeft; 
 
         /// <summary>
         /// Get the loader indicator.
         /// </summary>
         /// <returns></returns>
-        public string GetLoader()
-        {
-            return LoaderLeft ? "/" : "\\";
-        }
+        public string GetLoader() => LoaderLeft ? "/" : "\\"; 
     }
 }

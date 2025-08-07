@@ -28,8 +28,6 @@ namespace IngameScript
     /// </summary>
     public class ConnectorModule : BaseCoreModule
     {
-        //Mother Mother;
-
         /// <summary>
         /// The BlockCatalogue core module.
         /// </summary>
@@ -39,9 +37,7 @@ namespace IngameScript
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
-        public ConnectorModule(Mother mother) : base(mother) {
-            //Mother = mother;
-        }
+        public ConnectorModule(Mother mother) : base(mother) { }
 
         /// <summary>
         /// Boot the module. We reference modules, register commands, subscribe 
@@ -51,7 +47,6 @@ namespace IngameScript
         {
             // Modules
             BlockCatalogue = Mother.GetModule<BlockCatalogue>();
-            //CommandBus = Mother.GetModule<CommandBus>();
 
             // Commands
             RegisterCommand(new LockConnectorCommand(this));
@@ -131,6 +126,7 @@ namespace IngameScript
         {
             if(connector.Status == MyShipConnectorStatus.Connected)
                 UnlockConnector(connector);
+
             else
                 LockConnector(connector);
         }

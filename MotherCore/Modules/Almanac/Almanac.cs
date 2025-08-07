@@ -22,31 +22,14 @@ using VRageMath;
 using VRageRender;
 using RectangleF = VRageMath.RectangleF;
 
-
 namespace IngameScript
 {
-
     /// <summary>
     /// The Almanac manages GPS waypoints and player grids 
     /// to enable navigation and communication.
     /// </summary>
     public class Almanac : BaseCoreModule
     {
-        /// <summary>
-        /// The Mother instance.
-        /// </summary>
-        //readonly Mother Mother;
-
-        /// <summary>
-        /// The Clock core module.
-        /// </summary>
-        Clock Clock;
-
-        /// <summary>
-        /// The LocalStorage core module.
-        /// </summary>
-        LocalStorage LocalStorage;
-
         /// <summary>
         /// The list of records in the Almanac.
         /// </summary>
@@ -67,12 +50,10 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
-            Clock = Mother.GetModule<Clock>();
-            LocalStorage = Mother.GetModule<LocalStorage>();
-
             LoadFromLocalStorage();
 
-            Clock.Schedule(() => UpdateCurrentPosition(), 1);
+            Mother.GetModule<Clock>()
+                .Schedule(UpdateCurrentPosition, 1);
         }
 
         /// <summary>
@@ -80,7 +61,6 @@ namespace IngameScript
         /// </summary>
         public void UpdateCurrentPosition()
         {
-
             AlmanacRecord record = GetRecord($"{Mother.Id}");
             Vector3D Position = Mother.CubeGrid.GetPosition();
 
@@ -189,9 +169,8 @@ namespace IngameScript
             AlmanacRecord existingRecord = Records.Find(r => r.Id == record.Id);
 
             if (existingRecord == null)
-            {
                 Records.Add(record);
-            }
+
             else
             {
                 if (record.UpdatedAt > existingRecord.UpdatedAt)

@@ -116,7 +116,7 @@ namespace IngameScript
         /// this method to modules to simplify command registration.
         /// </summary>
         /// <param name="command"></param>
-        public void RegisterCommand(IModuleCommand command)
+        new public void RegisterCommand(IModuleCommand command)
         {
             ModuleCommands.Add(command);
         }

@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The EventBus class is a core module that manages events and their subscriptions 
     /// across the system. Modules may emit events, and other modules may subscribe 

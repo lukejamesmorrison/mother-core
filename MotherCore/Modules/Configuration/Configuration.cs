@@ -19,11 +19,9 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRageMath;
-//using static IngameScript.Program;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// Configuration class for Mother. It leverages the built-in MyIni 
     /// class to manage structure and parsing.
@@ -31,11 +29,6 @@ namespace IngameScript
     /// </summary>
     public class Configuration : BaseCoreModule
     {
-        /// <summary>
-        /// Reference to Mother object.
-        /// </summary>
-        //readonly Mother Mother;
-
         /// <summary>
         /// Default configuration values for Mother. We will insert these into the custom 
         /// data for the programmable block if it is completely empty on boot.

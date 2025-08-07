@@ -92,9 +92,7 @@ namespace IngameScript
 
             // Remove blocks that reached their terminal state
             foreach (var block in blocksToRemove)
-            {
                 UnregisterBlock(block);
-            }
         }
 
         /// <summary>

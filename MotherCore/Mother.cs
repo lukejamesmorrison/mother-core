@@ -238,7 +238,6 @@ namespace IngameScript
                 new CommandBus(this),
                 new LocalStorage(this),
                 new Debug(this),
-                new Security(this),
 
                 // CRITICAL
                 new BlockCatalogue(this),
@@ -305,11 +304,7 @@ namespace IngameScript
             RegisterCoreCommands();
 
             // Boot all modules as co-routines in sequence to reduce complexity
-            //BootModules();
             GetModule<Clock>().StartCoroutine(BootModulesSequence());
-
-            // TESTING
-            //RunTests();
 
             // Boot successful, the system is not working.
             SetState(SystemStates.WORKING);
@@ -337,27 +332,8 @@ namespace IngameScript
             Print("Clearing console in 2 seconds...");
             Print("The Empire must grow.");
 
-            GetModule<Clock>().QueueForLater(() =>
-            {
-                GetModule<Terminal>()?.ClearConsole();
-
-                //BlockCatalogue blockCatalogue = GetModule<BlockCatalogue>();
-
-                //// print block summary to terminal
-                //Print($"Loaded {blockCatalogue.TerminalBlocks.Count} blocks on {blockCatalogue.LocalGridIds.Count} grids.", false);
-                //// print mechanical blocks
-                //Print($"Found {blockCatalogue.GetBlocks<IMyMechanicalConnectionBlock>().Count} mechanical connection blocks.", false);
-
-                //// connectors
-                //Print($"Found {blockCatalogue.GetBlocks<IMyShipConnector>().Count} connectors.", false);
-
-                //// print light blocks
-                //Print($"Found {blockCatalogue.GetBlocks<IMyLightingBlock>().Count} light blocks.", false);
-
-                //// print lcd panels & cockpit screens
-                //var lcdPanels = blockCatalogue.GetBlocks<IMyTextPanel>();
-                //Print($"Found {lcdPanels.Count} LCD panels", false);
-            }, 2.0);
+            // Clear console after booting
+            GetModule<Clock>().QueueForLater(() => GetModule<Terminal>()?.ClearConsole(), 2.0);
         }
 
         /// <summary>
@@ -380,14 +356,12 @@ namespace IngameScript
                 Print($"Booting modules: ({current} / {total})");
 
                 var module = entry.Value;
-                //Print($"Booting {entry.Key}...");
 
                 // Run its coroutine boot sequence
                 var coroutine = module.BootCoroutine();
+
                 while (coroutine.MoveNext())
-                {
                     yield return coroutine.Current;
-                }
 
                 RegisterCommands(module.GetCommands());
             }
@@ -416,22 +390,6 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Run tests. This is used to test the system and modules.
-        /// </summary>
-        void RunTests()
-        {
-            // print terminal actions for a hinge
-            //List<IMyMotorStator> hinges = new List<IMyMotorStator>();
-            //GridTerminalSystem.GetBlocksOfType(hinges);
-
-            //// actions
-            //List<ITerminalAction> actions = new List<ITerminalAction>();
-            //hinges[0].GetActions(actions);
-
-            //Log.Info(string.Join(", ", actions.Select(a => a.Id)));
-        }
-
-        /// <summary>
         /// Run the system. This is called on every update cycle or when triggered 
         /// by an update source like a terminal command, or incoming message. 
         /// </summary>
@@ -439,30 +397,20 @@ namespace IngameScript
         /// <param name="updateType"></param>
         public void Run(string argument, UpdateType updateType)
         {
-            // First we try to process a command.  This may be entered via a player
-            // in the Terminal, via a trigger like a Button, or via another
-            // programmable block script.
-            //if (!string.IsNullOrWhiteSpace(argument) && (updateType == UpdateType.Terminal || updateType == UpdateType.Trigger || updateType == UpdateType.Script))
-            //{
-            //    GetModule<CommandBus>().RunTerminalCommand(argument);
-            //    GetModule<Terminal>().UpdateTerminal();
-            //    return;
-            //}
-
-            if(SystemState == SystemStates.UNINITIALIZED)
-            {
-                // If the system is uninitialized, we initialize it.
+            // If the system is uninitialized, we initialize it.
+            if (SystemState == SystemStates.UNINITIALIZED)
                 Boot();
-            }
 
+            // Otherwise the system is booting
             else if (SystemState == SystemStates.BOOT)
             {
-                // run terminal module to provide player with immediate feedback
                 GetModule<Terminal>()?.UpdateTerminal();
             }
 
+            // Or, the system is working correctly.
             else if (SystemState == SystemStates.WORKING)
             {
+                // Tf the update source is a player action or programmable blocks script
                 if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
                 {
                     GetModule<CommandBus>().RunTerminalCommand(argument);
@@ -478,27 +426,16 @@ namespace IngameScript
                     return;
                 }
 
-                // If our program has changed due to merging
-                // with another grid, we will reboot.
-                //if (Program != null && Program.Me.EntityId != ProgrammableBlock.EntityId)
-                //{
-                //    Reboot(program);
-                //}
-
                 // Otherwise we run all modules and assume a runtime update.
                 RunModules();
                 OtherRuntimeItems();
             }
-       
         }
 
         /// <summary>
         /// Run all modules. This is called on every program cycle.
         /// </summary>
-        void RunModules()
-        {
-            AllModules.Values.ToList().ForEach(module => module.Run());
-        }
+        void RunModules() => AllModules.Values.ToList().ForEach(module => module.Run());
 
         /// <summary>
         /// Placeholder for other runtime items. This is useful for producing system 
@@ -552,10 +489,7 @@ namespace IngameScript
         /// Save the storage string to the Program's Storage property. We do this to 
         /// persist data across program cycles and recompiles.
         /// </summary>
-        public string Save()
-        {
-            return GetModule<LocalStorage>()?.GetSaveData();
-        }
+        public string Save() => GetModule<LocalStorage>()?.GetSaveData();
 
         /// <summary>
         /// Register an extension module with Mother.
@@ -584,10 +518,8 @@ namespace IngameScript
         public string GetModuleName<T>() where T : IModule
         {
             foreach (var entry in AllModules)
-            {
                 if (entry.Value is T)
                     return entry.Key;
-            }
 
             return typeof(T).Name; // fallback
         }
@@ -664,6 +596,7 @@ namespace IngameScript
             // Use default echo if Terminal module is not available
             if (terminal == null)
                 Program.Echo(message);
+
             else
                 terminal.Print(message, trim);
         }

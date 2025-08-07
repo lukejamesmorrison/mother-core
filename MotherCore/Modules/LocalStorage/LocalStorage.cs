@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// This class manages data storage for Mother. It leverages 
     /// Program.Storage to ensure data persists across cycles, 
@@ -28,11 +27,6 @@ namespace IngameScript
     /// </summary>
     public class LocalStorage : BaseCoreModule
     {
-        /// <summary>
-        /// The Mother instance.
-        /// </summary>
-        //readonly Mother Mother;
-
         /// <summary>
         /// The storage string.
         /// </summary>
@@ -63,8 +57,8 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
-            Mother.GetModule<CommandBus>().RegisterCommand(new SetCommand(this));
-            Mother.GetModule<CommandBus>().RegisterCommand(new GetCommand(this));
+            RegisterCommand(new SetCommand(this));
+            RegisterCommand(new GetCommand(this));
         }
 
         /// <summary>
@@ -86,6 +80,7 @@ namespace IngameScript
         {
             StorageDictionary.Clear();
             StorageString = "";
+
             return IsDirty = true;
         }
 

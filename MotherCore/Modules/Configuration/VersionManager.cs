@@ -19,11 +19,9 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRageMath;
-//using static IngameScript.Program;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// This class is responsible for checking the configuration version of the 
     /// programmable block via the Custom Data field. It can update the 
@@ -34,7 +32,7 @@ namespace IngameScript
     /// </summary>
     public class VersionManager
     {
-        MyIni Config;
+        readonly MyIni Config;
 
         /// <summary>
         /// Constructor for the VersionManager class.

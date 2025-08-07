@@ -49,9 +49,21 @@ namespace IngameScript
         /// </summary>
         public enum TransponderCode
         {
+            /// <summary>
+            /// Local entities are those that are on the same construct as this program.
+            /// </summary>
             Local,
+            /// <summary>
+            /// Friendly entities are those communicating on non-public channels.
+            /// </summary>
             Friendly,
+            /// <summary>
+            /// Neutral entities are those communicating on a public channel.
+            /// </summary>
             Neutral,
+            /// <summary>
+            /// Hostile entities are those deemed hostile. This code is current unused.
+            /// </summary>
             Hostile
         }
 
@@ -76,12 +88,6 @@ namespace IngameScript
         /// The last know speed of the entity.
         /// </summary>
         public float Speed;
-
-        /// <summary>
-        /// Is the entity local? This is true when an entity is of type "grid" 
-        /// and is on the same construct as the current Programmable Block.
-        /// </summary>
-        //public bool IsLocal = false;
 
         /// <summary>
         /// The safe radius of the entity. This is used t ensure we never 
@@ -126,8 +132,6 @@ namespace IngameScript
             Position = position;
             Speed = speed;
             EntityType = entityType;
-
-            //if(EntityType == EntityTypes["grid"])
             IFFCode = TransponderCode.Neutral;
         }
 

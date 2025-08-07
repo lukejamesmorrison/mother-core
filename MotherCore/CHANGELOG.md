@@ -20,6 +20,7 @@
     - Players can communication on the open public channel using the `*` channel name without a password ie. `*=`
     - Players can communication on a private channel using `<channel>=<passcode>` ie. `Channel1=secret123`
 - Position data is now send in default message headers reducing the complexity of the ping operation.
+- Security class is now a `Utility` rather than a `Core Module`.
 
 ## [0.2.13] - 2025-06-28
 ### Added

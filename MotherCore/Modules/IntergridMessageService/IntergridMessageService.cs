@@ -44,11 +44,6 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// The Mother instance.
-        /// </summary>
-        //readonly Mother Mother;
-
-        /// <summary>
         /// The Clock core module.
         /// </summary>
         Clock Clock;
@@ -57,11 +52,6 @@ namespace IngameScript
         /// The Log core module.
         /// </summary>
         Log Log;
-
-        /// <summary>
-        /// The Security core module.
-        /// </summary>
-        //Security Security;
 
         /// <summary>
         /// The Almanac core module.
@@ -90,19 +80,9 @@ namespace IngameScript
         IMyUnicastListener UnicastListener;
 
         /// <summary>
-        /// The BroadcastListener instance for receiving broadcast messages.
-        /// </summary>
-        //IMyBroadcastListener BroadcastListener;
-
-        /// <summary>
         /// List of BroadcastListeners for receiving broadcast messages.
         /// </summary>
         readonly List<IMyBroadcastListener> BroadcastListeners = new List<IMyBroadcastListener>();
-
-        /// <summary>
-        /// Is the IntergridMessageService using encryption.
-        /// </summary>
-        //bool UseEncryption;
 
         /// <summary>
         /// The channels that are used for intergrid communication 
@@ -116,7 +96,6 @@ namespace IngameScript
         /// <param name="mother"></param>
         public IntergridMessageService(Mother mother) : base(mother)
         {
-            //Mother = mother;
             Router = new Router();
         }
 
@@ -129,11 +108,8 @@ namespace IngameScript
         {
             Clock = Mother.GetModule<Clock>();
             Log = Mother.GetModule<Log>();
-            //Security = Mother.GetModule<Security>();
             Almanac = Mother.GetModule<Almanac>();
             EventBus = Mother.GetModule<EventBus>();
-
-            //UseEncryption = Security.USE_ENCRYPTION;
 
             // Register commands
             Mother.RegisterCommand(new PingCommand(Mother));
@@ -144,7 +120,6 @@ namespace IngameScript
 
             // ROUTES
             Router.AddRoute("ping", (request) => CreateResponse(request, Response.ResponseStatusCodes.OK));
-
 
             // Ping local, then schedule recurring ping every 2 seconds.
             //PingLocal();
@@ -165,12 +140,6 @@ namespace IngameScript
             var keys = new List<MyIniKey>();
 
             config.Raw.GetKeys("channels", keys);
-
-            //foreach (MyIniKey key in keys)
-            //{
-            //    var value = config.Raw.Get(key.Section, key.Name);
-            //    Channels[key.Name] = $"{value}";
-            //}
 
             keys.ForEach(key =>
             {

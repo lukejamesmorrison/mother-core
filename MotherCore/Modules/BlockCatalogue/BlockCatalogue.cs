@@ -34,11 +34,6 @@ namespace IngameScript
     public class BlockCatalogue : BaseCoreModule
     {
         /// <summary>
-        /// Reference to the Mother class.
-        /// </summary>
-        //readonly Mother Mother;
-
-        /// <summary>
         /// The Configuration core module.
         /// </summary>
         Configuration Configuration;
@@ -91,11 +86,6 @@ namespace IngameScript
         readonly Dictionary<long, object> BlockStates = new Dictionary<long, object>();
 
         /// <summary>
-        /// Dictionary to store previous block states. This is used to track state changes for blocks.
-        /// </summary>
-        //readonly Dictionary<long, object> PreviousBlockStates = new Dictionary<long, object>();
-
-        /// <summary>
         /// Dictionary to store blocks to monitor and their corresponding state handlers.
         /// </summary>
         readonly Dictionary<IMyTerminalBlock, IBlockStateHandler> BlocksToMonitor = new Dictionary<IMyTerminalBlock, IBlockStateHandler>();
@@ -146,14 +136,14 @@ namespace IngameScript
         /// </summary>
         public void LoadBlocks()
         {
+            // Load all IMyTerminalBlock blocks from the grid terminal system.
             GetBlocksFromGridTerminalSystem(TerminalBlocks);
-            //GetBlocks<IMyTerminalBlock>(TerminalBlocks);
-            //TerminalBlocks = GetBlocks<IMyTerminalBlock>();
 
             // Load remote control - we should improve this implementation later. 
             LoadRemoteControlBlock();
 
             LoadBlockConfigurations();
+
             RegisterBlockHooksFromProgrammableBlockConfiguration();
 
             LoadBlockGroups();
@@ -229,19 +219,7 @@ namespace IngameScript
         public override void HandleEvent(IEvent e, object eventData)
         {
             if (e is ConnectorLockedEvent || e is ConnectorUnlockedEvent)
-            {
                 LoadBlockGroups();
-            }
-
-            //if (e is MergeBlockLockedEvent)
-            //{
-            //    //
-            //}
-
-            //if (e is MergeBlockOffEvent)
-            //{
-            //   //
-            //}
         }
 
         /// <summary>
@@ -253,6 +231,7 @@ namespace IngameScript
         {
             if (BlockTags.ContainsKey(tag))
                 return BlockTags[tag];
+
             else
                 return new List<IMyTerminalBlock>();
         }
@@ -288,6 +267,7 @@ namespace IngameScript
 
             if (tagsValue == "")
                 tagsValue = tag;
+
             else if (!tagsValue.Contains(tag))
                 tagsValue += $",{tag}";
 
@@ -363,23 +343,15 @@ namespace IngameScript
 
                 // if result is empty, set default configuration values
                 if (blockConfiguration.ToString() == "")
-                {
                     SetDefaultConfiguration(block, blockConfiguration);
-                }
 
-                // Load data from the "general" section
+                // Load block tags
                 if (blockConfiguration.ContainsSection("general"))
-                {
-                    // Load block tags
                     LoadBlockTags(block, blockConfiguration);
-                }
 
-                // Load data from the "hooks" section
+                // Load block hooks
                 if (blockConfiguration.ContainsSection("hooks"))
-                {
-                    // Load block hooks
                     LoadBlockHooks(block, blockConfiguration);
-                }
             }
         }
 
@@ -646,10 +618,7 @@ namespace IngameScript
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        IMyTerminalBlock GetBlock(string name)
-        {
-            return TerminalBlocks.FirstOrDefault(x => x.DisplayNameText == name);
-        }
+        IMyTerminalBlock GetBlock(string name) => TerminalBlocks.FirstOrDefault(x => x.DisplayNameText == name);
 
         /// <summary>
         /// Load the primary remote control block. We select a primary for 

@@ -22,7 +22,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The Terminal class is used to manage the programmable block terminal window.
     /// We print indicators of core systems and display system feedback to the 
@@ -30,11 +29,6 @@ namespace IngameScript
     /// </summary>
     public class Terminal : BaseCoreModule
 	{
-        /// <summary>
-        /// Mother reference.
-        /// </summary>
-		//readonly Mother Mother;
-
         /// <summary>
         /// The Clock core module.
         /// </summary>
@@ -85,10 +79,7 @@ namespace IngameScript
         /// to the top of the programmable block terminal window.
         /// </summary>
         /// <returns></returns>
-        public string GetHighlights()
-        {
-            return Highlights;
-        }
+        public string GetHighlights() => Highlights;
 
         /// <summary>
         /// Add a highlight message to the highlights string for display near the 
@@ -166,7 +157,6 @@ namespace IngameScript
                 activityMonitorIndicator,
                 almanacCount
             );
-
         }
 
         /// <summary>
@@ -199,11 +189,6 @@ namespace IngameScript
         public virtual void Echo(string message)
         {
             Mother.Program.Echo(message);
-        }
-
-        public void Flush()
-        {
-            Mother.Program.Echo("");
         }
 
         /// <summary>
