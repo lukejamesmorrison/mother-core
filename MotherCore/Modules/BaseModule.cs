@@ -39,6 +39,10 @@ namespace IngameScript
         /// </summary>
         public List<IModuleCommand> Commands = new List<IModuleCommand>();
 
+        /// <summary>
+        ///  Constructor.
+        /// </summary>
+        /// <param name="mother"></param>
         public BaseModule(Mother mother)
         {
             Mother = mother;
@@ -80,10 +84,7 @@ namespace IngameScript
         /// Get the name of module.
         /// </summary>
         /// <returns></returns>
-        public virtual string GetModuleName()
-        {
-            return $"{GetType()}";
-        }
+        public virtual string GetModuleName() => $"{GetType()}";
 
         /// <summary>
         /// Register a command with this module.

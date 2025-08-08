@@ -77,7 +77,7 @@ namespace IngameScript
             RegisterCommand(new HelpCommand(this));
 
             // Routes
-            Mother.GetModule<IntergridMessageService>().Router.AddRoute("command", request => HandleIncomingCommandRequest(request));
+            AddRoute("command", request => HandleIncomingCommandRequest(request));
         }
 
         /// <summary>

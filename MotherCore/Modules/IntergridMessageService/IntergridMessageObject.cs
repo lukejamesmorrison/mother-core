@@ -169,6 +169,7 @@ namespace IngameScript
         {
             string headerTag = "header";
             string bodyTag = "body";
+
             string headersSerialized = Serializer.SerializeDictionary(Header);
             string bodySerialized = Serializer.SerializeDictionary(Body);
 
