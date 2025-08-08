@@ -17,11 +17,9 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRageMath;
-//using static IngameScript.Program;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The Request class is responsible for containing outgoing communication
     /// messages. It inherits from IntergridMessageObject and is related to 
@@ -66,10 +64,7 @@ namespace IngameScript
         /// Serialize the Request object.
         /// </summary>
         /// <returns></returns>
-        public override string Serialize()
-        {
-            return "REQUEST::" + base.Serialize();
-        }
+        public override string Serialize() => "REQUEST::" + base.Serialize(); 
 
         /// <summary>
         /// De-serialize a Request object from a message string. We remove the message 

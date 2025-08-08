@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// Base class for all module commands.
     /// </summary>
@@ -42,10 +41,7 @@ namespace IngameScript
         /// Get the command name.
         /// </summary>
         /// <returns></returns>
-        public string GetCommandName()
-        {
-            return Name;
-        }
+        public string GetCommandName() => Name;
 
         /// <summary>
         /// Parses a string representing an incremental value.

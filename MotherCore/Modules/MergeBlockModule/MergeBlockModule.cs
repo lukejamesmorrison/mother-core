@@ -20,7 +20,6 @@ using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRage.Scripting;
 using VRageMath;
-//using static IngameScript.Program;
 
 namespace IngameScript
 {

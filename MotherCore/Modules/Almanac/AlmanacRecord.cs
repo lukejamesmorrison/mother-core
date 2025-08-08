@@ -7,7 +7,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-//using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Text;
 using VRage;
@@ -23,7 +22,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// An Almanac Record contains information about the particular entity. 
     /// Grids and GPS waypoints are the currently supported types. 
@@ -146,6 +144,7 @@ namespace IngameScript
                 return false;
 
             Nicknames.Add(nickname);
+
             return true;
         }
 
@@ -251,9 +250,6 @@ namespace IngameScript
         /// the EntityId for records of type "grid".
         /// </summary>
         /// <returns></returns>
-        public long GetLongId()
-        {
-            return long.Parse(Id);
-        }
+        public long GetLongId() => long.Parse(Id);
     }
 }

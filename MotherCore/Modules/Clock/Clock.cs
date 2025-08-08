@@ -117,10 +117,7 @@ namespace IngameScript
         /// Clear all scheduled tasks. This should be used when rebooting 
         /// to ensure scheduled tasks are not persisted across reboots.
         /// </summary>
-        public void ClearScheduledTasks()
-        {
-            SystemTasks.Clear();
-        }
+        public void ClearScheduledTasks() => SystemTasks.Clear();
 
         /// <summary>
         /// Queue a task for execution after a time delay (wait time).

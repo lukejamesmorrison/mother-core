@@ -17,11 +17,9 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRageMath;
-//using static IngameScript.Program;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The Router class is responsible for handling custom endpoints used 
     /// by intergrid communication. Other grids running Mother may 
@@ -33,11 +31,6 @@ namespace IngameScript
         /// Dictionary of routes.
         /// </summary>
         public readonly List<Route> Routes = new List<Route>();
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public Router() { }
 
         /// <summary>
         /// Handles a route by invoking the callback defined 
@@ -61,17 +54,5 @@ namespace IngameScript
         {
             Routes.Add(new Route(path, route));
         }
-
-        /// <summary>
-        /// Adds multiple routes to the Router.
-        /// </summary>
-        /// <param name="routes"></param>
-        //public void AddRoutes(Dictionary<string, Func<Request, Response>> routes)
-        //{
-        //    foreach (var route in routes)
-        //    {
-        //        AddRoute(route.Key, route.Value);
-        //    }
-        //}
     }
 }

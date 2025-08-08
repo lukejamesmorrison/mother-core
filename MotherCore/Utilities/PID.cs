@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// A simple PID controller class for controlling a mechanical system.
     /// 

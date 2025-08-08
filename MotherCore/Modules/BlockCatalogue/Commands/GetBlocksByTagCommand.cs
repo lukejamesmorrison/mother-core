@@ -59,6 +59,7 @@ namespace IngameScript
                 .ToList();
 
             string output = $"Found {blocks.Count} blocks with tag: #{tag}\n";
+
             return  output + string.Join("\n", blocks.Select(b => $"- {b.CustomName}"));
         }
     }

@@ -17,12 +17,9 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRageMath;
-//using static IngameScript.Program;
-//using static IngameScript.Program.Request;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The Response class inherits from IntergridMessageObject and contains 
     /// data in response to a Request.
@@ -38,22 +35,45 @@ namespace IngameScript
         /// </summary>
         public enum ResponseStatusCodes
         {
-            // successful
+            /// <summary>
+            /// The request was successful and the remote grid returned the requested data.
+            /// </summary>
             OK = 200,
+            /// <summary>
+            /// The remote grid has executed the command successfully.
+            /// </summary>
             COMMAND_EXECUTED = 201,
-
-            // client errors
+            /// <summary>
+            /// The request is unauthorized on the remote grid.
+            /// </summary>
             UNAUTHORIZED = 401,
+            /// <summary>
+            /// the request route could not be found on the remote grid.
+            /// </summary>
             NOT_FOUND = 404,
-
-            // system errors
+            /// <summary>
+            /// The was an error processing the request on the remote grid.
+            /// </summary>
             ERROR = 500,
-
-            // docking
+            /// <summary>
+            /// The docking request was approved by the remote grid.
+            /// </summary>
             DOCKING_APPROVED = 600,
+            /// <summary>
+            /// The docking request was denied by the remote grid.
+            /// </summary>
             DOCKING_DENIED = 601,
+            /// <summary>
+            /// The docking request was completed successfully on the remote grid.
+            /// </summary>
             DOCKING_COMPLETE = 602,
+            /// <summary>
+            /// The docking request was cancelled by the remote grid.
+            /// </summary>
             DOCKING_CANCELLED = 603,
+            /// <summary>
+            /// A connector was not found on the remote grid for docking.
+            /// </summary>
             CONNECTOR_NOT_FOUND = 604,
         }
 
@@ -68,10 +88,7 @@ namespace IngameScript
         /// Serialize the Response object to a string.
         /// </summary>
         /// <returns></returns>
-        public override string Serialize()
-        {
-            return "RESPONSE::" + base.Serialize();
-        }
+        public override string Serialize() => "RESPONSE::" + base.Serialize();
 
         /// <summary>
         /// De-serialize a string message to a Response object. We remove the message 
@@ -98,9 +115,6 @@ namespace IngameScript
         /// </summary>
         /// <param name="code"></param>
         /// <returns></returns>
-        static public int GetResponseCodeValue(ResponseStatusCodes code)
-        {
-            return (int) code;
-        }
+        static public int GetResponseCodeValue(ResponseStatusCodes code) => (int) code;
     }
 }

@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// This class manages routines for action at a specific waypoint 
     /// within a flight plan.
@@ -56,11 +55,11 @@ namespace IngameScript
         {
             IWaypoint waypoint = GetWaypointFromName(waypointName);
 
-            string routineString = waypoint != null
+            return waypoint != null
                 ? WaypointRoutines[waypoint]
                 : "";
 
-            return routineString;
+            //return routineString;
         }
 
         /// <summary>
@@ -99,9 +98,6 @@ namespace IngameScript
         /// Is the queue empty?
         /// </summary>
         /// <returns></returns>
-        public bool IsEmpty()
-        {
-            return WaypointRoutines.Count == 0;
-        }
+        public bool IsEmpty() => WaypointRoutines.Count == 0;
     }
 }

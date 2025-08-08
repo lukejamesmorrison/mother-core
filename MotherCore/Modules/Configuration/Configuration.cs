@@ -100,16 +100,14 @@ namespace IngameScript
             // split token string by delimiter '.'
             List<string> tokenParts = new List<string>(token.Split('.'));
 
-            if (tokenParts.Count == 2)
+            if (tokenParts.Count != 2) return $"";
+
+            else
             {
                 string section = tokenParts[0];
                 string key = tokenParts[1];
 
                 return $"{Ini.Get(section, key)}";
-            }
-            else
-            {
-                return $"";
             }
         }
 
@@ -137,7 +135,6 @@ namespace IngameScript
             {
                 string commandName = key.Name;
                 string commandValue = $"{Ini.Get("Commands", commandName)}"
-                    //.Replace("\n", "")
                     .Replace("\r", "")
                     .Trim();
 

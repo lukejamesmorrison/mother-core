@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace IngameScript
+﻿namespace IngameScript
 {
-
     /// <summary>
     /// Interface for objects that can be serialized to a string.
     /// </summary>
@@ -17,8 +10,6 @@ namespace IngameScript
         /// </summary>
         /// <returns></returns>
         string Serialize();
-
-        //void Deserialize(string serializedData);
     }
   
 }

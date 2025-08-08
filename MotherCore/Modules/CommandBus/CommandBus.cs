@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using VRage.Game.ModAPI.Ingame.Utilities;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The CommandBus is responsible for handling and executing commands for Mother's modules. 
     /// It can handle commands queued in time, as well as within a flight plan using the 
@@ -61,7 +59,6 @@ namespace IngameScript
         /// <param name="mother"></param>
         public CommandBus(Mother mother) : base(mother)
         {
-            //Mother = mother;
             WaypointRoutineQueue = new WaypointRoutineQueue();  
         }
 
@@ -148,9 +145,8 @@ namespace IngameScript
             var commands = terminalRoutine.Commands;
 
             if (target == "self" || string.IsNullOrEmpty(target))
-            {
                 ProcessCommandsSequentially(commands);
-            }
+
             else
             {
                 // Remote routine handling
@@ -159,6 +155,7 @@ namespace IngameScript
 
                 if (target == "*")
                     Mother.GetModule<IntergridMessageService>().SendRequestToAllFromRoutine(terminalRoutine);
+
                 else
                     Mother.GetModule<IntergridMessageService>().SendRequestFromRoutine(target, terminalRoutine);
 
@@ -190,10 +187,9 @@ namespace IngameScript
                         Mother.Print($"> wait {waitTime}");
                         Clock.QueueForLater(() => ProcessCommandsSequentially(remainingCommands), waitTime);
                     }
+
                     else
-                    {
                         ProcessCommandsSequentially(remainingCommands); // Skip invalid wait and continue
-                    }
                 }
                 else
                 {
@@ -205,6 +201,7 @@ namespace IngameScript
             // Apply the initial delay if provided
             if (initialDelay > 0)
                 Clock.QueueForLater(executeCurrentCommand, initialDelay);
+
             else
                 executeCurrentCommand();
         }
@@ -239,10 +236,8 @@ namespace IngameScript
 
                     return true;
                 }
-                else
-                {
-                    return false;
-                }
+
+                else return false;
             }
 
             // Execute the command from the config commands
@@ -256,12 +251,12 @@ namespace IngameScript
                 {
                     var logString = "> " + commandString;
 
-                    //Log.Info(logString);
                     Mother.Print(logString);
 
                     string output = moduleCommand.Execute(command);
 
                     Mother.Print(output, false);
+
                     return true;
                 }
             }

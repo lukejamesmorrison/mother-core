@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// Represents a command run in the Programmable Block terminal.
     ///
@@ -201,39 +200,36 @@ namespace IngameScript
             {
                 char currentChar = input[i];
 
+                // If start of a quoted term
                 if (currentChar == '"' && !insideQuotes)
-                {
-                    // StartAutopilot of a quoted term
                     insideQuotes = true;
-                }
+
+                // Or end of a quoted term
                 else if (currentChar == '"' && insideQuotes)
                 {
-                    // End of a quoted term
                     insideQuotes = false;
                     terms.Add(currentTerm);
                     currentTerm = "";
                 }
+
+                // Or if not inside quotes, split by a space
                 else if (currentChar == ' ' && !insideQuotes)
                 {
-                    // Split by space if not inside quotes
                     if (!string.IsNullOrWhiteSpace(currentTerm))
                     {
                         terms.Add(currentTerm);
                         currentTerm = "";
                     }
                 }
+
+                // Otherwise continue building the current term
                 else
-                {
-                    // Continue building the current term
                     currentTerm += currentChar;
-                }
             }
 
             // Add the last term if there is any
             if (!string.IsNullOrWhiteSpace(currentTerm))
-            {
                 terms.Add(currentTerm);
-            }
 
             return terms;
         }

@@ -57,6 +57,7 @@ namespace IngameScript
             var blocks = Module.SetBlocksWithTag(selector, tag);
 
             string output = $"Tag \"{tag}\" set on {blocks.Count} blocks:\n";
+
             return output + string.Join("\n", blocks.Select(b => $"- {b.CustomName}"));
         }
     }

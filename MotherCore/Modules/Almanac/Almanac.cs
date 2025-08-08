@@ -77,6 +77,7 @@ namespace IngameScript
                     SafeRadius = Mother.SafeZone.Radius
                 };
             }
+
             else
             {
                 // Update the existing record

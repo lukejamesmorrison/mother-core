@@ -7,7 +7,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-//using System.Runtime.Remoting.Messaging;
 using System.Text;
 using VRage;
 using VRage.Collections;
@@ -72,6 +71,7 @@ namespace IngameScript
         public object B(string key)
         {
             object value;
+
             return Body.TryGetValue(key, out value) ? value ?? "" : "";
         }
 
@@ -80,30 +80,21 @@ namespace IngameScript
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public string BString(string key)
-        {
-            return $"{B(key)}";
-        }
+        public string BString(string key) => $"{B(key)}";
 
         /// <summary>
         /// Get the float value of a field in the Body of the message object.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public float BFloat(string key)
-        {
-            return float.Parse(BString(key));
-        }
+        public float BFloat(string key) => float.Parse(BString(key));
 
         /// <summary>
         /// Get the double value of a field in the Body of the message object.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public double BDouble(string key)
-        {
-            return double.Parse(BString(key));
-        }
+        public double BDouble(string key) => double.Parse(BString(key));
 
         /// <summary>
         /// Get the value of a field in the Header of the message object.
@@ -113,6 +104,7 @@ namespace IngameScript
         public object H(string key)
         {
             object value;
+
             return Header.TryGetValue(key, out value) ? value ?? "" : "";
         }
 
@@ -121,20 +113,14 @@ namespace IngameScript
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public string HString(string key)
-        {
-            return $"{H(key)}";
-        }
+        public string HString(string key) => $"{H(key)}";
 
         /// <summary>
         /// Get the float value of a field in the Header of the message object.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public float HFloat(string key)
-        {
-            return float.Parse(HString(key));
-        }
+        public float HFloat(string key) => float.Parse(HString(key));
 
         /// <summary>
         /// Get the double value of a field in the Header of the message object.

@@ -20,7 +20,6 @@ using System.Collections.Immutable;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// Interface for block state handlers.
     /// </summary>

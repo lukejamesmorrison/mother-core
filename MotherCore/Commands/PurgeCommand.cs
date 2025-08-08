@@ -1,24 +1,5 @@
-﻿using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI.Ingame;
-using Sandbox.ModAPI.Interfaces;
-using SpaceEngineers.Game.ModAPI.Ingame;
-using System.Collections.Generic;
-using System.Collections;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System;
-using VRage.Collections;
-using VRage.Game.Components;
-using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame.Utilities;
-using VRage.Game.ModAPI.Ingame;
-using VRage.Game.ObjectBuilders.Definitions;
-using VRage.Game;
-using VRage;
-using VRageMath;
-using System.Collections.Immutable;
-//using static IngameScript.Program;
-//using Sandbox.Game.GameSystems.Chat;
 
 namespace IngameScript
 {
@@ -105,7 +86,8 @@ namespace IngameScript
             }
 
             // early escape if not forced
-            if (!PurgeForced) return "Run command with --force to purge";
+            if (!PurgeForced) 
+                return "Run command with --force to purge";
 
             if (command.Arguments.Count == 0)
                 return CommandBus.Messages.NoArgumentsProvided;
@@ -124,8 +106,11 @@ namespace IngameScript
                 }
 
                 // purge by module
-                if (modules.Contains("storage")) ModulesToPurge.Add("storage");
-                if (modules.Contains("almanac")) ModulesToPurge.Add("almanac");
+                if (modules.Contains("storage")) 
+                    ModulesToPurge.Add("storage");
+
+                if (modules.Contains("almanac")) 
+                    ModulesToPurge.Add("almanac");
 
                 ModulesToPurge.ForEach(module => PurgeModule(module));
 

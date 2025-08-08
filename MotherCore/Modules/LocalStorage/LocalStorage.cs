@@ -48,7 +48,6 @@ namespace IngameScript
         /// <param name="mother"></param>
         public LocalStorage(Mother mother) : base (mother)
         {
-            //Mother = mother;
             StorageDictionary = Serializer.DeserializeDictionary(Mother.Program.Storage);
         }
 
@@ -109,6 +108,7 @@ namespace IngameScript
         {
             StorageDictionary[key] = value;
             IsDirty = true;
+
             return IsDirty;
         }
     }

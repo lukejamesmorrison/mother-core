@@ -143,11 +143,6 @@ namespace IngameScript
 
             int offset = (parts[0] == "GPS") ? 2 : 0;
 
-            //Func<string, double> getDouble = (value) =>
-            //{
-            //    return double.Parse(value);
-            //};
-
             return new Vector3D(
                 double.Parse(parts[offset]),
                 double.Parse(parts[offset + 1]),

@@ -20,7 +20,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The ActivityMonitor monitors the state of blocks in the grid as they are changing. 
     /// It can be used to observe a change until a terminal state is reached. For 
@@ -91,8 +90,10 @@ namespace IngameScript
             }
 
             // Remove blocks that reached their terminal state
-            foreach (var block in blocksToRemove)
-                UnregisterBlock(block);
+            blocksToRemove.ForEach(block => UnregisterBlock(block));
+
+            //foreach (var block in blocksToRemove)
+            //    UnregisterBlock(block);
         }
 
         /// <summary>

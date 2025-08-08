@@ -9,8 +9,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Channels;
-
-//using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using VRage;
 using VRage.Collections;
@@ -25,7 +23,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The IntergridMessageService manages communications between grids running Mother. It 
     /// sends Requests and expects a Response in return. It is able to send messages to 
@@ -157,11 +154,9 @@ namespace IngameScript
             UnicastListener = Mother.IGC.UnicastListener;
             UnicastListener.SetMessageCallback();
 
+            // Register broadcast listener for each channel
             foreach (var channel in Channels)
-            {
-                // Register broadcast listener for each channel
                 BroadcastListeners.Add(Mother.IGC.RegisterBroadcastListener(channel.Key));
-            }
         }
 
         /// <summary>
@@ -201,9 +196,10 @@ namespace IngameScript
             string passcode = Channels.ContainsKey(channel) ? Channels[channel] : "";
 
             // Decrypt message if it is encrypted
-            if(passcode == "")
+            if(passcode == "") 
                 return messageData;
-            else
+
+            else 
                 return Security.Decrypt(messageData, passcode);
         }
 
@@ -217,9 +213,9 @@ namespace IngameScript
             string messageData = $"{message.Data}";
 
             // Decrypt message if it is encrypted
-            messageData = Security.IsEncrypted(messageData) ?
-                DecryptIncomingMessage(message) :
-                messageData;
+            messageData = Security.IsEncrypted(messageData) 
+                ? DecryptIncomingMessage(message) 
+                : messageData;
 
             // Handle an incoming Request
             if (messageData.StartsWith("REQUEST::"))
@@ -233,8 +229,7 @@ namespace IngameScript
                     HandleIncomingRequest(deserializedRequest);
                 }
             
-                else
-                    Log.Error(Messages.MessageDeserializationFailed);
+                else Log.Error(Messages.MessageDeserializationFailed);
             }
 
             // Or handle an incoming Response
@@ -245,12 +240,13 @@ namespace IngameScript
                 if (deserializedResponse != null)
                 {
                     deserializedResponse.Channels.Add(message.Tag);
+
                     UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedResponse);
+
                     HandleIncomingResponse(deserializedResponse);
                 }
 
-                else
-                    Log.Error(Messages.MessageDeserializationFailed);
+                else Log.Error(Messages.MessageDeserializationFailed);
             }
         }
 
@@ -326,7 +322,6 @@ namespace IngameScript
 
             Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
 
-
             // Get the Response from a Route
             Response response = Router.HandleRoute(
                 request.HString("Path"), 
@@ -353,13 +348,11 @@ namespace IngameScript
                 if (activeRequests.ContainsKey(respondingToId))
                     activeRequests[respondingToId]?.Invoke(response);
             }
+
             else
-            {
                 Log.Error($"Response missing RespondingToId header: {Serializer.SerializeDictionary(response.Header)}");
-            }
         }
 
-       
         /// <summary>
         /// Send a unicast message to a specific grid.
         /// </summary>
@@ -395,9 +388,9 @@ namespace IngameScript
 
             if (success)
                 Mother.GetModule<EventBus>().Emit<RequestSentEvent>();
+
             else
                 Mother.GetModule<EventBus>().Emit<RequestFailedEvent>();
-
         }
 
         /// <summary>
@@ -448,10 +441,8 @@ namespace IngameScript
         /// <param name="routine"></param>
         public void SendRequestToAllFromRoutine(TerminalRoutine routine)
         {
-            Almanac.GetRecordsByType("grid").ForEach(grid =>
-            {
-                SendRequestFromRoutine(grid.Id, routine);
-            });
+            Almanac.GetRecordsByType("grid")
+                .ForEach(grid => SendRequestFromRoutine(grid.Id, routine));
         }
 
         /// <summary>

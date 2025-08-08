@@ -1,21 +1,4 @@
-﻿using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI.Ingame;
-using Sandbox.ModAPI.Interfaces;
-using SpaceEngineers.Game.ModAPI.Ingame;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
-using VRage;
-using VRage.Collections;
-using VRage.Game;
-using VRage.Game.Components;
-using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame;
-using VRage.Game.ModAPI.Ingame.Utilities;
-using VRage.Game.ObjectBuilders.Definitions;
+﻿using System;
 using VRageMath;
 
 namespace IngameScript
@@ -49,7 +32,7 @@ namespace IngameScript
         /// <summary>
         /// The vector of the waypoint. This is the position of the GPS waypoint.
         /// </summary>
-        Vector3D vector;
+        Vector3D Vector;
 
         /// <summary>
         /// Constructor.
@@ -61,15 +44,14 @@ namespace IngameScript
         public GPSWaypoint(string gps_string)
         {
             // generate a random integer for the Id
-            Id = (long) new Random().Next(0, 1000000);
+            Id = new Random().Next(0, 1000000);
 
             string[] parts = gps_string.Split(':');
 
-            if (parts.Length < 6)
-                return;
+            if (parts.Length < 6) return;
 
             Name = parts[1];
-            vector = new Vector3D(double.Parse(parts[2]), double.Parse(parts[3]), double.Parse(parts[4]));
+            Vector = new Vector3D(double.Parse(parts[2]), double.Parse(parts[3]), double.Parse(parts[4]));
             Color = parts[5];
         }
 
@@ -77,19 +59,12 @@ namespace IngameScript
         /// Get the vector (position) of the waypoint.
         /// </summary>
         /// <returns></returns>
-        public Vector3D GetVector()
-        {
-            return vector;
-        }
+        public Vector3D GetVector() => Vector;
 
         /// <summary>
         /// Get the name of the waypoint.
         /// </summary>
         /// <returns></returns>
-        public string GetName()
-        {
-            return Name;
-        }
-
+        public string GetName() => Name;
     }
 }

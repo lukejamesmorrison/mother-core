@@ -53,9 +53,8 @@ namespace IngameScript
         public override string Execute(TerminalCommand command)
         {
             if (command.Arguments.Count == 0)
-            {
                 return CommandBus.Messages.InvalidCommandFormat;
-            }
+
             else
             {
                 string connectorName = command.Arguments[0];

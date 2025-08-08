@@ -1,27 +1,9 @@
-﻿using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI.Ingame;
-using Sandbox.ModAPI.Interfaces;
-//using SpaceEngineers.Game.ModAPI.Ingame;
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Linq;
-//using System.Runtime.Serialization;
 using System.Text;
-using VRage;
-using VRage.Collections;
-using VRage.Game;
-using VRage.Game.Components;
-using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame;
-using VRage.Game.ModAPI.Ingame.Utilities;
-using VRage.Game.ObjectBuilders.Definitions;
-using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// NESTED LISTS NOT WORKING!!!
     /// 
@@ -41,6 +23,8 @@ namespace IngameScript
         public static string SerializeDictionary(Dictionary<string, object> dict)
         {
             var sb = new StringBuilder();
+
+            // open the dictionary
             sb.Append("{");
 
             foreach (var kvp in dict)
@@ -66,8 +50,14 @@ namespace IngameScript
 
                 sb.Append(",");
             }
-            if (sb.Length > 1) sb.Length--; // Remove trailing comma
+
+            // Remove trailing comma
+            if (sb.Length > 1) 
+                sb.Length--;
+
+            // close the dictionary
             sb.Append("}");
+
             return sb.ToString();
         }
 
@@ -114,6 +104,7 @@ namespace IngameScript
                     value = DeserializeDictionary(nestedDictString);
                     i = valueEnd + 1;
                 }
+
                 else if (section[valueStart] == '[')
                 {
                     // Value is a list
@@ -124,6 +115,7 @@ namespace IngameScript
                     value = DeserializeList(listString);
                     i = valueEnd + 1;
                 }
+
                 else if (section[valueStart] == '"')
                 {
                     // Value is a string
@@ -137,6 +129,7 @@ namespace IngameScript
                     value = Unescape(section.Substring(valueStart + 1, valueEnd - valueStart - 1));
                     i = valueEnd + 1;
                 }
+
                 else
                 {
                     // Value is not a string, find the next comma or end brace
@@ -166,6 +159,8 @@ namespace IngameScript
         public static string SerializeList(IEnumerable<object> list)
         {
             var sb = new StringBuilder();
+
+            // open the list
             sb.Append("[");
 
             foreach (var item in list)
@@ -196,6 +191,7 @@ namespace IngameScript
             // Remove trailing comma
             if (sb.Length > 1) sb.Length--;
 
+            // close the list
             sb.Append("]");
 
             return sb.ToString();
@@ -230,6 +226,7 @@ namespace IngameScript
                     {
                         valueEnd = section.IndexOf('"', valueEnd + 1);
                     }
+
                     if (valueEnd == -1) break;
 
                     list.Add(Unescape(section.Substring(i + 1, valueEnd - i - 1)));
@@ -245,6 +242,7 @@ namespace IngameScript
                     list.Add(DeserializeDictionary(dictString));
                     i = valueEnd + 1;
                 }
+
                 else if (currentChar == '[')
                 {
                     // Deserialize a nested list
@@ -255,11 +253,9 @@ namespace IngameScript
                     list.Add(DeserializeList(listString));
                     i = valueEnd + 1;
                 }
-                else
-                {
-                    // Skip unexpected characters or whitespace
-                    i++;
-                }
+
+                // Skip unexpected characters or whitespace
+                else i++;
 
                 // Skip to the next value
                 if (i < length && section[i] == ',') i++;
@@ -279,14 +275,18 @@ namespace IngameScript
         static int FindClosingBrace(string section, int start, char open, char close)
         {
             int depth = 0;
+
             for (int i = start; i < section.Length; i++)
             {
                 if (section[i] == open) depth++;
+
                 else if (section[i] == close) depth--;
 
                 if (depth == 0) return i;
             }
-            return -1; // No matching closing brace found
+
+            // No matching closing brace found
+            return -1;
         }
 
         /// <summary>
@@ -294,20 +294,14 @@ namespace IngameScript
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
-        static string Escape(string str)
-        {
-            return str.Replace("\\", "\\\\").Replace("\"", "\\\"");
-        }
+        static string Escape(string str) => str.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
         /// <summary>
         /// Unescapes special characters in a string from JSON serialization.
         /// </summary>
         /// <param name="str"></param>
         /// <returns></returns>
-        static string Unescape(string str)
-        {
-            return str.Replace("\\\"", "\"").Replace("\\\\", "\\");
-        }
+        static string Unescape(string str) => str.Replace("\\\"", "\"").Replace("\\\\", "\\");
 
         //void PrintSerializationDebug()
         //{

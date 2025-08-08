@@ -18,48 +18,47 @@ using VRage;
 using VRageMath;
 using System.Collections.Immutable;
 
-
 namespace IngameScript
 {
-
     /// <summary>
     /// Command to print all available commands to the terminal window.
     /// </summary>
     public class HelpCommand : BaseModuleCommand
     {
-        ///
+        /// <summary>
+        /// The CommandBus core module.
+        /// </summary>
         readonly CommandBus Module;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="module"></param>
         public HelpCommand(CommandBus module)
         {
             Module = module;
         }
 
+        /// <summary>
+        /// The name of the command.
+        /// </summary>
         public override string Name => "help";
 
-
+        /// <summary>
+        /// Executes the command to print all available commands.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
         public override string Execute(TerminalCommand command)
         {
-            //List<IModuleCommand> commands = Module.Commands;
-            //string titleString = "Commands:\n";
             string commandsString = "";
-
 
             Module.Commands.ForEach(moduleCommand =>
             {
                 commandsString += moduleCommand.GetCommandName() + "\n";
             });
 
-
-            // print all Commands in list
-            //foreach (var moduleCommand in Module.Commands)
-            //{
-            //    commandsString += moduleCommand.GetCommandName() + "\n";
-            //}
-
-            return 
-                //titleString + 
-                commandsString;
+            return commandsString;
         }
     }
 }
