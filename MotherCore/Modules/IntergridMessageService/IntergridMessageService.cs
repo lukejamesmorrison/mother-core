@@ -148,15 +148,23 @@ namespace IngameScript
 
         /// <summary>
         /// Register the IGC listeners - unicast and broadcast.
+        /// 
+        /// We set a message callback for each listener to ensure a response 
+        /// is sent from the foreign programmable blocks.
         /// </summary>
         void RegisterIGCListeners()
         {
+            // Register a single unicast listener
             UnicastListener = Mother.IGC.UnicastListener;
             UnicastListener.SetMessageCallback();
 
-            // Register broadcast listener for each channel
+            // Register a broadcast listener for each channel
             foreach (var channel in Channels)
-                BroadcastListeners.Add(Mother.IGC.RegisterBroadcastListener(channel.Key));
+            {
+                IMyBroadcastListener BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel.Key);
+                BroadcastListener.SetMessageCallback();
+                BroadcastListeners.Add(BroadcastListener);
+            }
         }
 
         /// <summary>
