@@ -164,5 +164,23 @@ namespace IngameScript
 
             Mother.ProgrammableBlock.CustomData = $"{Ini}";
         }
+
+        /// <summary>
+        /// Set a value in the programmable block's custom data.
+        /// 
+        /// WARNING - This modifies Mother's "source of truth" and should 
+        /// be used with extreme caution.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        //public void SetConfig(string sectionkey, string value)
+        //{
+        //    // split section and key
+        //    string[] parts = sectionkey.Split('.');
+
+        //    // we expect a 'section' and 'name'
+        //    if(parts.Length == 2)
+        //        Raw.Set(parts[0], parts[1], value);
+        //}
     }
 }

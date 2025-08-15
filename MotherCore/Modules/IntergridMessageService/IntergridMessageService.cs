@@ -116,11 +116,21 @@ namespace IngameScript
             RegisterIGCListeners();
 
             // ROUTES
-            Router.AddRoute("ping", (request) => CreateResponse(request, Response.ResponseStatusCodes.OK));
+            Router.AddRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
+            Router.AddRoute("sync", request => SyncWithLocalMotherInstances(request));
+
+            // Send local broadcast
+            LocalPing();
 
             // Ping local, then schedule recurring ping every 2 seconds.
             //PingLocal();
             Clock.Schedule(Ping, 2);
+        }
+
+        Response SyncWithLocalMotherInstances(Request request)
+        {
+            //Mother.Print("New request to sync!");
+            return CreateResponse(request, Response.ResponseStatusCodes.OK);
         }
 
         /// <summary>
@@ -158,7 +168,12 @@ namespace IngameScript
             UnicastListener = Mother.IGC.UnicastListener;
             UnicastListener.SetMessageCallback();
 
-            // Register a broadcast listener for each channel
+            // register broadcast listener for local channel
+            IMyBroadcastListener LocalBroadcastListener = Mother.IGC.RegisterBroadcastListener(".local");
+            LocalBroadcastListener.SetMessageCallback();
+            BroadcastListeners.Add(LocalBroadcastListener);
+
+            // Register a broadcast listener for each external channel
             foreach (var channel in Channels)
             {
                 IMyBroadcastListener BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel.Key);
@@ -606,6 +621,8 @@ namespace IngameScript
             SendOpenBroadcastRequest(request, null);
         }
 
+
+
         /// <summary>
         /// Send a ping message to all programmable blocks on the local grid. 
         /// This is used during boot to identify cooperative scripts.
@@ -613,21 +630,42 @@ namespace IngameScript
         public void LocalPing()
         {
             // send lean message only with entity id and mode=master/extension/both on local channel to conduct local handshake.
-            string channel = "local";
+            //string channel = ".local";
 
-            Request request = new Request(
+            Request request = CreateRequest(
+                "sync",
                 null,
                 new Dictionary<string, object>
                 {
-                    { "mode", "both" },
-                    { "OriginId", $"{Mother.Id}" },
+                    //{ "mode", "both" },
+                    //{ "OriginId", $"{Mother.Id}" },
                     { "OriginName", Mother.Name },
                 }
             );
 
-            request.Channels.Add( channel );
+            SendLocalBroadcastRequest(request, response => OnLocalPingResponse(response));
+        }
 
-            SendOpenBroadcastRequest(request, null);
+        /// <summary>
+        /// Send a broadcast to local programmable blocks.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="onResponse"></param>
+        public void SendLocalBroadcastRequest(Request request, Action<IntergridMessageObject> onResponse)
+        {
+            // Register the message callback
+            activeRequests[request.Id] = onResponse;
+         
+            Mother.IGC.SendBroadcastMessage(".local", request.Serialize(), TransmissionDistance.CurrentConstruct);
+
+            //Mother.Print("Sent local broadcast");
+
+            //EventBus.Emit<RequestSentEvent>();
+        }
+
+        void OnLocalPingResponse(IntergridMessageObject response)
+        {
+            //Mother.Print("Local response received.");
         }
 
         /// <summary>

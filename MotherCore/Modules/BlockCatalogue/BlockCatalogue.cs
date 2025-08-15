@@ -67,12 +67,12 @@ namespace IngameScript
         /// Dictionary of all block configurations on the grid.  This allows 
         /// us to access block-level custom data.
         /// </summary>
-        readonly Dictionary<IMyTerminalBlock, MyIni> BlockConfigs = new Dictionary<IMyTerminalBlock, MyIni>();
+        public readonly Dictionary<IMyTerminalBlock, MyIni> BlockConfigs = new Dictionary<IMyTerminalBlock, MyIni>();
 
         /// <summary>
         /// Dictionary of block tags.  This allows us to group and target blocks by tags.
         /// </summary>
-        readonly Dictionary<string, List<IMyTerminalBlock>> BlockTags = new Dictionary<string, List<IMyTerminalBlock>>();
+        public readonly Dictionary<string, List<IMyTerminalBlock>> BlockTags = new Dictionary<string, List<IMyTerminalBlock>>();
 
         /// <summary>
         /// Dictionary of block hooks.  This allows us to register hooks for blocks.
@@ -120,10 +120,6 @@ namespace IngameScript
 
             LoadLocalGridIds(Mother.CubeGrid);
             LoadBlocks();
-
-            // Commands
-            RegisterCommand(new GetBlocksByTagCommand(this));
-            RegisterCommand(new SetBlocksWithTagCommand(this));
 
             // Events
             SubscribeToEvents();
@@ -219,36 +215,6 @@ namespace IngameScript
         {
             if (e is ConnectorLockedEvent || e is ConnectorUnlockedEvent)
                 LoadBlockGroups();
-        }
-
-        /// <summary>
-        /// Get all blocks with a specific tag.
-        /// </summary>
-        /// <param name="tag"></param>
-        /// <returns></returns>
-        public List<IMyTerminalBlock> GetBlocksByTag(string tag)
-        {
-            if (BlockTags.ContainsKey(tag))
-                return BlockTags[tag];
-
-            else
-                return new List<IMyTerminalBlock>();
-        }
-
-        /// <summary>
-        /// Set a tag on all blocks with a specific name. This allows us 
-        /// to group blocks easily with a tag.
-        /// </summary>
-        /// <param name="blockSelector"></param>
-        /// <param name="tag"></param>
-        /// <returns></returns>
-        public List<IMyTerminalBlock> SetBlocksWithTag(string blockSelector, string tag)
-        {
-            List<IMyTerminalBlock> blocks = GetBlocksByName<IMyTerminalBlock>(blockSelector);
-
-            blocks.ForEach(block => SetBlockWithTag(block, tag));
-
-            return blocks;
         }
 
         /// <summary>

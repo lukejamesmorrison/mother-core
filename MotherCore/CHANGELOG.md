@@ -8,7 +8,7 @@
 - Rename `nav/set-flight-plan` to `fp/set`
 
 
-## [0.2.14] - 2025-07-XX
+## [0.2.14] - 2025-08-15
 
 ### Added
 - Add `ALMANAC` display target to print the list of Alamanc records to the screen as a companion for the `MAP` display.
@@ -21,6 +21,7 @@
     - Players can communication on a private channel using `<channel>=<passcode>` ie. `Channel1=secret123`
 - Position data is now send in default message headers reducing the complexity of the ping operation.
 - Security class is now a `Utility` rather than a `Core Module`.
+- Move `block/` commands to `TerminalBlockModule` extension module and out of Mother Core.
 
 ## [0.2.13] - 2025-06-28
 ### Added
