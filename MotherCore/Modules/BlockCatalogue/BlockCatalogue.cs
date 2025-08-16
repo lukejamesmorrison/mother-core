@@ -123,7 +123,45 @@ namespace IngameScript
 
             // Events
             SubscribeToEvents();
+
+            // Start configuration refresh timer
+            InitiateBlockConfigurationRefresh();
         }
+
+        void InitiateBlockConfigurationRefresh()
+        {
+            // start as a coroutine
+            //IEnumerable<double> routine = null;
+            Mother.GetModule<Clock>().AddCoroutine(GetRefreshBlockConfigurationRoutine());
+        }
+
+        IEnumerable<double> GetRefreshBlockConfigurationRoutine()
+        {
+            LoadBlockConfigurations();
+
+            // re-run after 1 second
+            Mother.GetModule<Clock>().AddCoroutine(GetRefreshBlockConfigurationRoutine(), 1);
+
+            yield return 0;
+        }
+
+     
+
+        //MyIni RefreshBlockConfiguration(IMyTerminalBlock block)
+        //{
+        //    // Notify player of update
+        //    Mother.Print($"Refreshing configuration: {block.CustomName}", false);
+
+        //    MyIni blockConfiguration = new MyIni();
+        //    MyIniParseResult result;
+
+        //    if (!blockConfiguration.TryParse(block.CustomData, out result))
+        //        return null;
+
+        //    BlockConfigs[block] = blockConfiguration;
+
+        //    return blockConfiguration;
+        //}
 
         /// <summary>
         /// Load all Terminal Blocks on the grid. We load block groups, 
@@ -301,8 +339,22 @@ namespace IngameScript
                 MyIni blockConfiguration = new MyIni();
                 MyIniParseResult result;
 
+                //if(blockConfiguration == null) continue;
+
                 if (!blockConfiguration.TryParse(block.CustomData, out result))
                     continue;
+
+
+
+                // check for change here
+                if(
+                    Mother.SystemState == Mother.SystemStates.WORKING
+                    && BlockConfigs.ContainsKey(block)
+                    && blockConfiguration.ToString() != BlockConfigs[block].ToString()
+                )
+                {
+                    Mother.Print($"Config changed: {block.CustomName}", false);
+                };
 
                 BlockConfigs[block] = blockConfiguration;
 
@@ -319,6 +371,18 @@ namespace IngameScript
                     LoadBlockHooks(block, blockConfiguration);
             }
         }
+
+        /// <summary>
+        /// Determine if a block's configuration has changed by comparing the current 
+        /// custom data to the cached block configuration.
+        /// </summary>
+        /// <param name="block"></param>
+        /// <returns></returns>
+        //bool HasBlockConfigurationChanged(MyIMyTerminalBlock block)
+        //{
+        //    return BlockConfigs.ContainsKey(block) 
+        //            && block.CustomData != GetBlockConfiguration(block).ToString();
+        //}
 
         /// <summary>
         /// Set default configuration values for a block. This is used when a block 
@@ -666,5 +730,7 @@ namespace IngameScript
 
             LocalGridIds = localGridIds;
         }
+
+     
     }
 }

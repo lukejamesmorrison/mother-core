@@ -104,7 +104,7 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Schedule a system task for execution continuously over an interval.
+        /// Schedule a system task for execution continuously over an interval in seconds.
         /// </summary>
         /// <param name="task"></param>
         /// <param name="interval"></param>
@@ -133,9 +133,10 @@ namespace IngameScript
         /// Start a coroutine that runs over multiple game cycles.
         /// </summary>
         /// <param name="routine"></param>
-        public void StartCoroutine(IEnumerable<double> routine)
+        /// <param name="waitTime"></param>
+        public void AddCoroutine(IEnumerable<double> routine, double waitTime = 0)
         {
-            Coroutines.Add(new Coroutine { Enumerator = routine.GetEnumerator(), WaitTime = 0 });
+            Coroutines.Add(new Coroutine { Enumerator = routine.GetEnumerator(), WaitTime = waitTime });
         }
 
 

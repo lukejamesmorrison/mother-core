@@ -303,11 +303,17 @@ namespace IngameScript
             // Register the core commands that are not associated with a module.
             RegisterCoreCommands();
 
-            // Boot all modules as co-routines in sequence to reduce complexity
-            GetModule<Clock>().StartCoroutine(BootModulesSequence());
+            // Boot modules
+            BootModules();
 
-            // Boot successful, the system is not working.
-            SetState(SystemStates.WORKING);
+            // Boot successful, the system is now working.
+            //SetState(SystemStates.WORKING);
+        }
+
+        void BootModules()
+        {
+            // Boot all modules as co-routines in sequence to reduce complexity
+            GetModule<Clock>().AddCoroutine(BootModulesSequence());
         }
 
         /// <summary>
@@ -404,6 +410,7 @@ namespace IngameScript
             // Otherwise the system is booting
             else if (SystemState == SystemStates.BOOT)
             {
+                GetModule<Clock>().Run();
                 GetModule<Terminal>()?.UpdateTerminal();
             }
 
