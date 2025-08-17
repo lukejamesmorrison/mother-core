@@ -167,6 +167,7 @@ namespace IngameScript
             {
                 // We access the task by index to avoid dequeuing during iteration
                 var task = QueuedTasks.ElementAt(i);  
+
                 task.TimeRemaining -= deltaTime;
 
                 if (task.TimeRemaining <= 0)

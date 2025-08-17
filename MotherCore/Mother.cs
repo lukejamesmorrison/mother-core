@@ -166,6 +166,11 @@ namespace IngameScript
         public Dictionary<string, IModule> AllModules = new Dictionary<string, IModule>();
 
         /// <summary>
+        /// The order in which modules are registered. This is used to boot them in a coroutine.
+        /// </summary>
+        private readonly List<IModule> ModulesInOrderOfRegistration = new List<IModule>();
+
+        /// <summary>
         /// The list of all core modules registered with Mother. These modules are 
         /// essential to the operation of the system.
         /// </summary>
@@ -303,77 +308,137 @@ namespace IngameScript
             // Register the core commands that are not associated with a module.
             RegisterCoreCommands();
 
+            // Enqueue the master boot coroutine which controls state end-to-end
+            GetModule<Clock>().AddCoroutine(BootSequence());
+
             // Boot modules
-            BootModules();
+            //BootModules();
 
             // Boot successful, the system is now working.
             //SetState(SystemStates.WORKING);
         }
 
-        void BootModules()
-        {
-            // Boot all modules as co-routines in sequence to reduce complexity
-            GetModule<Clock>().AddCoroutine(BootModulesSequence());
-        }
-
         /// <summary>
-        /// Boot all modules in a coroutine sequence. This allows us to 
-        /// boot modules one at a time allowing us to reduce the 
-        /// complexity of the boot process.
+        /// Master boot sequence controlled by Boot(). Runs module boots sequentially,
+        /// then flips state to WORKING and performs post-boot actions.
         /// </summary>
-        /// <returns></returns>
-        IEnumerable<double> BootModulesSequence()
+        IEnumerable<double> BootSequence()
         {
-            var bootModules = BootModulesCoroutine().GetEnumerator();
+            // 1) Boot all modules sequentially (each may itself be multi-tick)
+            foreach (var t in BootModulesCoroutine())
+                yield return t;
 
-            while (bootModules.MoveNext())
-            {
-                yield return bootModules.Current;
-            }
-
-            // Done booting
+            // 2) Now the system is fully booted, flip state and announce
             SetState(SystemStates.WORKING);
 
             Print("Mother OS is online.");
             Print("Clearing console in 2 seconds...");
             Print("The Empire must grow.");
 
-            // Clear console after booting
+            // 3) Post-boot cleanup after a short delay
             GetModule<Clock>().QueueForLater(() => GetModule<Terminal>()?.ClearConsole(), 2.0);
         }
 
-        /// <summary>
-        /// Coroutine that boots each module one-by-one. This method yields control 
-        /// between module boots, allowing each module to perform a multi-tick 
-        /// boot process via its own coroutine if necessary.
-        /// </summary>
-        /// <returns>
-        /// A sequence of yield durations (in seconds) representing the total boot process.
-        /// </returns>
         IEnumerable<double> BootModulesCoroutine()
         {
-            int total = AllModules.Count;
-            int current = 0;
-
-            foreach (KeyValuePair<string, IModule> entry in AllModules)
+            int total = ModulesInOrderOfRegistration.Count;
+            for (int i = 0; i < total; i++)
             {
-                current++;
+                var module = ModulesInOrderOfRegistration[i];
+                Print($"Booting modules: ({i + 1} / {total})");
 
-                Print($"Booting modules: ({current} / {total})");
-
-                var module = entry.Value;
-
-                // Run its coroutine boot sequence
-                var coroutine = module.BootCoroutine();
-
-                while (coroutine.MoveNext())
-                    yield return coroutine.Current;
+                var boot = module.BootCoroutine();
+                while (boot.MoveNext())
+                    yield return boot.Current;
 
                 RegisterCommands(module.GetCommands());
             }
 
             Print("All modules booted.");
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        //void BootModules()
+        //{
+        //    // Boot all modules as co-routines in sequence to reduce complexity
+        //    GetModule<Clock>().AddCoroutine(BootModulesSequence());
+        //}
+
+        ///// <summary>
+        ///// Boot all modules in a coroutine sequence. This allows us to 
+        ///// boot modules one at a time allowing us to reduce the 
+        ///// complexity of the boot process.
+        ///// </summary>
+        ///// <returns></returns>
+        //IEnumerable<double> BootModulesSequence()
+        //{
+        //    var bootModules = BootModulesCoroutine().GetEnumerator();
+
+        //    while (bootModules.MoveNext())
+        //    {
+        //        yield return bootModules.Current;
+        //    }
+
+        //    // Done booting
+        //    SetState(SystemStates.WORKING);
+
+        //    Print("Mother OS is online.");
+        //    Print("Clearing console in 2 seconds...");
+        //    Print("The Empire must grow.");
+
+        //    // Clear console after booting
+        //    GetModule<Clock>().QueueForLater(() => GetModule<Terminal>()?.ClearConsole(), 2.0);
+        //}
+
+        ///// <summary>
+        ///// Coroutine that boots each module one-by-one. This method yields control 
+        ///// between module boots, allowing each module to perform a multi-tick 
+        ///// boot process via its own coroutine if necessary.
+        ///// </summary>
+        ///// <returns>
+        ///// A sequence of yield durations (in seconds) representing the total boot process.
+        ///// </returns>
+        //IEnumerable<double> BootModulesCoroutine()
+        //{
+        //    int total = AllModules.Count;
+        //    int current = 0;
+
+        //    foreach (KeyValuePair<string, IModule> entry in AllModules)
+        //    {
+        //        current++;
+
+        //        Print($"Booting modules: ({current} / {total})");
+
+        //        var module = entry.Value;
+
+        //        // Run its coroutine boot sequence
+        //        var coroutine = module.BootCoroutine();
+
+        //        while (coroutine.MoveNext())
+        //            yield return coroutine.Current;
+
+        //        RegisterCommands(module.GetCommands());
+        //    }
+
+        //    Print("All modules booted.");
+        //}
 
 
         /// <summary>
@@ -403,6 +468,26 @@ namespace IngameScript
         /// <param name="updateType"></param>
         public void Run(string argument, UpdateType updateType)
         {
+
+            //string state = "";
+
+            //switch (SystemState)
+            //{
+            //    case SystemStates.UNINITIALIZED:
+            //        state = "Uninitialized";
+            //        break;
+            //    case SystemStates.BOOT:
+            //        state = "Booting";
+            //        break;
+            //    case SystemStates.WORKING:
+            //        state = "Working";
+            //        break;
+            //}
+
+
+            // GetModule<Terminal>()?.Highlight($"State: {state}");
+
+
             // If the system is uninitialized, we initialize it.
             if (SystemState == SystemStates.UNINITIALIZED)
                 Boot();
@@ -506,6 +591,7 @@ namespace IngameScript
         {
             ExtensionModules[module.GetModuleName()] = module;
             AllModules[module.GetModuleName()] = module;
+            ModulesInOrderOfRegistration.Add(module);
         }
 
         /// <summary>
@@ -556,6 +642,7 @@ namespace IngameScript
         {
             CoreModules[module.GetModuleName()] = module;
             AllModules[module.GetModuleName()] = module;
+            ModulesInOrderOfRegistration.Add(module);
 
             return module;
         }

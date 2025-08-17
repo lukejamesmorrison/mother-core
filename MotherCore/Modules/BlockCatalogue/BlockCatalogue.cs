@@ -33,6 +33,11 @@ namespace IngameScript
     public class BlockCatalogue : BaseCoreModule
     {
         /// <summary>
+        /// The Clock core module.
+        /// </summary>
+        Clock Clock;
+
+        /// <summary>
         /// The Configuration core module.
         /// </summary>
         Configuration Configuration;
@@ -117,6 +122,7 @@ namespace IngameScript
             // Modules
             Configuration = Mother.GetModule<Configuration>();
             EventBus = Mother.GetModule<EventBus>();
+            Clock = Mother.GetModule<Clock>();
 
             LoadLocalGridIds(Mother.CubeGrid);
             LoadBlocks();
@@ -124,15 +130,17 @@ namespace IngameScript
             // Events
             SubscribeToEvents();
 
-            // Start configuration refresh timer
+            // Start automatic block configuration refresh
             InitiateBlockConfigurationRefresh();
         }
 
+        /// <summary>
+        /// Initiate a block configuration refresh routine. This will reload block configurations
+        /// on a consistent interval so respond to player changes.
+        /// </summary>
         void InitiateBlockConfigurationRefresh()
         {
-            // start as a coroutine
-            //IEnumerable<double> routine = null;
-            Mother.GetModule<Clock>().AddCoroutine(GetRefreshBlockConfigurationRoutine());
+            Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine());
         }
 
         IEnumerable<double> GetRefreshBlockConfigurationRoutine()
@@ -140,7 +148,7 @@ namespace IngameScript
             LoadBlockConfigurations();
 
             // re-run after 1 second
-            Mother.GetModule<Clock>().AddCoroutine(GetRefreshBlockConfigurationRoutine(), 1);
+            Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine(), 1);
 
             yield return 0;
         }

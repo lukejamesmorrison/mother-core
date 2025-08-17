@@ -63,6 +63,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\Events\MergeBlockLockedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\Events\MergeBlockOffEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\MergeBlockModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)TerminalBlockInterfaces.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\Security.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Commands\ClearCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Commands\PrintCommand.cs" />
