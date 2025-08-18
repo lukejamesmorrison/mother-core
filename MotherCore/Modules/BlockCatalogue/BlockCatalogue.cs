@@ -352,19 +352,26 @@ namespace IngameScript
                 if (!blockConfiguration.TryParse(block.CustomData, out result))
                     continue;
 
-
+                if(Mother.SystemState == Mother.SystemStates.BOOT)
+                    BlockConfigs[block] = blockConfiguration;
 
                 // check for change here
-                if(
+                else if 
+                (
                     Mother.SystemState == Mother.SystemStates.WORKING
                     && BlockConfigs.ContainsKey(block)
                     && blockConfiguration.ToString() != BlockConfigs[block].ToString()
                 )
                 {
-                    Mother.Print($"Config changed: {block.CustomName}", false);
-                };
+                    // update the block config
+                    BlockConfigs[block] = blockConfiguration;
 
-                BlockConfigs[block] = blockConfiguration;
+                    // Emit event for other modules to use
+                    Emit<BlockConfigChangedEvent>(block);
+
+                    // Notify player of update
+                    Mother.Print($"Config changed: {block.CustomName}", false);
+                }
 
                 // if result is empty, set default configuration values
                 if (blockConfiguration.ToString() == "")

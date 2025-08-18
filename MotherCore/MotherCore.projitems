@@ -23,6 +23,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseCoreModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseExtensionModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\BlockCatalogue.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Events\BlockConfigChangedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\IBlockStateHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Clock\Clock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\BlockMessages.cs" />
