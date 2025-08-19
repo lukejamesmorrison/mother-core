@@ -159,24 +159,6 @@ namespace IngameScript
             yield return 0;
         }
 
-     
-
-        //MyIni RefreshBlockConfiguration(IMyTerminalBlock block)
-        //{
-        //    // Notify player of update
-        //    Mother.Print($"Refreshing configuration: {block.CustomName}", false);
-
-        //    MyIni blockConfiguration = new MyIni();
-        //    MyIniParseResult result;
-
-        //    if (!blockConfiguration.TryParse(block.CustomData, out result))
-        //        return null;
-
-        //    BlockConfigs[block] = blockConfiguration;
-
-        //    return blockConfiguration;
-        //}
-
         /// <summary>
         /// Load all Terminal Blocks on the grid. We load block groups, 
         /// and register block configuration and hooks.
@@ -308,7 +290,9 @@ namespace IngameScript
         public void RegisterBlockForStateMonitoring(IMyTerminalBlock block, IBlockStateHandler handler)
         {
             BlocksToMonitor[block] = handler;
-            BlockStates[block.EntityId] = handler.GetBlockCurrentState(block); // Store initial state
+
+            // Store initial state
+            BlockStates[block.EntityId] = handler.GetBlockCurrentState(block);
         }
 
         /// <summary>
@@ -359,14 +343,6 @@ namespace IngameScript
         /// </summary>
         void LoadBlockConfigurations()
         {
-            //if (Mother.SystemState == Mother.SystemStates.BOOT)
-            //    BlockConfigs.Clear();
-
-            // we need to fire the change event
-
-
-
-
             foreach (var block in TerminalBlocks)
             {
                 MyIni blockConfiguration = new MyIni();
@@ -386,13 +362,13 @@ namespace IngameScript
                 )
                 {
 
-                    //// if this is the programmable block, we reboot Mother.
-                    //if (BlockIsMother(block))
-                    //{
-                    //    Mother.Print("Mother configuration changed. Rebooting...");
-                    //    Mother.Boot();
-                    //    return;
-                    //}
+                    // if this is the programmable block, we reboot Mother.
+                    if (block is IMyProgrammableBlock && block.EntityId == Mother.Id)
+                    {
+                        Mother.Print("Mother configuration changed. Rebooting...");
+                        Mother.Boot();
+                        return;
+                    }
 
                     // update the block config
                     BlockConfigs[block] = blockConfiguration;
@@ -417,18 +393,6 @@ namespace IngameScript
                     LoadBlockHooks(block, blockConfiguration);
             }
         }
-
-        /// <summary>
-        /// Determine if a block's configuration has changed by comparing the current 
-        /// custom data to the cached block configuration.
-        /// </summary>
-        /// <param name="block"></param>
-        /// <returns></returns>
-        //bool HasBlockConfigurationChanged(MyIMyTerminalBlock block)
-        //{
-        //    return BlockConfigs.ContainsKey(block) 
-        //            && block.CustomData != GetBlockConfiguration(block).ToString();
-        //}
 
         /// <summary>
         /// Set default configuration values for a block. This is used when a block 

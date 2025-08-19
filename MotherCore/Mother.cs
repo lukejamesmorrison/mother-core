@@ -281,7 +281,6 @@ namespace IngameScript
 
             // clear clock schedule
             GetModule<Clock>().ClearScheduledTasks();
-            //GetModule<Clock>().Coroutines.Clear();
 
             Print("Booting Mother OS...");
 
@@ -364,22 +363,20 @@ namespace IngameScript
         public void Run(string argument, UpdateType updateType)
         {
 
-            string state = "";
+            //string state = "";
 
-            switch (SystemState)
-            {
-                case SystemStates.UNINITIALIZED:
-                    state = "Uninitialized";
-                    break;
-                case SystemStates.BOOT:
-                    state = "Booting";
-                    break;
-                case SystemStates.WORKING:
-                    state = "Working";
-                    break;
-            }
-
-
+            //switch (SystemState)
+            //{
+            //    case SystemStates.UNINITIALIZED:
+            //        state = "Uninitialized";
+            //        break;
+            //    case SystemStates.BOOT:
+            //        state = "Booting";
+            //        break;
+            //    case SystemStates.WORKING:
+            //        state = "Working";
+            //        break;
+            //}
 
             // If the system is uninitialized, we initialize it.
             if (SystemState == SystemStates.UNINITIALIZED)
@@ -390,7 +387,7 @@ namespace IngameScript
             {
                 GetModule<Clock>().Run();
 
-                GetModule<Terminal>()?.Highlight($"State: {state}");
+                //GetModule<Terminal>()?.Highlight($"State: {state}");
 
                 // update terminal during boot
                 GetModule<Terminal>()?.UpdateTerminal();
@@ -401,34 +398,22 @@ namespace IngameScript
             {
                 // Tf the update source is a player action or programmable blocks script
                 if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
-                {
                     GetModule<CommandBus>().RunTerminalCommand(argument);
-                    //GetModule<Terminal>().UpdateTerminal();
-                    return;
-                }
 
                 // If the update source is the intergrid communication system,
                 // we process the incoming communications.
                 else if (updateType == UpdateType.IGC)
-                {
                     GetModule<IntergridMessageService>().HandleIncomingIGCMessages();
-                    return;
-                }
 
                 // Otherwise we run all modules and assume a runtime update.
                 else
                 {
                     RunModules();
                     OtherRuntimeItems();
-
-                    GetModule<Terminal>()?.Highlight($"State: {state}");
                 }
-
 
                 GetModule<Terminal>().UpdateTerminal();
             }
-
-            //GetModule<Terminal>().UpdateTerminal();
         }
 
         /// <summary>

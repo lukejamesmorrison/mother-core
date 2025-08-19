@@ -36,7 +36,7 @@ namespace IngameScript
         /// All event subscriptions. The key is the event name, and the 
         /// value is a list of modules subscribed to that event.
         /// </summary>
-        private readonly Dictionary<Type, List<IModule>> EventSubscriptions = new Dictionary<Type, List<IModule>>();
+        private readonly Dictionary<Type, HashSet<IModule>> EventSubscriptions = new Dictionary<Type, HashSet<IModule>>();
 
         /// <summary>
         /// Subscribe a Module to a specific event.
@@ -48,7 +48,7 @@ namespace IngameScript
             var eventType = typeof(TEvent);
 
             if (!EventSubscriptions.ContainsKey(eventType))
-                EventSubscriptions[eventType] = new List<IModule>();
+                EventSubscriptions[eventType] = new HashSet<IModule>();
 
             EventSubscriptions[eventType].Add(module);
         }
@@ -61,6 +61,7 @@ namespace IngameScript
         public bool IsSubscribed<TEvent>(IModule module)
         {
             var eventType = typeof(TEvent);
+
             if (EventSubscriptions.ContainsKey(eventType))
                 return EventSubscriptions[eventType].Contains(module);
 
@@ -100,7 +101,9 @@ namespace IngameScript
             var eventType = e.GetType();
 
             if (EventSubscriptions.ContainsKey(eventType))
-                EventSubscriptions[eventType].ForEach(module => module.HandleEvent(e, eventData));
+                EventSubscriptions[eventType]
+                    .ToList()
+                    .ForEach(module => module.HandleEvent(e, eventData));
         }
     }
 }
