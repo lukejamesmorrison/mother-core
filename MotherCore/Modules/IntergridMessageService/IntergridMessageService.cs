@@ -116,8 +116,8 @@ namespace IngameScript
             RegisterIGCListeners();
 
             // ROUTES
-            Router.AddRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
-            Router.AddRoute("sync", request => SyncWithLocalMotherInstances(request));
+            Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
+            Router.RegisterRoute("sync", request => SyncWithLocalMotherInstances(request));
 
             // Send local broadcast
             LocalPing();

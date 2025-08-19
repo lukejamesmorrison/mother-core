@@ -270,24 +270,6 @@ namespace IngameScript
             SystemState = state;
         }
 
-        //IEnumerable<double> TestCoroutineSequence()
-        //{
-        //    int counter = 0;
-        //    Print("Starting coroutine test...");
-
-        //    while (counter >= 0)
-        //    {
-        //        if(counter > 0)
-        //        {
-        //            Print($"{counter} second has passed");
-        //        }
-
-        //        counter++;
-        //        yield return 1.0; // Wait 1 second
-
-        //    }
-        //}
-
         /// <summary>
         /// Boot the system. This is called after all core and extension modules have been registered. 
         /// Core modules are booted before extension modules. Modules are booted in the order they 
@@ -299,6 +281,7 @@ namespace IngameScript
 
             // clear clock schedule
             GetModule<Clock>().ClearScheduledTasks();
+            //GetModule<Clock>().Coroutines.Clear();
 
             Print("Booting Mother OS...");
 
@@ -310,12 +293,6 @@ namespace IngameScript
 
             // Enqueue the master boot coroutine which controls state end-to-end
             GetModule<Clock>().AddCoroutine(BootSequence());
-
-            // Boot modules
-            //BootModules();
-
-            // Boot successful, the system is now working.
-            //SetState(SystemStates.WORKING);
         }
 
         /// <summary>
@@ -345,9 +322,11 @@ namespace IngameScript
             for (int i = 0; i < total; i++)
             {
                 var module = ModulesInOrderOfRegistration[i];
+
                 Print($"Booting modules: ({i + 1} / {total})");
 
                 var boot = module.BootCoroutine();
+
                 while (boot.MoveNext())
                     yield return boot.Current;
 
@@ -356,90 +335,6 @@ namespace IngameScript
 
             Print("All modules booted.");
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        //void BootModules()
-        //{
-        //    // Boot all modules as co-routines in sequence to reduce complexity
-        //    GetModule<Clock>().AddCoroutine(BootModulesSequence());
-        //}
-
-        ///// <summary>
-        ///// Boot all modules in a coroutine sequence. This allows us to 
-        ///// boot modules one at a time allowing us to reduce the 
-        ///// complexity of the boot process.
-        ///// </summary>
-        ///// <returns></returns>
-        //IEnumerable<double> BootModulesSequence()
-        //{
-        //    var bootModules = BootModulesCoroutine().GetEnumerator();
-
-        //    while (bootModules.MoveNext())
-        //    {
-        //        yield return bootModules.Current;
-        //    }
-
-        //    // Done booting
-        //    SetState(SystemStates.WORKING);
-
-        //    Print("Mother OS is online.");
-        //    Print("Clearing console in 2 seconds...");
-        //    Print("The Empire must grow.");
-
-        //    // Clear console after booting
-        //    GetModule<Clock>().QueueForLater(() => GetModule<Terminal>()?.ClearConsole(), 2.0);
-        //}
-
-        ///// <summary>
-        ///// Coroutine that boots each module one-by-one. This method yields control 
-        ///// between module boots, allowing each module to perform a multi-tick 
-        ///// boot process via its own coroutine if necessary.
-        ///// </summary>
-        ///// <returns>
-        ///// A sequence of yield durations (in seconds) representing the total boot process.
-        ///// </returns>
-        //IEnumerable<double> BootModulesCoroutine()
-        //{
-        //    int total = AllModules.Count;
-        //    int current = 0;
-
-        //    foreach (KeyValuePair<string, IModule> entry in AllModules)
-        //    {
-        //        current++;
-
-        //        Print($"Booting modules: ({current} / {total})");
-
-        //        var module = entry.Value;
-
-        //        // Run its coroutine boot sequence
-        //        var coroutine = module.BootCoroutine();
-
-        //        while (coroutine.MoveNext())
-        //            yield return coroutine.Current;
-
-        //        RegisterCommands(module.GetCommands());
-        //    }
-
-        //    Print("All modules booted.");
-        //}
-
 
         /// <summary>
         /// Set the boot time configuration. This is used to set up additional properties on 
@@ -469,23 +364,21 @@ namespace IngameScript
         public void Run(string argument, UpdateType updateType)
         {
 
-            //string state = "";
+            string state = "";
 
-            //switch (SystemState)
-            //{
-            //    case SystemStates.UNINITIALIZED:
-            //        state = "Uninitialized";
-            //        break;
-            //    case SystemStates.BOOT:
-            //        state = "Booting";
-            //        break;
-            //    case SystemStates.WORKING:
-            //        state = "Working";
-            //        break;
-            //}
+            switch (SystemState)
+            {
+                case SystemStates.UNINITIALIZED:
+                    state = "Uninitialized";
+                    break;
+                case SystemStates.BOOT:
+                    state = "Booting";
+                    break;
+                case SystemStates.WORKING:
+                    state = "Working";
+                    break;
+            }
 
-
-            // GetModule<Terminal>()?.Highlight($"State: {state}");
 
 
             // If the system is uninitialized, we initialize it.
@@ -496,6 +389,10 @@ namespace IngameScript
             else if (SystemState == SystemStates.BOOT)
             {
                 GetModule<Clock>().Run();
+
+                GetModule<Terminal>()?.Highlight($"State: {state}");
+
+                // update terminal during boot
                 GetModule<Terminal>()?.UpdateTerminal();
             }
 
@@ -506,22 +403,32 @@ namespace IngameScript
                 if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
                 {
                     GetModule<CommandBus>().RunTerminalCommand(argument);
-                    GetModule<Terminal>().UpdateTerminal();
+                    //GetModule<Terminal>().UpdateTerminal();
                     return;
                 }
 
                 // If the update source is the intergrid communication system,
                 // we process the incoming communications.
-                if (updateType == UpdateType.IGC)
+                else if (updateType == UpdateType.IGC)
                 {
                     GetModule<IntergridMessageService>().HandleIncomingIGCMessages();
                     return;
                 }
 
                 // Otherwise we run all modules and assume a runtime update.
-                RunModules();
-                OtherRuntimeItems();
+                else
+                {
+                    RunModules();
+                    OtherRuntimeItems();
+
+                    GetModule<Terminal>()?.Highlight($"State: {state}");
+                }
+
+
+                GetModule<Terminal>().UpdateTerminal();
             }
+
+            //GetModule<Terminal>().UpdateTerminal();
         }
 
         /// <summary>
@@ -590,7 +497,9 @@ namespace IngameScript
         public void RegisterModule(IExtensionModule module)
         {
             ExtensionModules[module.GetModuleName()] = module;
+
             AllModules[module.GetModuleName()] = module;
+
             ModulesInOrderOfRegistration.Add(module);
         }
 

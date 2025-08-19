@@ -124,6 +124,9 @@ namespace IngameScript
             EventBus = Mother.GetModule<EventBus>();
             Clock = Mother.GetModule<Clock>();
 
+            // Clear existing configuration data
+            //BlockConfigs.Clear();
+
             LoadLocalGridIds(Mother.CubeGrid);
             LoadBlocks();
 
@@ -143,11 +146,14 @@ namespace IngameScript
             Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine());
         }
 
+        /// <summary>
+        /// Coroutine to refresh block configurations. This will run every second by queueing itself.
+        /// </summary>
+        /// <returns></returns>
         IEnumerable<double> GetRefreshBlockConfigurationRoutine()
         {
             LoadBlockConfigurations();
 
-            // re-run after 1 second
             Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine(), 1);
 
             yield return 0;
@@ -336,18 +342,35 @@ namespace IngameScript
             return filteredBlocks;
         }
 
+        bool HasBlockConfigurationChanged(IMyTerminalBlock block, MyIni newConfiguration)
+        {
+            return BlockConfigs.ContainsKey(block)
+                    && newConfiguration.ToString() != BlockConfigs[block].ToString();
+        }
+
+        bool BlockIsMother(IMyTerminalBlock block)
+        {
+            return block is IMyProgrammableBlock && block.EntityId == Mother.Id;
+        }
+
         /// <summary>
         /// Load block configurations from the custom data of each block. We do 
         /// this to access hooks and other block specific configurations.
         /// </summary>
         void LoadBlockConfigurations()
         {
+            //if (Mother.SystemState == Mother.SystemStates.BOOT)
+            //    BlockConfigs.Clear();
+
+            // we need to fire the change event
+
+
+
+
             foreach (var block in TerminalBlocks)
             {
                 MyIni blockConfiguration = new MyIni();
                 MyIniParseResult result;
-
-                //if(blockConfiguration == null) continue;
 
                 if (!blockConfiguration.TryParse(block.CustomData, out result))
                     continue;
@@ -355,14 +378,22 @@ namespace IngameScript
                 if(Mother.SystemState == Mother.SystemStates.BOOT)
                     BlockConfigs[block] = blockConfiguration;
 
-                // check for change here
-                else if 
+                // check for change here    
+                else if
                 (
                     Mother.SystemState == Mother.SystemStates.WORKING
-                    && BlockConfigs.ContainsKey(block)
-                    && blockConfiguration.ToString() != BlockConfigs[block].ToString()
+                    && HasBlockConfigurationChanged(block, blockConfiguration)
                 )
                 {
+
+                    //// if this is the programmable block, we reboot Mother.
+                    //if (BlockIsMother(block))
+                    //{
+                    //    Mother.Print("Mother configuration changed. Rebooting...");
+                    //    Mother.Boot();
+                    //    return;
+                    //}
+
                     // update the block config
                     BlockConfigs[block] = blockConfiguration;
 

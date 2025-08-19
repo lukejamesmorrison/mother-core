@@ -226,13 +226,13 @@ namespace IngameScript
 
         /// <summary>
         /// Add a route that other grids the may send requests to.
-        /// Accessor for to the IntergridMessageService.Router.AddRoute().
+        /// Accessor for to the IntergridMessageService.Router.RegisterRoute().
         /// </summary>
         /// <param name="path"></param>
         /// <param name="route"></param>
         public void AddRoute(string path, Func<Request, Response> route)
         {
-            GetModule<IntergridMessageService>().Router.AddRoute(path, route);
+            GetModule<IntergridMessageService>().Router.RegisterRoute(path, route);
         }
     }
 }

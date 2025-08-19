@@ -65,7 +65,7 @@ namespace IngameScript
             CommandBus.RegisterCommand(new PrintCommand(this));
 
             // clear terminal window
-            Clock.Schedule(UpdateTerminal);
+            //Clock.Schedule(UpdateTerminal);
         }
 
         /// <summary>
