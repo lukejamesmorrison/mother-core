@@ -163,8 +163,6 @@ namespace IngameScript
         /// </summary>
         public void LoadBlocks()
         {
-            
-
             // Load all IMyTerminalBlock blocks from the grid terminal system.
             GetBlocksFromGridTerminalSystem(TerminalBlocks);
 
@@ -362,13 +360,12 @@ namespace IngameScript
                 )
                 {
                     // if this is the programmable block, we reboot Mother.
-                    //if (block is IMyProgrammableBlock && block.EntityId == Mother.Id)
-                    //{
-                    //    //BlockConfigs[block] = blockConfiguration;
-                    //    Mother.Print("Mother configuration changed. Rebooting...");
-                    //    Mother.Boot();
-                    //    return;
-                    //}
+                    if (block is IMyProgrammableBlock && block.EntityId == Mother.Id)
+                    {
+                        Mother.Print("Mother configuration changed.\nRebooting...");
+                        Mother.Boot();
+                        return;
+                    }
 
                     // update the block config
                     BlockConfigs[block] = blockConfiguration;

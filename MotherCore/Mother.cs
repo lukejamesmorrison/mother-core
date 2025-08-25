@@ -315,6 +315,10 @@ namespace IngameScript
             GetModule<Clock>().QueueForLater(() => GetModule<Terminal>()?.ClearConsole(), 2.0);
         }
 
+        /// <summary>
+        /// Boot all modules sequentially in order of registration.
+        /// </summary>
+        /// <returns></returns>
         IEnumerable<double> BootModulesCoroutine()
         {
             int total = ModulesInOrderOfRegistration.Count;

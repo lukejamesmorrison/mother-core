@@ -35,7 +35,7 @@ namespace IngameScript
         /// </summary>
         readonly Dictionary<string, string> MotherConfigDefaults = new Dictionary<string, string>()
         {
-            { "general.debug", "false" },
+            //{ "general.debug", "false" },
             //{ "channels.*", "" },
         };
 
@@ -48,6 +48,14 @@ namespace IngameScript
         {
             // { "hooks.onOn", "" },
             // { "hooks.onOff", "" },
+        };
+
+        readonly string[] DefaultSections = new string[]
+        {
+            "general",
+            "channels",
+            "commands",
+            "hooks",
         };
 
         /// <summary>
@@ -65,14 +73,18 @@ namespace IngameScript
         /// </summary>
         /// <param name="mother"></param>
         /// <exception cref="Exception"></exception>
-        public Configuration(Mother mother) : base(mother)
+        public Configuration(Mother mother) : base(mother) { }
+
+        /// <summary>
+        /// Load the custom data from the programmable block into the MyIni object.
+        /// </summary>
+        /// <exception cref="Exception"></exception>
+        void LoadCustomData()
         {
             MyIniParseResult result;
 
-            if (!Ini.TryParse(mother.ProgrammableBlock.CustomData, out result))
+            if (!Ini.TryParse(Mother.ProgrammableBlock.CustomData, out result))
                 throw new Exception($"{result}");
-
-            mother.ProgrammableBlock.CustomData = new VersionManager(Ini).Run().ToString();
         }
 
         /// <summary>
@@ -81,8 +93,16 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
+            // Load programable block custom data
+            LoadCustomData();
+
+            // Update with version manager
+            Mother.ProgrammableBlock.CustomData = new VersionManager(Ini).Run().ToString();
+
+            // Ensure default configuration is set
             SetDefaultConfiguration();
 
+            // Register commands from custom data
             RegisterCommands();
         }
 
@@ -112,17 +132,6 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Set a value from the configuration. The token is a string that is 
-        /// period-separated for a section-key relationship.
-        /// 
-        /// ie. "general.debug" = true => [general] debug = true
-        /// </summary>
-        //public void Set(string token, string value)
-        //{
-        //    //Mother.ProgrammableBlock.CustomData = configuration;
-        //}
-
-        /// <summary>
         /// Register commands from the programmable block's custom data as configuration 
         /// commands. Commands are defined in the [Commands] section.
         /// </summary>
@@ -150,6 +159,12 @@ namespace IngameScript
         /// </summary>
         void SetDefaultConfiguration()
         {
+            // set default sections
+            foreach (string section in DefaultSections)
+                if (!Ini.ContainsSection(section))
+                    Ini.AddSection(section);
+
+            // set default values
             foreach (KeyValuePair<string, string> defaultPair in MotherConfigDefaults)
             {
                 string[] keyParts = defaultPair.Key.Split('.');
@@ -164,23 +179,5 @@ namespace IngameScript
 
             Mother.ProgrammableBlock.CustomData = $"{Ini}";
         }
-
-        /// <summary>
-        /// Set a value in the programmable block's custom data.
-        /// 
-        /// WARNING - This modifies Mother's "source of truth" and should 
-        /// be used with extreme caution.
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
-        //public void SetConfig(string sectionkey, string value)
-        //{
-        //    // split section and key
-        //    string[] parts = sectionkey.Split('.');
-
-        //    // we expect a 'section' and 'name'
-        //    if(parts.Length == 2)
-        //        Raw.Set(parts[0], parts[1], value);
-        //}
     }
 }
