@@ -92,6 +92,29 @@ namespace IngameScript
             return "";
         }
 
+        //public static bool GetBoolFromString(string value)
+        //{
+        //    string[] truthy = new string[] { "true", "1" };
+        //    string[] falsy = new string[] { "false", "0" };
+
+        //    if (truthy.Contains(value.ToLower()))
+        //        return true;
+        //    else if (falsy.Contains(value.ToLower()))
+        //        return false;
+        //    else
+        //        throw new ArgumentException("Value is not a valid boolean string.");
+        //}
+
+        /// <summary>
+        /// Converts a string to a boolean. Recognizes "true" (case insensitive) and "1" as true.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static bool GetBoolFromString(string value)
+        {
+            return value?.Trim().ToLower() == "true" || value?.Trim() == "1";
+        }
+
         /// <summary>
         /// Gets an option value by key and converts it to the specified type.
         /// </summary>

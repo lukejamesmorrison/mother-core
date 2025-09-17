@@ -93,6 +93,13 @@ namespace IngameScript
             Program.Runtime.UpdateFrequency = UpdateFrequency.Update10;
         }
 
+        public void Reset()
+        {
+            Coroutines.Clear();
+            SystemTasks.Clear();
+            QueuedTasks.Clear();
+        }
+
         /// <summary>
         /// Boot the Clock module. We schedule the loader indicator 
         /// to refresh every 1 second.

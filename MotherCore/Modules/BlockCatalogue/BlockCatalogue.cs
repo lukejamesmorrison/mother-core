@@ -77,7 +77,7 @@ namespace IngameScript
         /// <summary>
         /// Dictionary of block tags.  This allows us to group and target blocks by tags.
         /// </summary>
-        public readonly Dictionary<string, List<IMyTerminalBlock>> BlockTags = new Dictionary<string, List<IMyTerminalBlock>>();
+        public readonly Dictionary<string, HashSet<IMyTerminalBlock>> BlockTags = new Dictionary<string, HashSet<IMyTerminalBlock>>();
 
         /// <summary>
         /// Dictionary of block hooks.  This allows us to register hooks for blocks.
@@ -124,7 +124,7 @@ namespace IngameScript
             EventBus = Mother.GetModule<EventBus>();
             Clock = Mother.GetModule<Clock>();
 
-       
+            // Load construct and blocks
             LoadLocalGridIds(Mother.CubeGrid);
             LoadBlocks();
 
@@ -163,6 +163,11 @@ namespace IngameScript
         /// </summary>
         public void LoadBlocks()
         {
+            // Clear caches
+            BlockTags.Clear();
+            BlockHooks.Clear();
+            BlockConfigs.Clear();
+
             // Load all IMyTerminalBlock blocks from the grid terminal system.
             GetBlocksFromGridTerminalSystem(TerminalBlocks);
 
@@ -272,7 +277,7 @@ namespace IngameScript
             block.CustomData = blockConfiguration.ToString();
 
             if (!BlockTags.ContainsKey(tag))
-                BlockTags[tag] = new List<IMyTerminalBlock>();
+                BlockTags[tag] = new HashSet<IMyTerminalBlock>();
 
             BlockTags[tag].Add(block);
 
@@ -426,7 +431,7 @@ namespace IngameScript
                 string cleanTag = tag.Trim();
 
                 if (!BlockTags.ContainsKey(cleanTag))
-                    BlockTags[cleanTag] = new List<IMyTerminalBlock>();
+                    BlockTags[cleanTag] = new HashSet<IMyTerminalBlock>();
 
                 BlockTags[cleanTag].Add(block);
             }
@@ -599,7 +604,7 @@ namespace IngameScript
             {
                 if(BlockTags.ContainsKey(name.Substring(1)))
                 {
-                    BlockTags[name.Substring(1)]?.ForEach(block =>
+                    BlockTags[name.Substring(1)]?.ToList().ForEach(block =>
                     {
                         if (block is T && LocalGridIds.Contains(block.CubeGrid.EntityId))
                             blocks.Add(block as T);
@@ -687,10 +692,10 @@ namespace IngameScript
                 // getters.  This class should not change a value on Mother directly.
                 // Use Mother method as last resort.
                 Mother.RemoteControl = PrimaryRemoteControlBlock;
-            //} 
+            //}
             //catch
             //{
-            //    Mother.Print("Error with remote control block assignment");
+            //    throw new Exception("Failed to set primary remote control block.");
             //}
         }
 

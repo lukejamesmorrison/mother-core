@@ -280,9 +280,11 @@ namespace IngameScript
             SetState(SystemStates.BOOT);
 
             // clear clock schedule
-            GetModule<Clock>().ClearScheduledTasks();
+            //GetModule<Clock>().ClearScheduledTasks();
+            GetModule<Clock>().Reset();
 
-            Print("Booting Mother OS...");
+            // Print boot message
+            Print($"Booting {SystemName}...");
 
             // Set any boot time config that the modules need.
             SetBootTimeConfig();
@@ -307,7 +309,7 @@ namespace IngameScript
             // 2) Now the system is fully booted, flip state and announce
             SetState(SystemStates.WORKING);
 
-            Print("Mother OS is online.");
+            Print($"{SystemName} is online.");
             Print("Clearing console in 2 seconds...");
             Print("The Empire must grow.");
 
@@ -418,6 +420,28 @@ namespace IngameScript
 
                 GetModule<Terminal>().UpdateTerminal();
             }
+
+            // DEBUG PRINTS
+
+            //GetModule<Terminal>().Highlight("Complexity:  " + Program.Runtime.CurrentInstructionCount.ToString());
+
+            //var blockTags = GetModule<BlockCatalogue>().BlockTags;
+
+            //var blockTagsDisplays = blockTags.ContainsKey("cockpit-displays") ? blockTags["cockpit-displays"].ToList() : new List<IMyTerminalBlock>();
+
+            //var count = blockTagsDisplays.Count;
+
+            //GetModule<Terminal>().Highlight("blocks/tag:  " + count.ToString());
+
+            //var almanac = GetModule<Almanac>();
+
+            //var records = almanac.Records;
+
+            //var countRecs = records.Count;
+
+            //GetModule<Terminal>().Highlight("almanac recs:  " + GetModule<Almanac>().Records.Count.ToString());
+
+
         }
 
         /// <summary>
