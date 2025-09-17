@@ -91,8 +91,12 @@ namespace IngameScript
         {
             Program = mother.Program;
             Program.Runtime.UpdateFrequency = UpdateFrequency.Update10;
+            //Program.Runtime.UpdateFrequency = UpdateFrequency.Update1;
         }
 
+        /// <summary>
+        /// Reset the Clock module. This clears all coroutines, and scheduled tasks.
+        /// </summary>
         public void Reset()
         {
             Coroutines.Clear();

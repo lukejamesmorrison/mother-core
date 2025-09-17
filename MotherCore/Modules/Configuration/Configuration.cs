@@ -104,6 +104,9 @@ namespace IngameScript
 
             // Register commands from custom data
             RegisterCommands();
+
+            // Set Mother debug mode, if enabled
+            Mother.DebugMode = Get("general.debug").ToLower() == "true";
         }
 
         /// <summary>

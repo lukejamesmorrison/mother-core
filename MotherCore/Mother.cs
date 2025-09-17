@@ -421,6 +421,12 @@ namespace IngameScript
                 GetModule<Terminal>().UpdateTerminal();
             }
 
+            // Print debug stats
+            if(DebugMode)
+            {
+                GetModule<Terminal>().Highlight("Complexity:  " + Program.Runtime.CurrentInstructionCount.ToString() + "/50000");
+            }
+
             // DEBUG PRINTS
 
             //GetModule<Terminal>().Highlight("Complexity:  " + Program.Runtime.CurrentInstructionCount.ToString());
@@ -440,8 +446,6 @@ namespace IngameScript
             //var countRecs = records.Count;
 
             //GetModule<Terminal>().Highlight("almanac recs:  " + GetModule<Almanac>().Records.Count.ToString());
-
-
         }
 
         /// <summary>
