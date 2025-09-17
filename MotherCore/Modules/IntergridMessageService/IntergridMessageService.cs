@@ -119,8 +119,8 @@ namespace IngameScript
             Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
             Router.RegisterRoute("sync", request => SyncWithLocalMotherInstances(request));
 
-            // Send local broadcast
-            LocalPing();
+            // Send local broadcast - WIP
+            //LocalPing();
 
             // Ping local, then schedule recurring ping every 2 seconds.
             //PingLocal();
@@ -130,6 +130,7 @@ namespace IngameScript
         Response SyncWithLocalMotherInstances(Request request)
         {
             //Mother.Print("New request to sync!");
+
             return CreateResponse(request, Response.ResponseStatusCodes.OK);
         }
 
@@ -665,7 +666,7 @@ namespace IngameScript
 
         void OnLocalPingResponse(IntergridMessageObject response)
         {
-            //Mother.Print("Local response received.");
+            //Mother.Print($"Local response received. {response}");
         }
 
         /// <summary>
