@@ -7,6 +7,8 @@ using System.Text;
 /// This file is used to improve script minification my masking programmable block API types 
 /// with custom types. This means you only need to define the API type once here, and then 
 /// all other references can be minified. This is a HUGE character count reducer.
+/// 
+/// This file is not in use.
 /// </summary>
 namespace IngameScript
 {
