@@ -24,7 +24,6 @@ jobs:
           cp src/.gitignore dist/
           cp src/.gitattributes dist/
 
-          mkdir -p dist/src
           cp -r src/Commands dist/
           cp -r src/Modules dist/
           cp -r src/Utilities dist/
@@ -35,12 +34,12 @@ jobs:
 
       # 3. Create a zip archive of dist
       - name: Archive dist
-        run: zip -r dist.zip dist/
+        run: zip -r mother-core.zip dist/
 
       # 4. Create GitHub Release from the tag
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist.zip
+          files: mother-core.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
