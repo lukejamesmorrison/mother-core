@@ -16,24 +16,25 @@ jobs:
       # 1. Checkout repo
       - uses: actions/checkout@v4
 
-      # 2. Collate artefacts in folder
+      # 2. Build dist folder
       - name: Build dist folder
         run: |
-          cp src/Mother.cs /
-          cp src/.gitignore /
-          cp src/.gitattributes /
+          mkdir -p dist
+          cp src/Mother.cs dist/
+          cp src/.gitignore dist/
+          cp src/.gitattributes dist/
 
-          cp -r src/Commands /
-          cp -r src/Modules /
-          cp -r src/Utilities /
+          cp -r src/Commands dist/
+          cp -r src/Modules dist/
+          cp -r src/Utilities dist/
 
-          cp CHANGELOG.md /
-          cp LICENSE.md /
-          cp README.md /
+          cp CHANGELOG.md dist/
+          cp LICENSE.md dist/
+          cp README.md dist/
 
-      # 3. Create a zip archive
+      # 3. Create a zip archive of dist
       - name: Archive dist
-        run: zip -r mother-core.zip /
+        run: zip -r mother-core.zip .
 
       # 4. Create GitHub Release from the tag
       - name: Create Release
