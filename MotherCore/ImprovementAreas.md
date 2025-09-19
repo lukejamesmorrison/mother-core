@@ -1,21 +1,27 @@
 ﻿# ISSUES
 
-# Areas for further Improvement/ Optimization
-
 ## Add special exception handling when a user has a duplicate key in CustomData.
 Right now system shows duplicate key exception @ ie. `Commands/fptest0`, but it does not tell us this is technically in CustomData.  This is a UX problem that we should address.
+
+
+# Areas for further Improvement/ Optimization
 
 ## Simplify Storage to use _Ini parser
 https://spaceengineers.wiki.gg/wiki/Scripting/Handling_Configuration_and_Storage#:~:text=%22airlock%22))%3B-,SAVING%20TO%20STORAGE,-So%20far%20I%E2%80%99ve
 
 We can likely just use storage as a wrapper around this class. It should allow us to get/set many different types with avaialable mothods allowing us to potential reduce reliance on the `Serializer` class.
 
-## Store block specific commands within a blocks custom data
-During boot, mother should load all custom data props for functional blocks, and expose them to the command terminal.  To make sure commands are easy to locate, introduce a `find` command to identify the block containing a command by name.
+## Expose block-level commands within a block's custom data
+During boot, mother should load all custom data props for functional blocks, and expose them to the command terminal. 
 
-## 2. Debug Mode
+Possible implementation:
 
-Module and config is currently unused. How can I tak advantage of this module to debug Mother once in prod, vs. using DisplayManager or inline prints? Perhaps a custom "Exception" class for logging/printing"
+Assuming `BlockName` has `CommandName` defined in its `[command]` section of the custom data.
+```
+BlockName.CommandName <args> <--options>
+```
+
+This also acts similar to hooks reducing adoption friction.
 
 ## Add more commands and options:
 
@@ -40,7 +46,7 @@ Tough one. How can users run logical operations against values provided, or a va
 
 - Add Extension Modules	
     - Antenna block		
-        - most importantly, can we automatically have two laser antennas find each other by using the almanac? This would remove the requirement for the player too manually set, and would allow dynamic targeting if a grid would like to use the single laser antenna for multiple targets.	
+        - most importantly, can we automatically have two laser antennas find each other by using the almanac? This would remove the requirement for the player to manually set, and would allow dynamic targeting if a grid would like to use the single laser antenna for multiple targets.	
 
     - AI blocks? 		
         - What can be accessed here that would be useful? Likely actions and props related to offensive and defensive posturing. Follow player/ship for formation flight?

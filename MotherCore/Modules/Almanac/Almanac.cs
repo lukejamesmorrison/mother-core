@@ -50,10 +50,11 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
+            // Load existing records from local storage
             LoadFromLocalStorage();
 
-            Mother.GetModule<Clock>()
-                .Schedule(UpdateCurrentPosition, 1);
+            // Update our current position in the Almanac every second
+            Mother.GetModule<Clock>().Schedule(UpdateCurrentPosition, 1);
         }
 
         /// <summary>

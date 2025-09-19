@@ -45,7 +45,6 @@ namespace IngameScript
         /// ie. -45, "Hello World", red, #airlock-tag
         /// </summary>p
         public List<string> Arguments = new List<string>();
-        //public Dictionary<string, object> Arguments2 = new Dictionary<string, object>();
 
         /// <summary>
         /// The options of the command. Options are key-value pairs that start with '--'.
@@ -53,7 +52,6 @@ namespace IngameScript
         /// ie. --speed=100, --delay=0.5, --force
         /// </summary>
         public Dictionary<string, string> Options = new Dictionary<string, string>();
-        //public Dictionary<string, object> Options2 = new Dictionary<string, object>();
 
         /// <summary>
         /// The increment value for the command.
@@ -72,6 +70,7 @@ namespace IngameScript
         public TerminalCommand(string commandString)
         {
             CommandString = commandString.Replace("\r", "").Trim();
+
             ParseCommand();
         }
 
@@ -92,19 +91,6 @@ namespace IngameScript
             return "";
         }
 
-        //public static bool GetBoolFromString(string value)
-        //{
-        //    string[] truthy = new string[] { "true", "1" };
-        //    string[] falsy = new string[] { "false", "0" };
-
-        //    if (truthy.Contains(value.ToLower()))
-        //        return true;
-        //    else if (falsy.Contains(value.ToLower()))
-        //        return false;
-        //    else
-        //        throw new ArgumentException("Value is not a valid boolean string.");
-        //}
-
         /// <summary>
         /// Converts a string to a boolean. Recognizes "true" (case insensitive) and "1" as true.
         /// </summary>
@@ -114,50 +100,6 @@ namespace IngameScript
         {
             return value?.Trim().ToLower() == "true" || value?.Trim() == "1";
         }
-
-        /// <summary>
-        /// Gets an option value by key and converts it to the specified type.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
-        /// <param name="defaultValue"></param>
-        /// <returns></returns>
-        //public T GetOption2<T>(string name, T defaultValue = default(T))
-        //{
-        //    object value;
-        //    if (Options2.TryGetValue(name, out value))
-        //    {
-        //        return (T)Convert.ChangeType(value, typeof(T));
-        //    }
-        //    return defaultValue;
-        //}
-
-        /// <summary>
-        /// Gets an argument value by name.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        /// <exception cref="KeyNotFoundException"></exception>
-        //public T GetArgument<T>(string name)
-        //{
-        //    object value;
-        //    if (Arguments2.TryGetValue(name, out value))
-        //    {
-        //        return (T)Convert.ChangeType(value, typeof(T));
-        //    }
-        //    throw new KeyNotFoundException("Argument '" + name + "' not found.");
-        //}
-
-        /// <summary>
-        /// Gets an argument value by name as a string.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        //public string GetArgument(string name)
-        //{
-        //    return GetArgument<string>(name);
-        //}
 
         /// <summary>
         /// Parses the command string into its parts (arguments, options). Options 
@@ -180,32 +122,22 @@ namespace IngameScript
                     if (parts.Length == 2)
                     {
                         Options.Add(key, parts[1]);
-                        //Options2.Add(key, parts[1]);
                     }
                     else
                     {
                         Options.Add(key, "true");
-                        //Options2.Add(key, true);
                     }
-                    // Check for increment or decrement flags
-                    //if (key == "sub")
-                    //    IsDecrement = true;
-                    //else if (key == "add")
-                    //    IsIncrement = true;
                 }
                 else
                 {
                     Arguments.Add(term);
-                    //Arguments2.Add(term, term);
                 }
             }
 
             // Remove command name from arguments
             Name = Arguments[0];
-            //Name = Arguments2.First().Key;
 
             Arguments.RemoveAt(0);
-            //Arguments2.Remove(Name);
         }
 
         /// <summary>

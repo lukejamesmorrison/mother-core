@@ -91,9 +91,6 @@ namespace IngameScript
 
             // Remove blocks that reached their terminal state
             blocksToRemove.ForEach(block => UnregisterBlock(block));
-
-            //foreach (var block in blocksToRemove)
-            //    UnregisterBlock(block);
         }
 
         /// <summary>

@@ -63,9 +63,6 @@ namespace IngameScript
             // Commands
             CommandBus.RegisterCommand(new ClearCommand(this));
             CommandBus.RegisterCommand(new PrintCommand(this));
-
-            // clear terminal window
-            //Clock.Schedule(UpdateTerminal);
         }
 
         /// <summary>
@@ -101,11 +98,9 @@ namespace IngameScript
             string systemName = (Mother.SystemName ?? "").PadRight(15).Substring(0, 15);
 
             output +=
-                //"------------------------------------------------------\n" +
                 $" {systemName}   {GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
                 $" {Mother.Name} *{Mother.ShortId}\n" +
                 $"------------------------------------------------------\n" +
-                //$"{GetTestStrings()}\n";
                 "";
 
             if (Highlights != "")

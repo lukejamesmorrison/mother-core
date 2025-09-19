@@ -58,7 +58,6 @@ namespace IngameScript
                 connector => connector.Status,
                 (block, state) => HandleConnectorStateChange(block as IMyShipConnector, state)
             );
-
         }
 
         /// <summary>

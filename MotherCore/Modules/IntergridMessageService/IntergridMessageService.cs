@@ -305,7 +305,6 @@ namespace IngameScript
                 record = existingRecord;
             }
 
-
             // if record does not exist, create a new one
             else
             {
@@ -402,13 +401,6 @@ namespace IngameScript
 
                 if (success) break;
             }
-
-            // Send the message via unicast
-            //string outgoingMessage = UseEncryption ?
-            //    Mother.GetModule<Security>().Encrypt(message.Serialize()) :
-            //    message.Serialize();
-
-            //bool success = Mother.IGC.SendUnicastMessage(TargetId, "default", outgoingMessage);
 
             if (success)
                 Mother.GetModule<EventBus>().Emit<RequestSentEvent>();
@@ -577,25 +569,6 @@ namespace IngameScript
             foreach (KeyValuePair<string, object> entry in standardHeader)
                 responseHeader[entry.Key] = entry.Value;
 
-            //Vector3D currentPosition = Mother.CubeGrid.GetPosition();
-
-            //Dictionary<string, object> responseBody = new Dictionary<string, object>();
-            //Dictionary<string, object> responseHeader = new Dictionary<string, object>()
-            //{
-            //    { "status", $"{Response.GetResponseCodeValue(code)}" },
-            //    { "OriginId", $"{Mother.Id}" },
-            //    { "OriginName", Mother.Name },
-            //    { "TargetId", request.Header["OriginId"] },
-            //    { "TargetName", request.Header["OriginName"] },
-            //    { "RespondingToId", request.Header["Id"] },
-            //    { "x", $"{currentPosition.X}" },
-            //    { "y", $"{currentPosition.Y}" },
-            //    { "z", $"{currentPosition.Z}" },
-            //    { "SafeRadius", $"{Mother.SafeZone.Radius}" },
-            //    { "gravity", $"{Mother.GetGravity()}"   },
-            //    { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
-            //};
-
             // merge customHeader with defaults
             if (customHeader != null)
                 foreach (KeyValuePair<string, object> entry in customHeader)
@@ -621,8 +594,6 @@ namespace IngameScript
 
             SendOpenBroadcastRequest(request, null);
         }
-
-
 
         /// <summary>
         /// Send a ping message to all programmable blocks on the local grid. 

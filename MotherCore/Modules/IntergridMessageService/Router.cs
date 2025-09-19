@@ -42,6 +42,7 @@ namespace IngameScript
         public Response HandleRoute(string path, Request request)
         {
             var route = Routes.FirstOrDefault(r => r.Path == path);
+
             return route?.Handler?.Invoke(request);
         }
 

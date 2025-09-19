@@ -143,11 +143,6 @@ namespace IngameScript
             var target = terminalRoutine.Target;
             var commands = terminalRoutine.Commands;
 
-            //commands.ForEach(command =>
-            //{
-            //    Mother.Print(command.CommandString, false);
-            //});
-
             if (target == "self" || string.IsNullOrEmpty(target))
                 ProcessCommandsSequentially(commands);
 
@@ -220,7 +215,6 @@ namespace IngameScript
         {
             string commandString = command.CommandString;
 
-
             // Handle the "wait" command
             if (command.Name.ToLower() == "wait" && command.Arguments.Count > 0)
             {
@@ -245,17 +239,10 @@ namespace IngameScript
                 else return false;
             }
 
-//            Rainbow =
-//| light / color Light1 red;
-//| light / color Light1 yellow;
-
-
             // If command starts with an underscore, it is a locally defined
             // command and likely received via a remote command.
             if (commandString.StartsWith("_"))
             {
-                //Mother.Print($"CMD: {commandString}", false);
-
                 // remove leading underscore and assume locally defined command
                 commandString = commandString.Substring(1);
 
@@ -273,9 +260,9 @@ namespace IngameScript
             {
                 if (moduleCommand.GetCommandName() == command.Name)
                 {
-                    var logString = "> " + commandString;
+                    var printString = "> " + commandString;
 
-                    Mother.Print(logString);
+                    Mother.Print(printString);
 
                     string output = moduleCommand.Execute(command);
 

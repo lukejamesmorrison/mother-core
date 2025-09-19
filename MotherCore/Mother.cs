@@ -26,7 +26,6 @@ using VRageMath;
 
 namespace IngameScript
 {
-
     /// <summary>
     /// The main program class.
     /// </summary>
@@ -41,7 +40,7 @@ namespace IngameScript
         /// <summary>
         /// The Name of the system.
         /// </summary>
-        public string SystemName = "Mother OS";
+        public string SystemName = "Mother Program";
 
         /// <summary>
         /// The command line tool used to parse Arguments and 

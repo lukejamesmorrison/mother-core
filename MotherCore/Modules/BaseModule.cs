@@ -68,7 +68,9 @@ namespace IngameScript
         public virtual IEnumerator<double> BootCoroutine()
         {
             Boot();
-            yield return 0.0; // Allow the coroutine to yield control back to the main loop
+
+            // Allow the coroutine to yield control back to the main loop
+            yield return 0.0; 
         }
 
         /// <summary>

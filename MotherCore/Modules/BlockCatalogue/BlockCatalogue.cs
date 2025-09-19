@@ -172,6 +172,7 @@ namespace IngameScript
             GetBlocksFromGridTerminalSystem(TerminalBlocks);
 
             // Load remote control - we should improve this implementation later. 
+
             LoadRemoteControlBlock();
 
             LoadBlockConfigurations();
@@ -672,31 +673,22 @@ namespace IngameScript
                 .ToList();
 
             if (blocks.Count == 0)
-            {
-                Mother.Print("No remote control block found. Autopilot will not be available.");
-                return;
-            }
+                throw new Exception("\n\nNo remote control block found. Add one to your grid and press 'Recompile'.\n");
 
-            //try
-            //{
-                PrimaryRemoteControlBlock = blocks[0];
+            PrimaryRemoteControlBlock = blocks[0];
 
-                // reset params
-                PrimaryRemoteControlBlock.ClearWaypoints();
-                PrimaryRemoteControlBlock.SetAutoPilotEnabled(false);
+            // reset params
+            PrimaryRemoteControlBlock.ClearWaypoints();
+            PrimaryRemoteControlBlock.SetAutoPilotEnabled(false);
 
-                // Hoist to Mother
-                //
-                // We should refactor this someday.  Ideally, Mother is setting this, or making it more widely
-                // available to modules. It could be logically grouped with other position and motion
-                // getters.  This class should not change a value on Mother directly.
-                // Use Mother method as last resort.
-                Mother.RemoteControl = PrimaryRemoteControlBlock;
-            //}
-            //catch
-            //{
-            //    throw new Exception("Failed to set primary remote control block.");
-            //}
+            // Hoist to Mother
+            //
+            // We should refactor this someday.  Ideally, Mother is setting this, or making it more widely
+            // available to modules. It could be logically grouped with other position and motion
+            // getters.  This class should not change a value on Mother directly.
+            // Use Mother method as last resort.
+            Mother.RemoteControl = PrimaryRemoteControlBlock;
+   
         }
 
         /// <summary>
@@ -726,7 +718,11 @@ namespace IngameScript
 
                 // connection blocks
                 List<IMyMechanicalConnectionBlock> connectionBlocks = new List<IMyMechanicalConnectionBlock>();
-                Mother.GridTerminalSystem.GetBlocksOfType(connectionBlocks, block => block.CubeGrid == currentGrid || block.TopGrid == currentGrid);
+
+                Mother.GridTerminalSystem.GetBlocksOfType(
+                    connectionBlocks, 
+                    block => block.CubeGrid == currentGrid || block.TopGrid == currentGrid
+                );
 
                 foreach (var block in connectionBlocks)
                 {
@@ -742,7 +738,5 @@ namespace IngameScript
 
             LocalGridIds = localGridIds;
         }
-
-     
     }
 }

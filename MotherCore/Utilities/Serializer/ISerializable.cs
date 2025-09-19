@@ -11,5 +11,4 @@
         /// <returns></returns>
         string Serialize();
     }
-  
 }

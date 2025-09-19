@@ -1,6 +1,6 @@
-﻿<div style="display: none">
+﻿<!--div style="display: none">
 # MotherCore
-</div>
+</div-->
 
  ```
 ███╗   ███╗ ██████╗ ████████╗██╗  ██╗███████╗██████╗      ██████╗ ██████╗ ██████╗ ███████╗
@@ -11,7 +11,7 @@
 ╚═╝     ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝     ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
  ```
 
- [View Documentation](https://lukejamesmorrison.github.io/mother-docs)
+ [View Full Docs](https://lukejamesmorrison.github.io/mother-docs)
 
 Mother Core is a framework that acts as a foundation to Space Engineers programmable block scripts.  Building custom scripts on top of Mother Core is designed to be simple and intutive for both new and expert script developers.  It simplifies intergrid communication, navigation, block automation, and event monitoring. Should players chose, they can use Mother Core to run most automations on their grid without the need for an Event Controller or Timer Block.
 

@@ -58,8 +58,6 @@ namespace IngameScript
             return waypoint != null
                 ? WaypointRoutines[waypoint]
                 : "";
-
-            //return routineString;
         }
 
         /// <summary>
