@@ -1,34 +1,38 @@
-name: Copy files to dist
+name: Build and Release
 
 on:
   push:
-    branches:
-      - dev
+    tags:
+      - 'v*'   # Only run when pushing tags like v1.0.0
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout the repo
+      # 1. Checkout repo
       - uses: actions/checkout@v4
 
-      # 2. Make sure /dist exists
-      - name: Ensure dist folder exists
-        run: mkdir -p dist
-
-      # 3. Copy specific files into dist
-      - name: Copy files
+      # 2. Build dist folder
+      - name: Build dist folder
         run: |
+          mkdir -p dist
           cp src/Mother.cs dist/
           cp src/.gitignore dist/
           cp src/.gitattributes dist/
-          
+
           cp -r src/Commands dist/
           cp -r src/Modules dist/
           cp -r src/Utilities dist/
-
+          
           cp CHANGELOG.md dist/
           cp LICENSE.md dist/
           cp README.md dist/
 
+      # 3. Create GitHub Release from the tag
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
