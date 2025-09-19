@@ -3,7 +3,7 @@ name: Copy files to dist
 on:
   push:
     branches:
-      - master
+      - dev
 
 jobs:
   build:
@@ -18,14 +18,17 @@ jobs:
         run: mkdir -p dist
 
       # 3. Copy specific files into dist
-      # 👉 Edit this list to match exactly what you want
       - name: Copy files
         run: |
           cp src/Mother.cs dist/
+          cp src/.gitignore dist/
+          cp src/.gitattributes dist/
           
-          cp src/main.cs dist/
-
           cp -r src/Commands dist/
           cp -r src/Modules dist/
-          cp -r src/Utilties dist/
+          cp -r src/Utilities dist/
+
+          cp CHANGELOG.md dist/
+          cp LICENSE dist/
+          cp README.md dist/
 
