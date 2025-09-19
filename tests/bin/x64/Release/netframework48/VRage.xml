@@ -1,0 +1,3542 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VRage</name>
+    </assembly>
+    <members>
+        <member name="T:VRage.Analytics.IMyAnalytics">
+            <summary>
+            Generic interface for all analytics library integrations
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalytics.ReportEvent(VRage.Analytics.IMyAnalyticsEvent,System.DateTime,System.String,System.String,System.String,System.String,System.Exception)">
+            <summary>
+            Tracks the specified analytics event <para />
+            All IMyAnalytics implementations might not use all the parameters
+            </summary>
+            <param name="analyticsEvent"> Specifies event's name and additional properties </param>
+            <param name="timestamp"> Time the event was triggered </param>
+            <param name="sessionID"> Unique analytics session identifier </param>
+            <param name="userID"> Unique user identifier </param>
+            <param name="clientVersion"> Version of the client on which the event was triggered </param>
+            <param name="platform"> Platform identifier </param>
+            <param name="exception"> The exception associated with the event </param>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalytics.ReportCurrentEvent_DictionariesAsArrays(VRage.Analytics.IMyAnalyticsEvent,System.DateTime,System.String,System.String,System.String,System.String,System.Exception)">
+            <summary>
+            Tracks the specified analytics event <para />
+            All IMyAnalytics implementations might not use all the parameters
+            </summary>
+            <param name="analyticsEvent"> Specifies event's name and additional properties </param>
+            <param name="timestamp"> Time the event was triggered </param>
+            <param name="sessionID"> Unique analytics session identifier </param>
+            <param name="userID"> Unique user identifier </param>
+            <param name="clientVersion"> Version of the client on which the event was triggered </param>
+            <param name="platform"> Platform identifier </param>
+            <param name="exception"> The exception associated with the event </param>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalytics.ReportEventLater(VRage.Analytics.IMyAnalyticsEvent,System.DateTime,System.String,System.String,System.String,System.String,System.Exception)">
+            <summary>
+            Stores the specified analytics event to send it later <para />
+            All IMyAnalytics implementations might not use all the parameters
+            </summary>
+            <param name="analyticsEvent"> Specifies event's name and additional properties </param>
+            <param name="timestamp"> Time the event was triggered </param>
+            <param name="sessionID"> Unique analytics session identifier </param>
+            <param name="userID"> Unique user identifier </param>
+            <param name="clientVersion"> Version of the client on which the event was triggered </param>
+            <param name="platform"> Platform identifier </param>
+            <param name="exception"> The exception associated with the event </param>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalytics.ReportPostponedEvents">
+            <summary>
+            Reports previously stored events, if it has any
+            </summary>
+        </member>
+        <member name="T:VRage.Analytics.IMyAnalyticsEvent">
+            <summary>
+            Represents an event reported to analytics
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalyticsEvent.GetEventName">
+            <summary>
+            Returns the name of the reported event
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalyticsEvent.GetPropertiesDictionary">
+            <summary>
+            Returns additional information associated with the event
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalyticsEvent.GetPropertiesDictionary_DictionariesAsArrays">
+            <summary>
+            Returns additional information associated with the event
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.IMyAnalyticsEvent.GetReportTypeAndArgs">
+            <summary>
+            Returns info for GameAnalytics.com reporting
+            </summary>
+        </member>
+        <member name="T:VRage.Analytics.MyAnalyticsManager">
+            <summary>
+            IMyAnalytics implementation which redirects given events to other trackers
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.MyAnalyticsManager.RegisterAnalyticsTracker(VRage.Analytics.IMyAnalytics)">
+            <summary>
+            The given tracker will be reported the same events as the manager
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.MyAnalyticsManager.VRage#Analytics#IMyAnalytics#ReportEvent(VRage.Analytics.IMyAnalyticsEvent,System.DateTime,System.String,System.String,System.String,System.String,System.Exception)">
+            <summary>
+            Send the given event to all registered analytics trackers
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.MyAnalyticsManager.VRage#Analytics#IMyAnalytics#ReportEventLater(VRage.Analytics.IMyAnalyticsEvent,System.DateTime,System.String,System.String,System.String,System.String,System.Exception)">
+            <summary>
+            Send the given event to be stored by all registered analytics trackers
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.MyAnalyticsManager.ReportPostponedEvents">
+            <summary>
+            Tells all registered analytics trackers to report stored events
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.MyObjectFileStorage.StoreObject``1(``0,System.DateTime)">
+            <summary>
+            Saves given object to a file in set storage directory and marks it by type, timestamp and a unique identifier
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.MyObjectFileStorage.RetrieveStoredObjectsByType``1(System.Boolean)">
+            <summary>
+            Returns all stored objects of given type in set storage directory
+            </summary>
+        </member>
+        <member name="M:VRage.Analytics.MyObjectFileStorage.WipeStoredObjectsByType``1">
+            <summary>
+            Deletes all stored objects of given type
+            </summary>
+        </member>
+        <member name="M:VRage.Audio.IMyAudio.ApplyEffect(VRage.Audio.IMySourceVoice,VRage.Utils.MyStringHash,VRage.Audio.MyCueId[],System.Nullable{System.Single},System.Boolean)">
+            <summary>
+            Creates effect on input emitter
+            </summary>
+            <param name="input">Emitter to work with</param>
+            <param name="effect"></param>
+            <param name="cueIds">additional cues if effect mixes them (ie. crossfade)</param>
+            <param name="duration"></param>
+            <param name="musicEffect"></param>
+            <returns>effect output sound</returns>
+        </member>
+        <member name="M:VRage.Audio.IMyAudio.GetCurrentlyPlayedSounds">
+            <summary>
+            Gets currently played sounds of the game. Used for AI Testing tool. Do not used in the game.
+            </summary>
+            <returns>played sounds</returns>
+        </member>
+        <member name="P:VRage.Audio.MyNullAudio.CacheLoaded">
+            <inheritdoc />
+        </member>
+        <member name="T:VRage.Data.Audio.MyCurveType">
+            <summary>
+            Enumerator of available curve types
+            </summary>
+        </member>
+        <member name="T:VRage.GameServices.IMyMultiplayerGame">
+            <summary>
+            Common interface for MyGameServerItem and IMyLobby
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyNetworking.CollectNetworkParameters(System.String[])">
+            <summary>
+            Extract a set of network parameters from an array of command line arguments.
+            </summary>
+            <param name="args"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.GameServices.MyNullPeer2Peer.RequestChannel(System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MyNullPeer2Peer.DetailedStats">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MyNullPeer2Peer.Stats">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MyNullPeer2Peer.ClientStats">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.IMyServerDiscovery.RequestServerItems(System.String[],VRage.GameServices.MySessionSearchFilter,System.Action{System.Collections.Generic.IEnumerable{VRage.GameServices.MyGameServerItem}})">
+            <summary>
+            Query the game servers for a set of connection strings.
+            </summary>
+            <param name="connectionStrings"></param>
+            <param name="filter"></param>
+            <param name="resultCallback"></param>
+        </member>
+        <member name="P:VRage.GameServices.IMyServerDiscovery.SupportedSearchParameters">
+            <summary>
+            Returns a set of supported search queries.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyGameServerItem.ConnectionString">
+            <summary>
+            String that can be used by the platform to identify and establish a connection with the server.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MyModMetadata.ModVersion">
+            <summary>
+            Version of the mod
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MyModMetadata.MinGameVersion">
+            <summary>
+            Minimum supported version of the game
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MyModMetadata.MaxGameVersion">
+            <summary>
+            Maximum supported version of the game
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyNullServerDiscovery.SupportsDirectServerSearch">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MyNullServerDiscovery.RequestServerItems(System.String[],VRage.GameServices.MySessionSearchFilter,System.Action{System.Collections.Generic.IEnumerable{VRage.GameServices.MyGameServerItem}})">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MyNullServerDiscovery.SupportedSearchParameters">
+            <inheritdoc />
+        </member>
+        <member name="F:VRage.GameServices.MySearchCondition.Equal">
+            <summary>Argument matches property exactly.</summary>
+        </member>
+        <member name="F:VRage.GameServices.MySearchCondition.Contains">
+            <summary>Argument text is contained in property.</summary>
+        </member>
+        <member name="F:VRage.GameServices.MySearchCondition.GreaterOrEqual">
+            <summary>Property value is numerically greater than or equal to argument.</summary>
+        </member>
+        <member name="F:VRage.GameServices.MySearchCondition.LesserOrEqual">
+            <summary>Property value is numerically less than or equal to the target.</summary>
+        </member>
+        <member name="F:VRage.GameServices.MySearchConditionFlags.Equal">
+            <summary>Argument matches property exactly.</summary>
+        </member>
+        <member name="F:VRage.GameServices.MySearchConditionFlags.Contains">
+            <summary>Argument text is contained in property.</summary>
+        </member>
+        <member name="F:VRage.GameServices.MySearchConditionFlags.GreaterOrEqual">
+            <summary>Property value is numerically greater than or equal to argument.</summary>
+        </member>
+        <member name="F:VRage.GameServices.MySearchConditionFlags.LesserOrEqual">
+            <summary>Property value is numerically less than or equal to the target.</summary>
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.LANSupport">
+             
+             LAN
+            
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.DedicatedSupport">
+             
+             INTERNET
+            
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.SupportsDirectServerSearch">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MyServerDiscoveryAggregator.RequestServerItems(System.String[],VRage.GameServices.MySessionSearchFilter,System.Action{System.Collections.Generic.IEnumerable{VRage.GameServices.MyGameServerItem}})">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.SupportedSearchParameters">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.FavoritesSupport">
+             
+             FAVORITES
+            
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.HistorySupport">
+             
+             HISTORY
+            
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.PingSupport">
+             
+             PING
+            
+        </member>
+        <member name="E:VRage.GameServices.MyServerDiscoveryAggregator.OnServerChangeRequested">
+             
+             INVITES
+            
+        </member>
+        <member name="M:VRage.GameServices.MyServerDiscoveryAggregator.GetServerRules(VRage.GameServices.MyGameServerItem,VRage.GameServices.ServerRulesResponse,System.Action)">
+             
+             SERVER INFO
+            
+        </member>
+        <member name="P:VRage.GameServices.MyServerDiscoveryAggregator.FriendSupport">
+             
+             OTHER
+            
+        </member>
+        <member name="M:VRage.GameServices.MyServerDiscoveryAggregator.Connect(VRage.GameServices.MyGameServerItem,System.Action{VRage.Network.JoinResult})">
+             
+             CONNECTION
+            
+        </member>
+        <member name="F:VRage.GameServices.MySessionSearchFilter.Names">
+            <summary>
+            Property combining the server and world names.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MySessionSearchFilter.Data">
+            <summary>
+            Game Data property.
+            </summary>
+            <seealso cref="M:VRage.GameServices.IMyGameServer.SetGameData(System.String)"/>
+        </member>
+        <member name="F:VRage.GameServices.MySessionSearchFilter.PlayerCount">
+            <summary>
+            Property equal to the number of players in the server.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MySessionSearchFilter.Ping">
+            <summary>
+            Property equal to the estimated ping time to the server.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MySessionSearchFilter.Tags">
+            <summary>
+            Property equal to the game's tags.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MySessionSearchFilter.CustomPropertyPrefix">
+            <summary>
+            Property equal to the game's tags.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MySessionSearchFilter.Queries">
+            <summary>
+            Queries contained in this filter.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MySessionSearchFilter.AddQuery(System.String,VRage.GameServices.MySearchCondition,System.String)">
+            <summary>
+            Append a query to this search filter.
+            </summary>
+            <param name="property"></param>
+            <param name="condition"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:VRage.GameServices.MySessionSearchFilter.AddQueryCustom(System.String,VRage.GameServices.MySearchCondition,System.String)">
+            <summary>
+            Append a query for a custom property to this search filter.
+            </summary>
+            <param name="customProperty"></param>
+            <param name="condition"></param>
+            <param name="value"></param>
+        </member>
+        <member name="M:VRage.GameServices.MySessionSearchFilter.Query.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MySessionSearchFilter.ToString">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MySupportedPropertyFilters.Count">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MySupportedPropertyFilters.Item(System.Int32)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MySupportedPropertyFilters.System#Collections#Generic#IEnumerable{VRage#GameServices#MySupportedPropertyFilters#Entry}#GetEnumerator">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MySupportedPropertyFilters.System#Collections#IEnumerable#GetEnumerator">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MySupportedPropertyFilters.Enumerator.#ctor(VRage.GameServices.MySupportedPropertyFilters.Entry[])">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MySupportedPropertyFilters.Enumerator.MoveNext">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MySupportedPropertyFilters.Enumerator.Reset">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MySupportedPropertyFilters.Enumerator.Current">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MySupportedPropertyFilters.Enumerator.System#Collections#IEnumerator#Current">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.GameServices.MySupportedPropertyFilters.Enumerator.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopItem.Compatibility">
+            <summary>
+            Whether this mod is compatible with the current game version.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.GetPublisher">
+            <summary>
+            Returns a publisher instance that is initialized with properties of this workshop item.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.Download">
+            <summary>
+            Download the newest version of this workshop item.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.Rate(System.Boolean)">
+            <summary>
+            Rate this workshop item by giving thumbs up or thumbs down.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.UpdateRating">
+            <summary>
+            Updates MyRating property of this workshop item.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.DownloadPreviewImage(System.String,System.Action{VRage.GameServices.MyWorkshopItem,VRage.GameServices.MyGameServiceCallResult})">
+            <summary>
+            Download preview image
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.UpdateState">
+            <summary>
+            Updates the workshop item with available information.
+            First tries local storage.
+            Then tries remote.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.Subscribe">
+            <summary>
+            Subscribes to the workshop item.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.Unsubscribe">
+            <summary>
+            Unsubscribe item on the workshop
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItem.IsUpToDate">
+            <summary>
+            Checks whether the mod is up-to-date.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopItemPublisher.Publish">
+            <summary>
+            Publish the item to workshop.
+            If 'id' is filled in, it will try to update the existing item.
+            If no 'id is filled in, it will create a new item instead.
+            </summary>
+        </member>
+        <member name="T:VRage.GameServices.WorkshopItemType">
+            <summary>
+            Types of workshop items.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.WorkshopItemType.All">
+            <summary>
+            All type of supported items.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.WorkshopItemType.Mod">
+            <summary>
+            Came content item.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.WorkshopItemType.Collection">
+            <summary>
+            Collection of workshop items.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.WorkshopItemType.Guide">
+            <summary>
+            Developer or user provided guide for the game.
+            </summary>
+        </member>
+        <member name="T:VRage.GameServices.WorkshopListType">
+            <summary>
+            Represents a type of item list to be queried.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.WorkshopListType.Subscribed">
+            <summary>
+            Default list type, used of item content the user wants to have.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.WorkshopListType.Favourited">
+            <summary>
+            Items the user wants to remember about.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.WorkshopListType.None">
+            <summary>
+            All items.
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MyWorkshopQueryType.SortByVotes">
+            <summary>
+            k_EUGCQuery_RankedByVote
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MyWorkshopQueryType.SortByPublicationDate">
+            <summary>
+            k_EUGCQuery_RankedByPublicationDate
+            </summary>
+        </member>
+        <member name="F:VRage.GameServices.MyWorkshopQueryType.SortByTotalUniqueSubscriptions">
+            <summary>
+            k_EUGCQuery_RankedByTotalUniqueSubscriptions
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.Items">
+            <summary>
+            Returned workshop items.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.TotalResults">
+            <summary>
+            Total results returned.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.ItemsPerPage">
+            <summary>
+            How many items can be queried per page.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.IsRunning">
+            <summary>
+            Whether or not the query is currently running.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.SearchString">
+            <summary>
+            these are input values for the query
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.ItemType">
+            <summary>
+            Type of item to query.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.ListType">
+            <summary>
+            Type of item list to query from.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.QueryType">
+            <summary>
+            Query type
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.RequiredTags">
+            <summary>
+            Tags to match
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.RequireAllTags">
+            <summary>
+            Do all required tags needs to be present, or just any?
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.ExcludedTags">
+            <summary>
+            Don't match if any of these tags are included
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.UserId">
+            <summary>
+            Search only items subscribed by the user specified.
+            </summary>
+        </member>
+        <member name="P:VRage.GameServices.MyWorkshopQuery.ItemIds">
+            <summary>
+            Query only item ids specified here.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopQuery.Run">
+            <summary>
+            Runs the query with specified parameters.
+            Does nothing if the query is already running.
+            </summary>
+        </member>
+        <member name="M:VRage.GameServices.MyWorkshopQuery.Stop">
+            <summary>
+            Implements stop feature, this will stop query to start again after finishing current page
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.IMyVariableStorage`1">
+            <summary>
+            Interface of variable storage (key-value principle).
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyCachingDynamicObjectsPool`2">
+            This class provides similar functionality to MyDynamicObjectsPool with the addition of caching facilities.
+            
+            The cache is intended to be used for objects that once allocated either perform expensive computations
+            or allocate a lot of memory *and* that may be needed again after disposed in the same state.
+        </member>
+        <member name="M:VRage.Generics.MyCachingDynamicObjectsPool`2.Deallocate(`1)">
+            Deallocate object without key.
+            
+            Object is disposed be callee.
+        </member>
+        <member name="M:VRage.Generics.MyCachingDynamicObjectsPool`2.Deallocate(`0,`1)">
+            Deallocate object with key.
+            
+            Object is cached and disposed if necessary.
+        </member>
+        <member name="M:VRage.Generics.MyCachingDynamicObjectsPool`2.TryAllocateCached(`0,`1@)">
+            Allocate an object that may be cached.
+            
+            Returns true if the object was found in the cache and false otherwise.
+        </member>
+        <member name="T:VRage.Generics.StateMachine.MyCondition`1">
+            <summary>
+            Implementation of generic condition. Immutable class, once set, its parameters cant be changed.
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyDynamicObjectPool`1">
+            <summary>
+            Dynamic object pool. It allocates a new instance when necessary.
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+        <member name="M:VRage.Generics.MyDynamicObjectPool`1.SuppressFinalize">
+            <summary>
+            Suppress finalization of all items buffered in the pool.
+            
+            This should only be called if the elements of the pool have some form of leak detecting finalizer.
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyDynamicQueueObjectPool`1">
+            <summary>
+            Dynamic object pool. It allocates a new instance when necessary.
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+        <member name="M:VRage.Generics.MyDynamicQueueObjectPool`1.SuppressFinalize">
+            <summary>
+            Suppress finalization of all items buffered in the pool.
+            
+            This should only be called if the elements of the pool have some form of leak detecting finalizer.
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyStateMachine">
+            <summary>
+            Implementation of generic multistate state machine. Is able to run multiple independent cursors
+            at once updated with every update call. Use cursors as access point to active states.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachine.CreateCursor(System.String)">
+            <summary>
+            Creates new active cursor.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachine.SetState(System.Int32,System.String)">
+            <summary>
+            Set the current state. Warning - this is not a thing that you would like to normally do, 
+            state machine should live its own life (based on transition condition).
+            Returns true on success.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachine.Update(System.Collections.Generic.List{System.String})">
+            <summary>
+            Update the state machine. Transition to new states.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachine.TriggerAction(VRage.Utils.MyStringId)">
+            <summary>
+            Trigger an action in this layer. 
+            If there is a transition having given (non-null) name, it is followed immediatelly.
+            Conditions of transition are ignored.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachine.SortTransitions">
+            <summary>
+            Sort the transitions between states according to their priorities.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyObjectsPool`1.AllocateOrCreate(`0@)">
+            <summary>
+            Returns true when new item was allocated
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyRuntimeObjectsPool`1.AllocateOrCreate(`0@)">
+            <summary>
+            Returns true when new item was allocated
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MySingleStateMachine">
+            <summary>
+            Implementation of generic state machine. Inherit from this class to create your own state machine.
+            Transitions are performed automatically on each update (if conditions of transition are fulfilled).
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MySingleStateMachine.SetState(System.String)">
+            <summary>
+            Sets active state of the state machine.
+            Creates new cursor if needed.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MySparseGrid`2.ClearCells">
+            <summary>
+            Clears cells, but keep them preallocated
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyStateMachineNode">
+            <summary>
+            Node of the state machine.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachineNode.TransitionAddedInternal(VRage.Generics.MyStateMachineTransition)">
+            <summary>
+            Called after Transition is added.
+            Override for custom behavior.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachineNode.TransitionRemovedInternal(VRage.Generics.MyStateMachineTransition)">
+            <summary>
+            Called before Transition remove.
+            Override for custom behavior.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachineNode.ExpandInternal(VRage.Generics.MyStateMachineCursor,VRage.Collections.MyConcurrentHashSet{VRage.Utils.MyStringId},System.Int32)">
+            <summary>
+            Expands current node with given cursor.
+            First enquedAction is taking place then any valid transition.
+            Cursor is being transitioned to result of expansion.
+            Override this for custom behavior.
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyStateMachineTransition">
+            <summary>
+            Definition of transition to some node.
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyStateMachineTransitionWithStart">
+            <summary>
+            Pair holding transition and its starting node.
+            </summary>
+        </member>
+        <member name="M:VRage.Generics.MyStateMachineTransitionWithStart.#ctor(VRage.Generics.MyStateMachineNode,VRage.Generics.MyStateMachineTransition)">
+            <summary>
+            Full constructor.
+            </summary>
+        </member>
+        <member name="T:VRage.Generics.MyWeightDictionary`1">
+            <summary>
+            Contains items of any type. Each item has weight (float value).
+            Allows to get item based on weight.
+            </summary>
+            <typeparam name="T">The item type</typeparam>
+        </member>
+        <member name="M:VRage.Generics.MyWeightDictionary`1.#ctor(System.Collections.Generic.Dictionary{`0,System.Single})">
+            <summary>
+            Initializes a new instance of the MyWeightDictionary class.
+            </summary>
+            <param name="data">Dictionary with items and weights.</param>
+        </member>
+        <member name="M:VRage.Generics.MyWeightDictionary`1.GetSum">
+            <summary>
+            Gets sum of weights.
+            </summary>
+            <returns>The sum of all weights.</returns>
+        </member>
+        <member name="M:VRage.Generics.MyWeightDictionary`1.GetItemByWeightNormalized(System.Single)">
+            <summary>
+            Gets item based on weight.
+            </summary>
+            <param name="weightNormalized">Weight, value from 0 to 1.</param>
+            <returns>The item.</returns>
+        </member>
+        <member name="M:VRage.Generics.MyWeightDictionary`1.GetItemByWeight(System.Single)">
+            <summary>
+            Gets item based on weight.
+            </summary>
+            <param name="weight">Weight, value from 0 to sum.</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Generics.MyWeightDictionary`1.GetRandomItem(System.Random)">
+            <summary>
+            Gets random item based on weight.
+            </summary>
+            <returns>The item.</returns>
+        </member>
+        <member name="M:VRage.CrashInfo.ToString">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.IMyImeActiveControl.GetMaxLength">
+            <summary>
+            Returns max number of characters.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.VideoState">
+            <summary>
+            Describes the state of a video player
+            </summary>
+        </member>
+        <member name="T:VRage.Input.MyJoystickAxesEnum">
+            <summary>
+            Defines joystick/gamepad axes
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.None">
+            <summary>
+            None
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.Xpos">
+            <summary>
+            Left stick right
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.Xneg">
+            <summary>
+            Left stick left
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.Ypos">
+            <summary>
+            Left stick down
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.Yneg">
+            <summary>
+            Left stick up
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.Zpos">
+            <summary>
+            Left trigger
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.Zneg">
+            <summary>
+            Right trigger
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.RotationXpos">
+            <summary>
+            Right stick right
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.RotationXneg">
+            <summary>
+            Right stick left
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.RotationYpos">
+            <summary>
+            Right stick down
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.RotationYneg">
+            <summary>
+            Right stick up
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.ZLeft">
+            <summary>
+            Left trigger - using Xinput
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickAxesEnum.ZRight">
+            <summary>
+            Right trigger - using Xinput
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyGamepadAxes.LTX">
+            <summary>
+            Left trigger - using Xinput
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyGamepadAxes.RTX">
+            <summary>
+            Right trigger - using Xinput
+            </summary>
+        </member>
+        <member name="M:VRage.IVRagePlatform.GetTypeModel">
+            <summary>
+            Get the ProtoBuf type model for this platform.
+            </summary>
+            <returns>A type model compatible with this platform.</returns>
+        </member>
+        <member name="M:VRage.IVRageRender.RequestSuspendWait">
+            <summary>
+            Request the rendering system to wait after suspend for as long as it can for any last minute asynchronous operations to complete.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.MyApiTarget">
+            <summary>
+                API target
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.MyApiTarget.None">
+            <summary>
+                No API target. Unrestricted compilation (no whitelisting, no instruction counting)
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.MyApiTarget.Mod">
+            <summary>
+                Mod API target. Whitelisted, but no instruction counting.
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.MyApiTarget.Ingame">
+            <summary>
+                Ingame API target. Whitelisted and instruction counted.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.Script">
+            <summary>
+                Represents a named script.
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.Script.Name">
+            <summary>
+                The name of the script.
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.Script.Code">
+            <summary>
+                The code content of the script.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.MyWhitelistTarget">
+            <summary>
+                Determines what target a whitelisting entry does or should support.
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.MyWhitelistTarget.None">
+            <summary>
+                No target. Depending on the context, this may mean no support at all or unrestricted support.
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.MyWhitelistTarget.ModApi">
+            <summary>
+                The entry supports or must support ModAPI level entry.
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.MyWhitelistTarget.Ingame">
+            <summary>
+                The entry supports or must support Ingame level entry.
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.MyWhitelistTarget.Both">
+            <summary>
+                A shortcut flag meaning the entry supports or must support both ModAPI and Ingame level entries.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.IMyWhitelistBatch">
+            <summary>
+                A handle which enables adding members to the whitelist in a batch. It is highly
+                recommended that you try to group your changes into as few batches as possible.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.IMyWhitelistBatch.AllowNamespaceOfTypes(VRage.Scripting.MyWhitelistTarget,System.Type[])">
+            <summary>
+                Adds the entire namespace of one or more given types.
+            </summary>
+            <param name="target"></param>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.IMyWhitelistBatch.AllowTypes(VRage.Scripting.MyWhitelistTarget,System.Type[])">
+            <summary>
+                Adds one or more specific types and all their members to the whitelist.
+            </summary>
+            <param name="target"></param>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.IMyWhitelistBatch.AllowMembers(VRage.Scripting.MyWhitelistTarget,System.Reflection.MemberInfo[])">
+            <summary>
+                Adds only the specified members to the whitelist.
+            </summary>
+            <param name="target"></param>
+            <param name="members"></param>
+        </member>
+        <member name="T:VRage.Scripting.IMyIngameScripting">
+            <summary>
+            Allows mods change programmable block script settings
+            </summary>
+        </member>
+        <member name="P:VRage.Scripting.IMyIngameScripting.ScriptBlacklist">
+            <summary>
+            Provides the ability for mods to add and remove items from a type and member blacklist,
+            giving the ability to remove even more API for scripts. Intended for server admins to
+            restrict what people are able to do with scripts to keep their simspeed up.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.IMyIngameScripting.Clean">
+            <summary>
+            Clears all <see cref="P:VRage.Scripting.IMyIngameScripting.ScriptBlacklist"/> changes 
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.IMyScriptBlacklist">
+            <summary>
+            Exposes blacklist functionality to allow mods to disallow parts of the scripting API that has been
+            allowed by the system whitelist.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklist.GetWhitelist">
+            <summary>
+            Gets the entries that have been whitelisted by the system. Each entry may represent a whole namespace,
+            a single type and all its members, or a single member of a type.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklist.GetBlacklistedIngameEntries">
+            <summary>
+            Gets the entries that have been blacklisted for the ingame scripts.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklist.OpenIngameBlacklistBatch">
+            <summary>
+            Opens a batch to add or remove members to the blacklist.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.Scripting.IMyScriptBlacklistBatch">
+            <summary>
+                A handle which enables adding members to the blacklist in a batch. It is highly
+                recommended that you try to group your changes into as few batches as possible.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklistBatch.AddNamespaceOfTypes(System.Type[])">
+            <summary>
+                Adds the entire namespace of one or more given types to the blacklist
+            </summary>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklistBatch.RemoveNamespaceOfTypes(System.Type[])">
+            <summary>
+                Removes namespaces previously added with <see cref="M:VRage.Scripting.IMyScriptBlacklistBatch.AddNamespaceOfTypes(System.Type[])"/> from the blacklist.
+            </summary>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklistBatch.AddTypes(System.Type[])">
+            <summary>
+                Adds one or more specific types and all their members to the blacklist.
+            </summary>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklistBatch.RemoveTypes(System.Type[])">
+            <summary>
+                Removes types previously added with <see cref="M:VRage.Scripting.IMyScriptBlacklistBatch.AddTypes(System.Type[])"/> from the blacklist.
+            </summary>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklistBatch.AddMembers(System.Type,System.String[])">
+            <summary>
+                Adds only the specified members to the blacklist.
+            </summary>
+            <param name="type"></param>
+            <param name="memberNames"></param>
+        </member>
+        <member name="M:VRage.Scripting.IMyScriptBlacklistBatch.RemoveMembers(System.Type,System.String[])">
+            <summary>
+                Removes types previously added with <see cref="M:VRage.Scripting.IMyScriptBlacklistBatch.AddMembers(System.Type,System.String[])"/> to the blacklist.
+            </summary>
+            <param name="type"></param>
+            <param name="memberNames"></param>
+        </member>
+        <member name="M:VRage.IVRageSystem.CreateSharedCriticalSection(System.Boolean)">
+            <summary>
+            
+            </summary>
+            <param name="spinLock">Non-PS implementation returns unique SpinLock on true and unique mutex on false. PS implementation returns true shared critical section.</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.IVRageSystem.GetNetworkTimeUTC">
+            <summary>
+            Blocking call to get the current UTC time via NTP or equivalent.
+            </summary>
+            <remarks>This call may throw if Network time is not available.</remarks>
+            <returns>A relatively accurate value for the current UTC time.</returns>
+        </member>
+        <member name="P:VRage.IVRageWindow.DrawEnabled">
+            <summary>
+            True when Present on device should be called (e.g. window not minimized)
+            </summary>
+        </member>
+        <member name="M:VRage.IVRageWindow.Hide">
+            <summary>
+            Hide this window from view.
+            </summary>
+        </member>
+        <member name="T:VRage.MessageBoxOptions">
+            <summary>
+             Flags that define appearance and behaviour of a standard message box displayed by a call to the MessageBox function.
+             </summary>    
+        </member>
+        <member name="T:VRage.MessageBoxResult">
+            <summary>
+            Represents possible values returned by the MessageBox function.
+            </summary>
+        </member>
+        <member name="T:VRage.Meta.IMyAttributeIndexer">
+            <summary>
+            Indexer for metadata related to types that are annotated with a specific attribute.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.IMyAttributeIndexer.Observe(System.Attribute,System.Type)">
+            <summary>
+            Observe the given type which is annotated with a relevant attribute.
+            </summary>
+            <param name="attribute">Instance of the attribute that maps to this indexer.</param>
+            <param name="type">Annotated type.</param>
+        </member>
+        <member name="T:VRage.Meta.IMyKeyAttribute`1">
+            <summary>
+            Interface used by the attribute indexer base.
+            </summary>
+            <typeparam name="TKey"></typeparam>
+        </member>
+        <member name="T:VRage.Meta.IMyMetadataIndexer">
+            <summary>
+            Base interface for objects that handle metadata indexing in the metadata system.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.IMyMetadataIndexer.SetParent(VRage.Meta.IMyMetadataIndexer)">
+            <summary>
+            Set the parent indexer, the parent indexer will always be an instance of the same type.
+            
+            For the majority of indexers the metadata for the parent can be used directly, tohers might need to flaten the whole information hierarchy on a per indexer basis.
+            </summary>
+            <param name="indexer">The parent indexer.</param>
+        </member>
+        <member name="M:VRage.Meta.IMyMetadataIndexer.Activate">
+            <summary>
+            Called when the context that contains this indexer becomes the active one.
+            
+            Any global references to this indexer need to be update then.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.IMyMetadataIndexer.Close">
+            <summary>
+            Called when the context that contains this indexer is disposed.
+            
+            All references to this indexer must be invalidated and all held data released.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.IMyMetadataIndexer.Process">
+            <summary>
+            Invoked when a batch of assemblies are loaded and indexers are then given a chance to build any additional structures over the data.
+            
+            This is useful for indexers where there are nontrivial relations between the types that need to be rebuild every time new tipes are added.
+            </summary>
+        </member>
+        <member name="T:VRage.Meta.IMyTypeIndexer">
+             <summary>
+             Interface that specifies objects which index types based on non trivial properties they might have.
+            
+             This may include having a specific parent class or implementing some interface.
+             These properties are not trivial to compute (computing them for a single indexer
+             does not help determining if they are meaningfull for another indexer).
+             Which means they must be computed for all inspected types.
+             </summary>
+        </member>
+        <member name="M:VRage.Meta.IMyTypeIndexer.Index(System.Type)">
+            <summary>
+            Index a type.
+            </summary>
+            <param name="type"></param>
+        </member>
+        <member name="T:VRage.Meta.MyAttributeIndexerBase`2">
+            <summary>
+            Base class for a sample implementation of an attribute observer.
+            
+            Sufficient for most usages.
+            </summary>
+            <typeparam name="TAttribute"></typeparam>
+            <typeparam name="TKey"></typeparam>
+        </member>
+        <member name="F:VRage.Meta.MyAttributeIndexerBase`2.Static">
+            <summary>
+            Static reference to the topmost indexer.
+            </summary>
+        </member>
+        <member name="T:VRage.Meta.MyAttributeMetadataIndexerAttribute">
+            <summary>
+            Simple identification of a metadata indexer class.
+            </summary>
+        </member>
+        <member name="T:VRage.Meta.MyAttributeMetadataIndexerAttributeBase">
+            <summary>
+            Base class for attributes that provide information about type indexers.
+            </summary>
+        </member>
+        <member name="P:VRage.Meta.MyAttributeMetadataIndexerAttributeBase.AttributeType">
+            <summary>
+            The type of the attribute that is indexed.
+            </summary>
+        </member>
+        <member name="P:VRage.Meta.MyAttributeMetadataIndexerAttributeBase.TargetType">
+            <summary>
+            The type of the indexer.
+            
+            When this is null the type is inferred from the annotated type.
+            </summary>
+        </member>
+        <member name="T:VRage.Meta.MyMetadataContext">
+            <summary>
+            Base class for a metadata context.
+            </summary>
+        </member>
+        <member name="P:VRage.Meta.MyMetadataContext.Known">
+            <summary>
+            Set of know assemblies.
+            </summary>
+        </member>
+        <member name="F:VRage.Meta.MyMetadataContext.RegisterIndexers">
+            <summary>
+            Whether this context should look for indexers while exploring the assembly.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.Activate">
+            <summary>
+            Invoked when this context becomes the top of the stack.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.Close">
+            <summary>
+            Invoked when this context is popped and it's data must be disposed.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.Index(System.Reflection.Assembly,System.Boolean)">
+            <summary>
+            Index the given assembly.
+            </summary>
+            <param name="assembly">The assembly to index.</param>
+            <param name="batch">Whether to process this addition as a part of a batch.</param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.Index(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},System.Boolean)">
+            <summary>
+            Index a set of assemblies.
+            </summary>
+            <param name="assemblies">Collection of assemblies to index.</param>
+            <param name="batch">Whether to process this addition as a part of a batch.</param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.FinishBatch">
+            <summary>
+            Finish batch indexing of assemblies.
+            
+            Batching is recommended when many assemblies are indexed at once.
+            It significantly improves the performance of indexers that need to postprocess the full set of types.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.AddIndexer(System.Type,System.Type)">
+            <summary>
+            Add a single indexer for the provided attribute type.
+            </summary>
+            <param name="attributeType">The type of the attribute to index.</param>
+            <param name="indexerType">The type of the indexer to create.</param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.AddIndexers(System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{System.Type,System.Collections.Generic.HashSet{System.Type}}})">
+            <summary>
+            Add several indexers at once from a set of mappings.
+            </summary>
+            <param name="indexerTypes">collection of attribute to indexer type mappings</param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.AddIndexer(System.Type)">
+            <summary>
+            Add a type indexer.
+            
+            This may throw exception if the provided type is not valid.
+            </summary>
+            <param name="typeIndexer"></param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.AddIndexers(System.Collections.Generic.IEnumerable{System.Type})">
+            <summary>
+            Add several type indexers.
+            
+            This may throw exception if one of the provided types is not valid.
+            </summary>
+            <param name="typeIndexers"></param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.Hook(VRage.Meta.MyMetadataContext)">
+            <summary>
+            Hook indexers from parent to child.
+            </summary>
+            <param name="parent">Parent metadata context.</param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.PreProcess(System.Reflection.Assembly)">
+            <summary>
+            Pre-process an assembly.
+            
+            This will discover indexers and run any static constructors that are needed.
+            </summary>
+            <param name="assembly"></param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataContext.TryGetIndexer(System.Type,VRage.Meta.IMyMetadataIndexer@)">
+            <summary>
+            Tries to get indexer for the given type.
+            </summary>
+            <param name="type"></param>
+            <param name="indexer"></param>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.Meta.MyMetadataSystem">
+            <summary>
+            The metadata system is responsible for indexing types and information about those types.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.LoadAssembly(System.Reflection.Assembly,System.Boolean)">
+            <summary>
+            Load metadata from an assembly that is already loaded.
+            </summary>
+            <param name="assembly">Assembly to index.</param>
+            <param name="batch">Whether to treat this load as part of a batch.</param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.FinishBatch">
+            <summary>
+            Finish batch indexing of assemblies.
+            
+            Batching is recommended when many assemblies are indexed at once.
+            It significantly improves the performance of indexers that need to postprocess the full set of types.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.GetType(System.String,System.Boolean)">
+            <summary>
+            Find a type amongst known assemblies.
+            </summary>
+            <param name="fullName">The full name of the type (i.e.: namespace + name).</param>
+            <param name="throwOnError">Whether to throw exception or to return null if the type cannot be found.</param>
+            <returns>The fount type or null.</returns>
+        </member>
+        <member name="F:VRage.Meta.MyMetadataSystem.AttributeIndexers">
+            <summary>
+            Mapping of attribute indexer types.
+            </summary>
+        </member>
+        <member name="F:VRage.Meta.MyMetadataSystem.TypeIndexers">
+            <summary>
+            List of indexer types.
+            </summary>
+        </member>
+        <member name="F:VRage.Meta.MyMetadataSystem.Stack">
+            <summary>
+            Metadata context stack.
+            </summary>
+        </member>
+        <member name="P:VRage.Meta.MyMetadataSystem.ActiveContext">
+            <summary>
+            Active metadata context.
+            
+            If there is no context set this will be null.
+            </summary>
+        </member>
+        <member name="P:VRage.Meta.MyMetadataSystem.Log">
+            <summary>
+            Metadata log, links to default for now.
+            
+            When we introduce hierarchical logging this should be related to the correct system.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.PushMetadataContext(VRage.Meta.MyMetadataContext)">
+            <summary>
+            Push the provided metadata context to the top of the metadata text.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.PushMetadataContext">
+            <summary>
+            Create a new metadata context and set push it atop the metadata stack.
+            </summary>
+            <returns>The newly created context.</returns>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.PopContext">
+            <summary>
+            Pop the current metadata context, this will cause the context to be disposed.
+            
+            This should update all global indexer references to the new context on the top of the stack.
+            </summary>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.RegisterAttributeIndexer(System.Type,System.Type)">
+            <summary>
+            Register an indexer for a given attribute type.
+            
+            The provide indexer will be registered to all current and future metadata contexts.
+            </summary>
+            <param name="attributeType"></param>
+            <param name="indexerType"></param>
+        </member>
+        <member name="M:VRage.Meta.MyMetadataSystem.RegisterTypeIndexer(System.Type)">
+            <summary>
+            Register an indexer for a given attribute type.
+            
+            The provide indexer will be registered to all current and future metadata contexts.
+            </summary>
+            <param name="indexerType"></param>
+        </member>
+        <member name="T:VRage.Meta.MyTypeMetadataIndexerAttribute">
+            <summary>
+            Attribute indicating a type metadata indexer.
+            
+            Valid type indexers marked with this attribute are automatically discovered and used.
+            </summary>
+        </member>
+        <member name="T:VRage.MyMultipleEnabledEnum">
+            <summary>
+            Enumeration describing Enabled state of multiple objects.
+            </summary>
+        </member>
+        <member name="F:VRage.MyMultipleEnabledEnum.NoObjects">
+            <summary>
+            No blocks with on/off state
+            </summary>
+        </member>
+        <member name="F:VRage.MyMultipleEnabledEnum.AllDisabled">
+            <summary>
+            All blocks has off state
+            </summary>
+        </member>
+        <member name="F:VRage.MyMultipleEnabledEnum.Mixed">
+            <summary>
+            Blocks has on and off state
+            </summary>
+        </member>
+        <member name="F:VRage.MyMultipleEnabledEnum.AllEnabled">
+            <summary>
+            All blocks has on state
+            </summary>
+        </member>
+        <member name="T:VRage.MyResourceStateEnum">
+            <summary>
+            Enumeration describing Enabled state of multiple objects.
+            </summary>
+        </member>
+        <member name="F:VRage.MyResourceStateEnum.Ok">
+            <summary>
+            Working fine. Every block has enough power
+            </summary>
+        </member>
+        <member name="F:VRage.MyResourceStateEnum.OverloadAdaptible">
+            <summary>
+            Some adaptible group does not have enough resources, but everything else still works fine
+            </summary>
+        </member>
+        <member name="F:VRage.MyResourceStateEnum.OverloadBlackout">
+            <summary>
+            Some non-adaptible group does not have enough resources, so it is without power
+            </summary>
+        </member>
+        <member name="F:VRage.MyResourceStateEnum.NoPower">
+            <summary>
+            No power
+            </summary>
+        </member>
+        <member name="F:VRage.MyResourceStateEnum.Disconnected">
+            <summary>
+            Used only for internal use.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Models.MyCylinder">
+            <summary>
+            Maps the output of a module onto a cylinder.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Models.MySphere">
+            <summary>
+            Maps the output of a module onto a sphere.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Modifiers.MyAbs">
+            <summary>
+            Outputs the absolute value of the output value from a source module.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Modifiers.MyClamp">
+            <summary>
+            Clamps the output value from a source module to a range of values.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Modifiers.MyCurve">
+            <summary>
+            Maps the output value from a source module onto an arbitrary function curve.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Modifiers.MyExponent">
+            <summary>
+            Maps the output value from a source module onto an exponential curve.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Modifiers.MyInvert">
+            <summary>
+            Inverts the output value from a source module.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.MyModule">
+            <summary>
+            High quality noise module that combines properties of Value noise and gradient noise.
+            Value noise is used as input for gradient function. This leads to no artifacts or zero values at integer points.
+            It's so called Value-Gradient noise.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.MyModuleFast">
+            <summary>
+            Faster version of MyModule.
+            This time we do not compute the gradient position directly but we're using gradient table lookup via permutation table.
+            This leads to more 'grid' result as the local min and max (like in Value noise) are always appearing at integer points.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Patterns.MyCylinders">
+            <summary>
+            Noise that outputs concentric cylinders.
+            Each cylinder extends infinitely along the y axis.
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Patterns.MyRing">
+            <summary>
+            Noise that outputs dounut-like ring
+            </summary>
+        </member>
+        <member name="T:VRage.Noise.Patterns.MySpheres">
+            <summary>
+            Noise that outputs concentric spheres.
+            </summary>
+        </member>
+        <member name="T:VRage.Private.MyKeenUtils">
+            <summary>
+            Private class, that should not be exposed to modders
+            </summary>
+        </member>
+        <member name="M:VRage.Private.MyKeenUtils.CreateFolder(System.String)">
+            <summary>
+            Vytvori zadany adresar. Automaticky povytvara celu adresarovu strukturu, teda ak chcem vytvorit c:\volaco\opica
+            a c:\volaco zatial neexistuje, tak tato metoda ho vytvori.
+            </summary>
+            <param name="folderPath"></param>
+        </member>
+        <member name="P:VRage.Profiler.MyDrawArea.Index">
+            <summary>
+            Index 0, 1, 2, 3, 4, 5...
+            Makes range 1, 1.5, 2, 3, 4, 6, 8, 12, 24, 32, 48, 64...
+            Negative index is supported as well.
+            </summary>
+        </member>
+        <member name="M:VRage.Profiler.MyDrawArea.#ctor(System.Single,System.Single,System.Single,System.Single,System.Single)">
+            <summary>
+            Initializes draw area.
+            </summary>
+            <param name="yScale"></param>
+            <param name="yRange">Range of y axis, will be rounded to 2^n or 2^n * 1.5</param>
+            <param name="xStart"></param>
+            <param name="yStart"></param>
+            <param name="xScale"></param>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerCommand.Enable">
+            <summary>
+            Only enables the profiler, used by the developer debug window
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerCommand.ToggleEnabled">
+            <summary>
+            Toggles profiler enabled/disabled state, doesn't reset profiler level
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerCommand.JumpToRoot">
+            <summary>
+            Jumps all the way to the root element
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerCommand.DisableFrameSelection">
+            <summary>
+            Disables the current selection again
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerCommand.ChangeSortingOrder">
+            <summary>
+            Changes the profiler's sorting order, see ProfilerSortingOptions for the possible sorting options
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerCommand.CopyPathToClipboard">
+            <summary>
+            Copies the current path to clipboard
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerCommand.TryGoToPathInClipboard">
+            <summary>
+            Tries to navigate to the path in the clipboard
+            </summary>
+        </member>
+        <member name="T:VRage.Profiler.RenderProfilerSortingOrder">
+            <summary>
+            Profiler sorting order types
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerSortingOrder.Id">
+            <summary>
+            Order in which the elements are logged
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerSortingOrder.MillisecondsLastFrame">
+            <summary>
+            Milliseconds spent in the previous frame, sorted from slowest to fastest
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerSortingOrder.AllocatedLastFrame">
+            <summary>
+            Allocated amount of memory in the previous frame, sorted from highest to lowest
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerSortingOrder.MillisecondsAverage">
+            <summary>
+            Milliseconds spent on average, sorted from slowest to fastest
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.RenderProfilerSortingOrder.NumSortingTypes">
+            <summary>
+            Total number of sorting types
+            </summary>
+        </member>
+        <member name="F:VRage.Profiler.ProfilerGraphContent.ProfilerGraphContentMax">
+            <summary>
+            Total number of graph contents
+            </summary>
+        </member>
+        <member name="T:VRage.Profiler.MyRenderProfiler">
+            <summary>
+            Provides profiling capability
+            </summary>
+            <remarks>
+            Non-locking way of render profiler is used. Each thread has it's own profiler is ThreadStatic variable.
+            Data for each profiling block are of two kinds: Immediate (current frame being profiled) and History (previous finished frames)
+            Start/End locking is not necessary, because Start/Stop uses only immediate data and nothing else uses it at the moment.
+            Commit is only other place which uses Immediate data, but it must be called from same thead, no racing condition.
+            Draw and Commit both uses History data, and both can be called from different thread, so there's lock.
+            This way everything runs with no waiting, unless Draw obtains lock in which case Commit wait for Draw to finish (Start/End is still exact).
+            
+            For threads which does not call commit (background workers, parallel tasks), mechanism which calls commit automatically after each top level End should be added.
+            This way each task will be one "frame" on display
+            </remarks>
+        </member>
+        <member name="F:VRage.Profiler.MyRenderProfiler.m_sortingOrder">
+            <summary>
+            Sorting order will sort the listed elements in the profiler by the specified ProfilerSortingOrder
+            </summary>
+        </member>
+        <member name="P:VRage.Profiler.MyRenderProfiler.ProfilerVisible">
+            <summary>
+            Returns true when profiler is visible.
+            </summary>
+        </member>
+        <member name="M:VRage.Profiler.MyRenderProfiler.CreateProfiler(System.String,System.String,System.Boolean)">
+            <summary>
+            Creates new profiler which can be used to profile anything (e.g. network stats).
+            </summary>
+        </member>
+        <member name="T:VRage.Profiler.MyStatsGraph">
+            <summary>
+            Shortcut class for profiler.
+            </summary>
+        </member>
+        <member name="M:VRage.Profiler.MyStatsGraph.Begin(System.String,System.Int32,System.String,System.Int32,System.String)">
+            <summary>
+            Starts profiling block.
+            </summary>
+        </member>
+        <member name="M:VRage.Profiler.MyStatsGraph.End(System.Nullable{System.Single},System.Single,System.String,System.String,System.String,System.Int32,System.String,System.Int32,System.String)">
+            <summary>
+            End profiling block.
+            </summary>
+            <param name="bytesTransfered">Specify number of bytes transferred or null to automatically calculate number of bytes from inner blocks.</param>
+            <param name="customValue">You can put any number here.</param>
+            <param name="customValueFormat">This is formatting string how the number will be written on screen, use something like: 'MyNumber: {0} foos/s'</param>
+            <param name="byteFormat"></param>
+            <param name="callFormat"></param>
+            <param name="numCalls"></param>
+            <param name="member"></param>
+            <param name="line"></param>
+            <param name="file"></param>
+        </member>
+        <member name="T:VRage.Profiler.ProfilerShort">
+            <summary>
+            Helper class, "shortcuts" to profiler
+            </summary>
+        </member>
+        <member name="M:VRage.Profiler.ProfilerShort.StartFrame">
+            <summary>
+            Flips a frame (Start a new frame, finish a previous one)
+            </summary>
+        </member>
+        <member name="M:VRage.Profiler.ProfilerShort.AttachTag(System.String,System.String)">
+            <summary>
+            Attaches custom data to current block
+            </summary>
+            <param name="tagName">Tag name</param>
+            <param name="tagValue">Custom value</param>
+        </member>
+        <member name="M:VRage.Profiler.ProfilerShort.AttachTag(System.String,System.Single)">
+            <summary>
+            Attaches custom data to current block
+            </summary>
+            <param name="tagName">Tag name</param>
+            <param name="tagValue">Custom value</param>
+        </member>
+        <member name="M:VRage.Profiler.ProfilerShort.AttachTag(System.String,System.Int32)">
+            <summary>
+            Attaches custom data to current block
+            </summary>
+            <param name="tagName">Tag name</param>
+            <param name="tagValue">Custom value</param>
+        </member>
+        <member name="T:VRage.MySimpleProfiler">
+            <summary>
+            A simple performance profiler intended to show players information about which area of the game is slowing it down
+            </summary>
+        </member>
+        <member name="F:VRage.MySimpleProfiler.m_profilingBlocks">
+            <summary>
+            Global keeper of all known profiling blocks.
+            
+            !!! Do not try to add new blocks into existing instance. !!!
+            Allocate new instead, copy all existing blocks, merge new blocks and swap references.
+            
+            !!! Do not pool dictionaries as they may be still in use by other threads. !!!
+            Allocations should happen only during firs few frames. It's trade-off for wait-free progress guarantee during runtime.
+            </summary>
+        </member>
+        <member name="F:VRage.MySimpleProfiler.m_addUponSync">
+            <summary>
+            When thread fails to find required block in global keeper, it will add it here and it will be added later.
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.BeginBlock(System.String,VRage.MySimpleProfiler.ProfilingBlockType)">
+            <summary>
+            Preferred way of measurement.
+            Makes sure every block is properly ended and prevents Begin/End mismatch errors
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.Begin(System.String,VRage.MySimpleProfiler.ProfilingBlockType,System.String)">
+            <summary>
+            Begin new profiling block
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.End(System.String)">
+            <summary>
+            End profiling block
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.BeginGPUBlock(System.String)">
+            <summary>
+            Set which GPU profiling block is going to receive timing next
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.EndGPUBlock(VRage.Library.Utils.MyTimeSpan)">
+            <summary>
+            Log timing of currently set GPU block
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.Commit">
+            <summary>
+            Check performance and reset time
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.SetBlockSettings(System.String,System.Int32,System.Int32,VRage.MySimpleProfiler.ProfilingBlockType)">
+            <summary>
+            Set special settings for a profiling block
+            </summary>
+            <param name="key"></param>
+            <param name="thresholdFrame"></param>
+            <param name="thresholdAverage"></param>
+            <param name="type"></param>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.CheckPerformance(VRage.MySimpleProfiler.MySimpleProfilingBlock,System.Int32,System.Int32)">
+            <summary>
+            Checks performance of each profiling block and sends notifications if above threshold
+            </summary>
+        </member>
+        <member name="M:VRage.MySimpleProfiler.ShowServerPerformanceWarning(System.String,VRage.MySimpleProfiler.ProfilingBlockType)">
+            <summary>
+            Show performance warning received from server
+            </summary>
+        </member>
+        <member name="T:VRage.Network.BlockingAttribute">
+            <summary>
+            Indicates that event will be blocking all other events.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.BlockingAttribute.#ctor">
+            <summary>
+            Creates attribute that indicates that event will be blocking all other events until this is resolved.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.BroadcastAttribute">
+            <summary>
+            Client method. Decorated method is be called by server on all clients.
+            Clients always trust server and does not perform any validation.
+            When used together with Server attribute, server (optionally) validates data, invokes the method on server and then sends it to all clients.
+            If the data is found invalid, it can be marked so by calling MyEventContext.ValidationFailed() on the server. The broadcasts will then not be performed.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.BroadcastExceptAttribute">
+            <summary>
+            Client method. Decorated method is be called by server on all clients (except the one who invoked it on server or the one specified in RaiseEvent...when called from server).
+            Clients always trust server and does not perform any validation.
+            When used together with Server attribute, server validates data, invokes the method on server and then sends it to all clients except the client who invoked it on server.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.BroadcastTerminalInfoAttribute">
+            <summary>
+            Called on all clients with opened terminal panel with specific block. Used for updating detailed info.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.ClientAttribute">
+            <summary>
+            Client method. Decorated method is be called by server on client.
+            Clients always trust server and does not perform any validation.
+            When used together with Server attribute, server validates data, invokes the method on server and then sends it to client who invoked it on server.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.DistanceRadiusAttribute">
+            <summary>
+            Indicates that event will be called only on clients in specific distance
+            </summary>
+        </member>
+        <member name="M:VRage.Network.DistanceRadiusAttribute.#ctor(System.Single)">
+            <summary>
+            Creates attribute that indicates that event will be called only on clients in specific distance
+            </summary>
+        </member>
+        <member name="T:VRage.Network.EndpointId">
+            <summary>
+            Id of network endpoint, opaque struct, internal value should not be accessed outside VRage.Network.
+            EndpointId is not guid and can change when client reconnects to server.
+            Internally it's SteamId or RakNetGUID.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.IMyEventOwner">
+            <summary>
+            Common interface for IMyNetObject and IMyEventProxy used to raise events.
+            Base interface for classes passed as event instance.
+            Custom implementations not supported.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.IMyEventProxy">
+            <summary>
+            Interface which only marks class as event owner.
+            Object itself must be replicated in network to allow raising events.
+            If you considering to add this to object, it's probably wrong and you should use static events in most cases.
+            This is commonly implemented only by entities which has it's external replicable.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.IMyNetObject">
+            <summary>
+            Base interface for networked object.
+            Derived interfaces are so far IMyReplicable and IMyStateGroup.
+            </summary>
+        </member>
+        <member name="P:VRage.Network.IMyNetObject.IsValid">
+            <summary>
+            Is this still valid, i.e it should still be used and replicated.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyNetObject.GetUniqueId">
+            <summary>
+            Gets uniqued id of this net object. 
+            </summary>
+            <returns>Unique id</returns>
+        </member>
+        <member name="P:VRage.Network.IMyProxyTarget.Target">
+            <summary>
+            Gets target object.
+            </summary>
+        </member>
+        <member name="P:VRage.Network.IMyReplicable.HasToBeChild">
+            <summary>
+            Child replicables are strongly dependent on parent.
+            When parent is replicated, children are replicated.
+            </summary>
+        </member>
+        <member name="P:VRage.Network.IMyReplicable.IsSpatial">
+            <summary>
+            Determines whether the replicable is present in the world and should be replicated based on its position.
+            </summary>
+        </member>
+        <member name="P:VRage.Network.IMyReplicable.PriorityUpdate">
+            <summary>
+            Should this replicable be replicated immediately after it's created (in priority updates)?
+            </summary>
+        </member>
+        <member name="P:VRage.Network.IMyReplicable.IncludeInIslands">
+            <summary>
+            Whether the replicable should be included in replication islands.
+            </summary>
+        </member>
+        <member name="P:VRage.Network.IMyReplicable.PCU">
+            <summary>
+            PCU Cost of this replicable.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.ShouldReplicate(VRage.Network.MyClientInfo)">
+            <summary>
+            Whether the replicable should be replicated on a specific client. 
+            Some objects that are created locally don't need to be synchronized until some conditions are met (generated asteroids, trees).
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.GetParent">
+            <summary>
+            Gets parent which must be replicated first.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.OnSave(VRage.Library.Collections.BitStream,VRage.Network.Endpoint)">
+            <summary>
+            Serializes object for replication to client.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.OnLoad(VRage.Library.Collections.BitStream,System.Action{System.Boolean})">
+            <summary>
+            Client deserializes object and adds it to proper collection (e.g. MyEntities).
+            Loading done handler can be called synchronously or asynchronously (but always from Update thread).
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.Reload(System.Action{System.Boolean})">
+            <summary>
+            Load the replicable again if it failed because the parent was still in queue
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.OnDestroyClient">
+            <summary>
+            Called on client when server destroyed this replicable. Should close any objects or entities it created in OnLoad.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.OnRemovedFromReplication">
+            <summary>
+            Caled on server when replicable is removed from all clients
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.GetStateGroups(System.Collections.Generic.List{VRage.Network.IMyStateGroup})">
+            <summary>
+            Returns state groups for replicable in a list.
+            This method can has to return objects in same order every time (e.g. first terminal, second physics etc).
+            It does not have to return same instances every time.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.GetAABB">
+            <summary>
+            Root replicables always have spatial representation. Can return invalid if this is not a IsSpatial replicable .
+            </summary>
+        </member>
+        <member name="P:VRage.Network.IMyReplicable.OnAABBChanged">
+            <summary>
+            Called when root replicable AABB changed
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.GetDependencies(System.Boolean)">
+            <summary>
+            Dependend replicables, which might not be in AABB of this replicable. Ie. all relayed antennas are depended 
+            on mycharacter and need to be synced with him. 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.GetCriticalDependencies">
+            <summary>
+            Dependend replicables, which should be atomically replicated together to make this replicable works correctly
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.GetPhysicalDependencies(VRage.Library.Utils.MyTimeSpan,VRage.Replication.MyReplicablesBase)">
+            <summary>
+            Get the replicable's physical dependencies, i.e. objects close enough for it to physically interact with. 
+            These will get replicated along with the replicable in one batch (replication island).
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyReplicable.CheckConsistency">
+            <summary>
+            Debug method for testing whether replicables are in concistent state
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyStateGroup.CreateClientData(VRage.Network.MyClientStateBase)">
+            <summary>
+            Called on server new clients starts replicating this group.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyStateGroup.DestroyClientData(VRage.Network.MyClientStateBase)">
+            <summary>
+            Called on server when client stops replicating this group.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyStateGroup.ClientUpdate(VRage.Library.Utils.MyTimeSpan)">
+            <summary>
+            Update method called on client.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyStateGroup.Destroy">
+            <summary>
+            Called when state group is being destroyed.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.IMyStateGroup.Serialize(VRage.Library.Collections.BitStream,VRage.Network.MyClientInfo,VRage.Library.Utils.MyTimeSpan,VRage.Library.Utils.MyTimeSpan,System.Byte,System.Int32,System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            (De)serializes group state or it's diff for client.
+            When writing, you can write beyond maxBitPosition, but message won't be sent and ACKs won't be received for it.
+            ReplicationServer will detect, that state group written beyond packet size and revert it.
+            When nothing written, ReplicationServer will detect that and state group won't receive ACK for that packet id.
+            </summary>
+            <param name="stream">Stream to write to or read from.</param>
+            <param name="forClient">When writing the client which will receive the data. When reading, it's null.</param>
+            <param name="serverTimestamp"></param>
+            <param name="lastClientTimestamp"></param>
+            <param name="packetId">Id of packet in which the data will be sent or from which the data is received.</param>
+            <param name="maxBitPosition">Maximum position in bit stream where you can write data, it's inclusive.</param>
+            <param name="cachedData"></param>
+        </member>
+        <member name="M:VRage.Network.IMyStateGroup.OnAck(VRage.Network.MyClientStateBase,System.Byte,System.Boolean)">
+            <summary>
+            Called for each packet id sent to client from this state group.
+            When ACK received, called immediatelly.
+            When several other packets received from client, but some were missing, called for each missing packet.
+            </summary>
+            <param name="forClient">The client.</param>
+            <param name="packetId">Id of the delivered or lost packet.</param>
+            <param name="delivered">True when packet was delivered, false when packet is considered lost.</param>
+        </member>
+        <member name="M:VRage.Network.IMyStreamableReplicable.OnLoadBegin(System.Action{System.Boolean})">
+            <summary>
+            Client deserializes object and adds it to proper collection (e.g. MyEntities).
+            Loading done handler can be called synchronously or asynchronously (but always from Update thread).
+            </summary>
+        </member>
+        <member name="T:VRage.Network.IMySyncedEntity">
+            <summary>
+            Entity containing sync properties.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyClient.PCULimit">
+            <summary>
+            Maximum PCU the client would like to receive.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyClient.LastEnabledLayer">
+            <summary>
+            Index of the last layer that is enbled.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyClient.CalculateLayerOfReplicable(VRage.Network.IMyReplicable,System.Nullable{VRageMath.Vector3D})">
+            <summary>
+            Update layer radiuses 20, 80, 320, 1280 ... x4 each layer.
+            Send Interval 4,8,16,32 ... x2
+            Update Interval 60, 120, 240 ... x2
+            
+            </summary>
+            <param name="rep">Replicable</param>
+            <param name="secondaryPosition">Lower priority to keep in sync</param>
+            <returns>Update layer</returns>
+        </member>
+        <member name="M:VRage.Network.MyClient.IsPreceding(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Returns true when current packet is closely preceding last packet (is within threshold)
+            </summary>
+        </member>
+        <member name="T:VRage.Network.MyClientStateBase">
+            <summary>
+            Base class for game-defined client state.
+            It's set of data required by server, sent from client.
+            E.g. current client area of interest, context (game, terminal, inventory etc...)
+            Abstract class for performance reasons (often casting)
+            </summary>
+        </member>
+        <member name="P:VRage.Network.MyClientStateBase.EndpointId">
+            <summary>
+            Client endpoint, don't serialize it in Serialize()
+            </summary>
+        </member>
+        <member name="P:VRage.Network.MyClientStateBase.SelectedBlockEntityId">
+            <summary>
+            Gets or sets selected block entity id in the terminal panel by the client
+            </summary>
+        </member>
+        <member name="P:VRage.Network.MyClientStateBase.IsPasswordPending">
+            <summary>
+            Gets or sets if password is pending on client side
+            </summary>
+        </member>
+        <member name="P:VRage.Network.MyClientStateBase.SelectedGridEntityId">
+            <summary>
+            Gets or sets selected grid entity id in the terminal panel by the client
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyClientStateBase.Serialize(VRage.Library.Collections.BitStream,System.Boolean)">
+            <summary>
+            Serializes state into/from bit stream.
+            EndpointId should be ignored.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyEventContext.Sender">
+            <summary>
+            Event sender, default(EndpointId) when invoked locally.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyEventContext.ClientState">
+            <summary>
+            Event sender client data, valid only when invoked remotely on server, otherwise null.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationClient.SetReplicableReady(VRage.Network.NetworkId,VRage.Network.NetworkId,VRage.Network.IMyReplicable,System.Boolean)">
+            <summary>
+            Marks replicable as successfully created, ready to receive events and state groups data.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationClient.IsBlocked(VRage.Network.NetworkId,VRage.Network.NetworkId)">
+            <summary>
+            Checks if network id is blocked by other network id.
+            </summary>
+            <param name="networkId">Target network id.</param>
+            <param name="blockedNetId">Blocking network id.</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Network.MyReplicationClient.OnServerStateSync(VRage.MyPacket)">
+            <summary>
+            Processes state sync sent by server.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyReplicationLayer.SyncFrameCounter">
+            <summary>
+            Synchonized time. Server frame number. It is increased by one every frame tick.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.AdvanceSyncTime">
+            <summary>
+            Advance local synchronized time.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.GetMultiplayerStat">
+            <summary>
+            Returns string with current multiplayer status. Use only for debugging.
+            </summary>
+            <returns>Already formatted string with current multiplayer status.</returns>
+        </member>
+        <member name="P:VRage.Network.MyReplicationLayer.CurrentSerializingReplicable">
+            <summary>
+            Replicable that is currently being serialized on the current thread if any.
+            </summary>
+        </member>
+        <member name="P:VRage.Network.MyReplicationLayer.CurrentSerializationDestinationEndpoint">
+            <summary>
+            The endpoint for which a replicable is being prepared.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.CurrentSerializingReplicableToken.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.StartSerializingReplicable(VRage.Network.IMyReplicable,VRage.Network.Endpoint)">
+            <summary>
+            Notify that the current thread is starting to prepare a replicable for streaming to an endpoint.
+            </summary>
+            <param name="replicable">The replicable to be streamed.</param>
+            <param name="targetEndpoint">the target endpoint.</param>
+            <returns>A token that must be disposed to notify the end of the serialization.</returns>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.StopSerializingReplicable">
+            <summary>
+            Clear the current serializing replicable data.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.DispatchEvent(VRage.IPacketData,VRage.Network.CallSite,VRage.Network.EndpointId,VRage.Network.IMyNetObject,System.Nullable{VRageMath.Vector3D})">
+            <summary>
+            Called when event is raised locally to send it to other peer(s).
+            Return true to invoke event locally.
+            </summary>
+            <remarks>
+            Invoking event locally is important to be done AFTER event is sent to other peers, 
+            because invocation can raise another event and order must be preserved.
+            Local event invocation is done in optimized way without unnecessary deserialization.
+            </remarks>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.OnEvent(VRage.MyPacketDataBitStreamBase,VRage.Network.CallSite,System.Object,VRage.Network.IMyNetObject,System.Nullable{VRageMath.Vector3D},VRage.Network.EndpointId)">
+            <summary>
+            Called when event is received over network.
+            Event can be validated, invoked and/or transferred to other peers.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayer.Invoke(VRage.Network.CallSite,VRage.Library.Collections.BitStream,System.Object,VRage.Network.EndpointId,VRage.Network.MyClientStateBase,System.Boolean)">
+            <summary>
+            Reads arguments from stream and invokes event. Returns false when validation failed, otherwise true.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationLayerBase.InvokeLocally``7(VRage.Network.CallSite{``0,``1,``2,``3,``4,``5,``6},``0,``1,``2,``3,``4,``5,``6)">
+            <summary>
+            Invokes event locally without validation and with empty Sender and ClientData.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyReplicationServer.m_replicableGroups">
+            <summary>
+            All replicables on server.
+            </summary>
+            <summary>
+            All replicable state groups.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyReplicationServer.m_clientStates">
+            <summary>
+            Network objects and states which are actively replicating to clients.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.MyReplicationServer.m_recentClientsStates">
+            <summary>
+            Clients that recently disconnected are saved here for some time so that the server doesn't freak out in case some calls are still pending for them
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.ForceReplicable(VRage.Network.IMyReplicable,VRage.Network.IMyReplicable)">
+            <summary>
+            Hack to allow thing like: CreateCharacter, Respawn sent from server
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.ForceReplicable(VRage.Network.IMyReplicable,VRage.Network.Endpoint)">
+            <summary>
+            Hack to allow thing like: CreateCharacter, Respawn sent from server
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.ForceEverything(VRage.Network.Endpoint)">
+            <summary>
+            Sends everything in the world to client. Use with extreme caution!
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.ResetForClients(VRage.Network.IMyReplicable)">
+            <summary>
+            Destroys replicable for all clients (used for testing and debugging).
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.AddReplicableToLayer(VRage.Network.IMyReplicable,VRage.Network.MyClient.UpdateLayer,VRage.Network.MyClient)">
+            <summary>
+            Adds replicable to a replication layer if it's not already in a smaller one.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.AddReplicableDependenciesToLayer(VRage.Network.IMyReplicable,VRage.Network.MyClient.UpdateLayer,VRage.Network.MyClient)">
+            <summary>
+            Adds adds any physically connected replicables
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.SetClientPCULimit(VRage.Network.EndpointId,System.Int32)">
+            <summary>
+            Set the PCU limit for a client given it's endpoint.
+            </summary>
+            <param name="clientEndpoint"></param>
+            <param name="pcuLimit"></param>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.IsReplicated(VRage.Network.IMyReplicable)">
+            <summary>
+            Indicates if a replicable is replicated to at least one client.
+            </summary>
+            <param name="replicable">Replicable to check.</param>
+            <returns>True if replicated at least to one client.</returns>
+        </member>
+        <member name="M:VRage.Network.MyReplicationServer.GetPermanentReplicables(System.Collections.Generic.List{System.Collections.Generic.KeyValuePair{VRage.Network.IMyClient,VRage.Network.IMyReplicable}})">
+            <summary>
+            Returns client permanent replicables
+            </summary>
+        </member>
+        <member name="T:VRage.Network.MySynchronizedTypeInfo">
+            <summary>
+            Type descriptor for synchronized type.
+            </summary>
+        </member>
+        <member name="M:VRage.Network.MyTypeTable.Serialize(VRage.Library.Collections.BitStream)">
+            <summary>
+            Serializes id to hash list.
+            Server sends the hashlist to client, client reorders type table to same order as server.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.NetworkId">
+            <summary>
+            Network object identifier. Similar to entity id, but on network.
+            Also one entity can have multiple NetworkIds, one main, one for physics sync, one for terminal sync and more.
+            Opaque struct, it should not be necessary to internal member outside VRage.Network.
+            NetworkId is not persistent and changes with server restart, never store it in persistent storage (saves).
+            Internally takes advantage of small numbers.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.NotReplicableAttribute">
+            <summary>
+            Marks class which should be never replicated.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.RefreshReplicableAttribute">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="T:VRage.Network.ReliableAttribute">
+            <summary>
+            Event which is sent reliably, use with caution and only when necessary!
+            </summary>
+        </member>
+        <member name="T:VRage.Network.ServerAttribute">
+            <summary>
+            Server method. Decorated method is be called by client on server or by server locally.
+            Server performs validation. Pass null as validation method to perform no validation (not recommended)
+            </summary>
+        </member>
+        <member name="F:VRage.Network.ValidationType.Access">
+            <summary>
+            Access validation checks the distance from entity and if you are able to access it. Works only on entities with replicable.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.ValidationType.Ownership">
+            <summary>
+            Ownership validation checks if you have rights to use that entity (ownership, faction share, share all). Works only on entities with replicable.
+            </summary>
+        </member>
+        <member name="F:VRage.Network.ValidationType.AdminOnly">
+            <summary>
+            Administrator only static RPC access validation
+            </summary>
+        </member>
+        <member name="F:VRage.Network.ValidationType.SpaceMasterOnly">
+            <summary>
+            Space Master only static RPC access validation
+            </summary>
+        </member>
+        <member name="F:VRage.Network.ValidationType.CreativeRights">
+            <summary>
+            Creative Right static RPC access validation. Creative mode or user is space master or above.
+            </summary>
+        </member>
+        <member name="T:VRage.Network.ServerInvokedAttribute">
+            <summary>
+            Server method that can only be invoked locally by the server
+            </summary>
+        </member>
+        <member name="F:VRage.Replication.MyEventsBuffer.MyBufferedEvent.Data">
+            <summary>
+            Stream with the event
+            </summary>
+        </member>
+        <member name="F:VRage.Replication.MyEventsBuffer.MyBufferedEvent.TargetObjectId">
+            <summary>
+            Target object net id of the event.
+            </summary>
+        </member>
+        <member name="F:VRage.Replication.MyEventsBuffer.MyBufferedEvent.BlockingObjectId">
+            <summary>
+            Object network id that is blocking this event. If 'NetworkId.Invalid' than no blocking object.
+            </summary>
+        </member>
+        <member name="F:VRage.Replication.MyEventsBuffer.MyBufferedEvent.IsBarrier">
+            <summary>
+            Indicates if this event is a barrier.
+            </summary>
+        </member>
+        <member name="F:VRage.Replication.MyEventsBuffer.MyObjectEventsBuffer.Events">
+            <summary>
+            Events to be processed for network object.
+            </summary>
+        </member>
+        <member name="F:VRage.Replication.MyEventsBuffer.MyObjectEventsBuffer.IsProcessing">
+            <summary>
+            Indicates if events are currently processed.
+            </summary>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.EnqueueEvent(VRage.MyPacketDataBitStreamBase,VRage.Network.NetworkId,VRage.Network.NetworkId,System.UInt32,VRage.Network.EndpointId,System.Nullable{VRageMath.Vector3D})">
+            <summary>
+            Enqueues event that have to be done on target object.
+            </summary>
+            <param name="data">Stream with event data.</param>
+            <param name="targetObjectId">Object id that is a target of the event.</param>
+            <param name="blockingObjectId">Object id that is blocking target to be processed. 'NetworkId.Invalid' if none.</param>
+            <param name="eventId">Event id.</param>
+            <param name="sender">Endpoint.</param>
+            <param name="position"></param>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.EnqueueBarrier(VRage.Network.NetworkId,VRage.Network.NetworkId)">
+            <summary>
+            Enqueues barrier for an entity that is targeting network object with blocking event. WARNING: Have to be in
+            pair with blocking event!
+            </summary>
+            <param name="targetObjectId">Network object id that will get barrier event.</param>
+            <param name="blockingObjectId">Network object that have blocking event.</param>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.RemoveEvents(VRage.Network.NetworkId)">
+            <summary>
+            Removes all events from target id.
+            </summary>
+            <param name="objectInstance">Target object network id.</param>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.TryLiftBarrier(VRage.Network.NetworkId)">
+            <summary>
+            Tries to lift barrier from target network object. If successfull, removes this barrier from
+            target object events queue. Also barrier must be aiming target object id.
+            </summary>
+            <param name="targetObjectId">Target network object id.</param>
+            <returns>True if barrier found on the top of target object events queue. Otherwise false.</returns>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.ProcessEvents(VRage.Network.NetworkId,VRage.Replication.MyEventsBuffer.Handler,VRage.Replication.MyEventsBuffer.IsBlockedHandler,VRage.Network.NetworkId)">
+            <summary>
+            Tries to process events for prarticular object id (network id).
+            </summary>
+            <param name="targetObjectId">Target object network id.</param>
+            <param name="eventHandler">Handler for processing events.</param>
+            <param name="isBlockedHandler">Handler for checking if processing of events should be canceled.</param>
+            <param name="caller">Parent Network id from which this is called. Set NetworkId.Invalid if no parent.</param>
+            <returns>True if all sucessfull.</returns>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.ProcessBarrierEvent(VRage.Network.NetworkId,VRage.Replication.MyEventsBuffer.MyBufferedEvent,VRage.Replication.MyEventsBuffer.Handler,VRage.Replication.MyEventsBuffer.IsBlockedHandler)">
+            <summary>
+            Process barrier event.
+            </summary>
+            <param name="targetObjectId">Target of the barrier event.</param>
+            <param name="eventToProcess">Event to process.</param>
+            <param name="eventHandler">Handler for processing event.</param>
+            <param name="isBlockedHandler">Handler for checking if processing of events should be canceled.</param>
+            <returns>True if success.</returns>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.ProcessBlockingEvent(VRage.Network.NetworkId,VRage.Replication.MyEventsBuffer.MyBufferedEvent,VRage.Network.NetworkId,VRage.Replication.MyEventsBuffer.Handler,VRage.Replication.MyEventsBuffer.IsBlockedHandler,System.Collections.Generic.Queue{VRage.Network.NetworkId}@)">
+            <summary>
+            Process blocking event.
+            </summary>
+            <param name="targetObjectId">Target object id for which to process.</param>
+            <param name="eventToProcess">Event to be processed.</param>
+            <param name="caller">Parent Network id from which this is called. Set NetworkId.Invalid if no parent.</param>
+            <param name="eventHandler">Handler for processing event.</param>
+            <param name="isBlockedHandler">Handler for checking if processing of events should be canceled.</param>
+            <param name="postProcessQueue">Queue that should be post processed.</param>
+            <returns>True if was success.</returns>
+        </member>
+        <member name="M:VRage.Replication.MyEventsBuffer.GetEventsBufferStat">
+            <summary>
+            Gets events buffer statistics.
+            </summary>
+            <returns>Formatted events buffer statistics.</returns>
+        </member>
+        <member name="T:VRage.Replication.MyMultiplayerMinimalBase">
+            <summary>
+            This stub should be merged with MyMultiplayerBase as soon as possible and the result should be put in planned library VRage.Multiplayer.
+            </summary>
+        </member>
+        <member name="P:VRage.Replication.MyReplicableClientData.HasActiveStateSync">
+            <summary>
+            Returns true when replicable is not pending and is not sleeping.
+            </summary>
+        </member>
+        <member name="M:VRage.Replication.MyReplicablesBase.Add(VRage.Network.IMyReplicable,VRage.Network.IMyReplicable@)">
+            <summary>
+            Sets or resets replicable (updates child status and parent).
+            Returns true if replicable is root, otherwise false.
+            </summary>
+        </member>
+        <member name="M:VRage.Replication.MyReplicablesBase.RemoveHierarchy(VRage.Network.IMyReplicable)">
+            <summary>
+            Removes replicable with all children, children of children, etc.
+            </summary>
+        </member>
+        <member name="M:VRage.Replication.MyReplicablesBase.Refresh(VRage.Network.IMyReplicable)">
+            <summary>
+            Refreshes replicable, updates it's child status and parent.
+            </summary>
+        </member>
+        <member name="M:VRage.Replication.MyReplicablesBase.Remove(VRage.Network.IMyReplicable)">
+            <summary>
+            Removes replicable, children should be already removed
+            </summary>
+        </member>
+        <member name="T:VRage.Serialization.IProtoTypeModel">
+            <summary>
+            Universal representation of a ProtoBuf type model.
+            </summary>
+        </member>
+        <member name="P:VRage.Serialization.IProtoTypeModel.Model">
+            <summary>
+            The ProtoBuf Type Model.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.IProtoTypeModel.RegisterTypes(System.Collections.Generic.IEnumerable{System.Type})">
+            <summary>
+            Register a range of types with the type model.
+            </summary>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Serialization.IProtoTypeModel.FlushCaches">
+            <summary>
+            Flush all metadata caches in this model.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.MyMemberSerializer.Clone(System.Object,System.Object)">
+            <summary>
+            Makes clone of object member.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.MyMemberSerializer.Equals(System.Object,System.Object)">
+            <summary>
+            Tests equality of object members.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.MyMemberSerializer`1.Clone(`0@,`0@)">
+            <summary>
+            Makes clone of object member.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.MyMemberSerializer`1.Equals(`0@,`0@)">
+            <summary>
+            Tests equality of object members.
+            </summary>
+        </member>
+        <member name="F:VRage.Serialization.MySerializeInfo.KeyInfo">
+            <summary>
+            Serialization settings for dictionary key.
+            </summary>
+        </member>
+        <member name="F:VRage.Serialization.MySerializeInfo.ItemInfo">
+            <summary>
+            Serialization settings for dictionary value or collection / array elements
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.MySerializer`1.Clone(`0@)">
+            <summary>
+            In-place clone.
+            Primitive and immutable types can implements this as empty method.
+            Reference types must create new instance a fill it's members.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.MySerializer`1.Equals(`0@,`0@)">
+            <summary>
+            Tests equality.
+            </summary>
+        </member>
+        <member name="T:VRage.Serialization.PrecompiledActivatorFactory">
+            <summary>
+            Activator factory that supports creating instances of precompiled types.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.PrecompiledActivatorFactory.CreateActivator``1">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Serialization.PrecompiledActivatorFactory.CreateActivator``1(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="T:VRage.Serialization.StaticTypeModel">
+            <summary>
+            A precompiled ProtoBuf type model.
+            </summary>
+        </member>
+        <member name="M:VRage.Serialization.StaticTypeModel.#ctor">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Serialization.StaticTypeModel.RegisterTypes(System.Collections.Generic.IEnumerable{System.Type})">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Serialization.StaticTypeModel.FlushCaches">
+            <inheritdoc />
+        </member>
+        <member name="T:VRage.Serialization.Xml.MyXmlSerializableAttribute">
+            <summary>
+            Indicates that a class should be indexed for use with MyAbstractXmlSerializer.
+            </summary>
+        </member>
+        <member name="T:VRage.MyDeltaTransform">
+            <summary>
+            Transform structure for delta-transforms.
+            </summary>
+        </member>
+        <member name="T:VRage.ObjectBuilder.MySerializableList`1">
+            <summary>
+            Custom list class to be used with object builders.
+            
+            Thsi class provides a custom Add method that ignores null values,
+            this is useful in conjunction with the abstract xml serializer
+            because when elements are not deserializable they are returned as null.
+            </summary>
+            <typeparam name="TItem">The type of the list element.</typeparam>
+        </member>
+        <member name="M:VRage.ObjectBuilder.MySerializableList`1.Add(`0)">
+            <summary>
+            Add value while checking if the value is not null.
+            </summary>
+            <param name="item"></param>
+        </member>
+        <member name="T:VRage.ObjectBuilder.MySerializerObList`1">
+            <summary>
+            Copied from list serializer, better yet is to inherit and have an attribute scheme for serializers
+            </summary>
+            <typeparam name="TItem"></typeparam>
+        </member>
+        <member name="T:VRage.CustomRootReader">
+            <summary>
+            Custom XmlReader that allows to read xml fragments
+            </summary>
+        </member>
+        <member name="T:VRage.CustomRootWriter">
+            <summary>
+            Custom XmlWriter that allows to write xml fragments
+            </summary>
+        </member>
+        <member name="T:VRage.MyXmlSerializerBase`1">
+            <summary>
+            Xml serializer base class with custom root element reader/writer caching
+            </summary>
+            <typeparam name="TAbstractBase"></typeparam>
+        </member>
+        <member name="T:VRage.MyAbstractXmlSerializer`1">
+            <summary>
+            Custom xml serializer that allows object instantiation on elements with xsl:type attribute
+            </summary>
+            <typeparam name="TAbstractBase"></typeparam>
+        </member>
+        <member name="T:VRage.MyStructXmlSerializer`1">
+            <summary>
+            Deserializes structs using a specified default value (see StructDefaultAttribute).
+            </summary>
+        </member>
+        <member name="T:VRage.MyStructXmlSerializer`1.Accessor">
+            <summary>
+            Abstract accessor for both fields and properties
+            </summary>
+        </member>
+        <member name="T:VRage.MyXmlTextReader">
+            <summary>
+            Custom XML Reader with user data attached
+            </summary>
+        </member>
+        <member name="P:VRage.MyXmlTextReader.DefinitionTypeOverrideMap">
+            <summary>
+            Map to override definitions types
+            </summary>
+        </member>
+        <member name="E:VRage.Sync.SyncBase.ValueChanged">
+            <summary>
+            ValueChanged event is raised when value is set locally (settings Value property) or remotely (through deserialization).
+            When validation fails, value is not changed and ValueChanged is not raised.
+            </summary>
+        </member>
+        <member name="T:VRage.Sync.SyncDirection">
+            <summary>
+            Sync variable synchronization direction.
+            </summary>
+        </member>
+        <member name="T:VRage.Sync.SyncDirection.FromServer">
+            Allow writing on server, send to client, deny writing on client.
+        </member>
+        <member name="T:VRage.Sync.Sync`2">
+            <summary>
+            Implementation of synchronized property value.
+            </summary>
+            <typeparam name="T">property type</typeparam>
+            <typeparam name="TSyncDirection">Allowed synchronization direction, can be SyncDirection.BothWays or SyncDirection.FromServer.</typeparam>
+        </member>
+        <member name="F:VRage.Sync.Sync`2.TypeSerializer">
+            <summary>
+            Static instance of type serializer for this sync property.
+            </summary>
+        </member>
+        <member name="F:VRage.Sync.Sync`2.m_value">
+            <summary>
+            Local value storage.
+            </summary>
+        </member>
+        <member name="P:VRage.Sync.Sync`2.Value">
+            <summary>
+            Value setter/getter.
+            </summary>
+        </member>
+        <member name="F:VRage.Sync.Sync`2.Validate">
+            <summary>
+            Validate handler is raised on server after deserialization.
+            </summary>
+        </member>
+        <member name="P:VRage.Sync.Sync`2.Enabled">
+            <summary>
+            Only synchronizes with server/client if enabled.
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.Sync`2.ToString">
+            <summary>
+            Convert value of this sync property to string.
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.Sync`2.IsValid(`0@)">
+            <summary>
+            Validate the given external value.
+            </summary>
+            <param name="value">external value of the same type as this sync property</param>
+            <returns>true if valid</returns>
+        </member>
+        <member name="M:VRage.Sync.Sync`2.SetValue(`0@,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Set the value of this sync property.
+            </summary>
+            <param name="newValue">New value to be assigned to this instance</param>
+            <param name="validate">Validate the new value</param>
+            <param name="ignoreSyncDirection">If true, value arrived from server (pass SyncDirection test).</param>
+            <param name="received"></param>
+            <returns>false if the value was not set</returns>
+        </member>
+        <member name="M:VRage.Sync.Sync`2.ValidateAndSet(`0)">
+            <summary>
+            Validates the value and sets it (when valid).
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.Sync`2.SetLocalValue(`0)">
+            <summary>
+            Sets new value only locally if on client. USE ONLY WITH VALUES YOU GOT FROM THE SERVER VIA OTHER CHANNELS! (e.g. when initializing from object builder)
+            Behaves like regular set on the server
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.SyncExtensions.AlwaysReject``2(VRage.Sync.Sync{``0,``1})">
+            <summary>
+            Sets validation handler to always return false.
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.SyncExtensions.ValidateRange``1(VRage.Sync.Sync{System.Single,``0},System.Single,System.Single)">
+            <summary>
+            Sets validate handler to validate that value is in range.
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.SyncExtensions.ValidateRange``1(VRage.Sync.Sync{System.Single,``0},System.Func{System.Single},System.Func{System.Single})">
+            <summary>
+            Sets validate handler to validate that value is in range.
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.SyncExtensions.ValidateRange``1(VRage.Sync.Sync{System.Single,``0},System.Func{VRageMath.MyBounds})">
+            <summary>
+            Sets validate handler to validate that value is withing bounds.
+            </summary>
+        </member>
+        <member name="M:VRage.Sync.SyncHelpers.Compose(System.Object,System.Int32,System.Collections.Generic.List{VRage.Sync.SyncBase})">
+            <summary>
+            Takes objects and creates instances of Sync fields.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.My5BitEncoding.#ctor">
+            <summary>
+            Initializes a new instance of the Encoding5Bit class.
+            Uses characters 0-9 and A-Z except (0,O,1,I).
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.My5BitEncoding.#ctor(System.Char[])">
+            <summary>
+            Initializes a new instance of the Encoding5Bit class.
+            </summary>
+            <param name="characters">32 characters which will be used when encoding bytes to string.</param>
+        </member>
+        <member name="M:VRage.Utils.My5BitEncoding.Encode(System.Byte[])">
+            <summary>
+            Encodes data as 5bit string.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.My5BitEncoding.Decode(System.Char[])">
+            <summary>
+            Decodes 5bit string as bytes, not alligned characters may be lost.
+            Only decode strings encoded with Encode.
+            </summary>
+            <param name="encoded5BitText"></param>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.Utils.MyAverageFiltering">
+            <summary>
+            Mean (average) filtering.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyAverageFiltering.#ctor(System.Int32)">
+            <summary>
+            
+            </summary>
+            <param name="sampleCount">Number of samples used in this mean filter.</param>
+        </member>
+        <member name="M:VRage.Utils.MyAverageFiltering.Add(System.Double)">
+            <summary>
+            Add raw value to be filtered.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyAverageFiltering.Get">
+            <summary>
+            Get filtered value.
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyBBSetSampler">
+            <summary>
+            This class allows for uniform generation of points from a set of bounding boxes.
+            
+            You start by constructing a bounding box from where the points will be sampled.
+            Then you can incrementally subtract bounding boxes and the resulting structure will allow you
+            to generate uniformly distributed points using the Sample() function.
+            </summary>
+        </member>
+        <member name="P:VRage.Utils.MyColorAlias.ColorToAlias">
+            <summary>
+            Names of pre-defined colors extracted from <see cref="T:VRageMath.Color"/> type
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyDiscreteSampler`1">
+            <summary>
+            A templated class for sampling from a set of objects with given probabilities. Uses MyDiscreteSampler.
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyDiscreteSampler">
+            <summary>
+            Provides a simple and efficient way of sampling a discrete probability distribution as described in http://www.jstatsoft.org/v11/i03/paper
+            Instances can be reused by calling the Prepare method every time you want to change the distribution.
+            Sampling a value is O(1), while the storage requirements are O(N), where N is number of possible values
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyDiscreteSampler.Prepare(System.Collections.Generic.IEnumerable{System.Single})">
+            The list supplied to the method does not have to add up to 1.0f, that's why it's called "densities" instead of "probabilities"
+        </member>
+        <member name="M:VRage.Utils.MyDiscreteSampler.Sample(System.Single)">
+            Beware that Cestmir thinks this can be less precise if you have a billiard numbers.
+            
+            He is probably right. So only use this version if you don't care.
+        </member>
+        <member name="M:VRage.Utils.MyDiscreteSampler.ReadBins">
+            <summary>
+            Get a copy of the internal bins.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Utils.MyEnumDuplicitiesTester.GetCompanyNameOfAssembly(System.Reflection.Assembly)">
+            <summary>
+            The company name of the calling assembly.
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyEventSet">
+            <summary>
+            From http://www.wintellect.com/Resources CLR Via C# by Jeffrey Richter
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyMaxFiltering">
+            <summary>
+            Nonlinear maximum filtering.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyMaxFiltering.#ctor(System.Int32)">
+            <summary>
+            
+            </summary>
+            <param name="sampleCount">Number of samples used in this mean filter.</param>
+        </member>
+        <member name="M:VRage.Utils.MyMaxFiltering.Add(System.Double)">
+            <summary>
+            Add raw value to be filtered.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyMaxFiltering.Get">
+            <summary>
+            Get filtered value.
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyMergeHelper">
+            <summary>
+            Helper class for merge funcionality. Performs comparison between
+            source and other values and set on self if value is different
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyMessageBox">
+            <summary>
+            Custom message box
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyMinFiltering">
+            <summary>
+            Nonlinear minimum filtering.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyMinFiltering.#ctor(System.Int32)">
+            <summary>
+            
+            </summary>
+            <param name="sampleCount">Number of samples used in this mean filter.</param>
+        </member>
+        <member name="M:VRage.Utils.MyMinFiltering.Add(System.Double)">
+            <summary>
+            Add raw value to be filtered.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyMinFiltering.Get">
+            <summary>
+            Get filtered value.
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyStringHash">
+            <summary>
+            Generates string hashes deterministically and crashes on collisions. When used as key for hash tables (Dictionary or HashSet)
+            always pass in MyStringHash.Comparer, otherwise lookups will allocate memory! Can be safely used in network but never serialize to disk!
+            
+            IDs are computed as hash from string so there is a risk of collisions. Use only when MyStringId is
+            not sufficient (eg. sending over network). Because the odds of collision get higher the more hashes are in use, do not use this for
+            generated strings and make sure hashes are computed deterministically (eg. at startup) and don't require lengthy gameplay. This way
+            we know about any collision early and not from rare and random crash reports.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyStringHash.TryGet(System.Int32)">
+            <summary>
+            Think HARD before using this. Usually you should be able to use MyStringHash as it is without conversion to int.
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyTimedItem`1">
+            <summary>
+            Item that is accessible only for defined time span.
+            </summary>
+            <typeparam name="T">item type</typeparam>
+        </member>
+        <member name="M:VRage.Utils.MyTimedItem`1.Get(System.Int32,System.Boolean)">
+            <summary>
+            Get the stored item.
+            </summary>
+            <param name="currentTime">Pass current time.</param>
+            <param name="autoRefreshTimeout">Should the storage timeout be refreshed?</param>
+            <returns>storage on success, default value of T on failure.</returns>
+        </member>
+        <member name="M:VRage.Utils.MyTimedItem`1.TryGet(System.Int32,System.Boolean,`0@)">
+            <summary>
+            Get the stored item.
+            </summary>
+            <param name="currentTime">Pass current time.</param>
+            <param name="autoRefreshTimeout">Should the storage timeout be refreshed?</param>
+            <param name="outStoredItem">item stored internally</param>
+            <returns>true on success, false on timeout</returns>
+        </member>
+        <member name="M:VRage.Utils.MyTimedItem`1.Set(System.Int32,System.Int32,`0)">
+            <summary>
+            Set the stored value.
+            </summary>
+            <param name="currentTime">Pass current time.</param>
+            <param name="itemTimeout">Period of time for which the item is accessible.</param>
+            <param name="item">Item to be stored.</param>
+        </member>
+        <member name="T:VRage.Utils.MyTickTimedItem`1">
+            <summary>
+            Item that is accessible only for defined amount of time ticks.
+            </summary>
+            <typeparam name="T">item type</typeparam>
+        </member>
+        <member name="M:VRage.Utils.MyTickTimedItem`1.Get">
+            <summary>
+            Get the stored item.
+            </summary>
+            <returns>storage on success, default value of T on failure.</returns>
+        </member>
+        <member name="M:VRage.Utils.MyTickTimedItem`1.TryGet(`0@)">
+            <summary>
+            Get the stored item.
+            </summary>
+            <param name="outStoredItem">item stored internally</param>
+            <returns>true on success, false on timeout</returns>
+        </member>
+        <member name="M:VRage.Utils.MyTickTimedItem`1.Set(System.Int32,`0)">
+            <summary>
+            Set the stored value.
+            </summary>
+            <param name="itemTickTimeout">Number of time ticks for which the item is accessible.</param>
+            <param name="item">Item to be stored.</param>
+        </member>
+        <member name="T:VRage.Utils.MyTickTimedItemF">
+            <summary>
+            Item that is accessible only for defined amount of time ticks.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyTickTimedItemF.Get">
+            <summary>
+            Get the stored item.
+            </summary>
+            <returns>storage on success, default value of T on failure.</returns>
+        </member>
+        <member name="M:VRage.Utils.MyTickTimedItemF.TryGet(System.Single@)">
+            <summary>
+            Get the stored item.
+            </summary>
+            <param name="outStoredItem">item stored internally</param>
+            <returns>true on success, false on timeout</returns>
+        </member>
+        <member name="M:VRage.Utils.MyTickTimedItemF.Set(System.Int32,System.Single)">
+            <summary>
+            Set the stored value.
+            </summary>
+            <param name="itemTickTimeout">Number of time ticks for which the item is accessible.</param>
+            <param name="item">Item to be stored.</param>
+        </member>
+        <member name="T:VRage.Utils.MyTimedItemCache">
+            <summary>
+            Temporaly stores information about item (event/place) existence. This is useful if you want to launch some actions only from time to time.
+            You ask timed cache whether your last event still takes effect.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyTimedItemCache.#ctor(System.Int32)">
+            <summary>
+            Constructor.
+            </summary>
+            <param name="eventTimeoutMs">Time before </param>
+        </member>
+        <member name="M:VRage.Utils.MyTimedItemCache.IsItemPresent(System.Int64,System.Int32,System.Boolean)">
+            <summary>
+            Generic item. Check whether generic item exists in the timed cache. 
+            
+            autoinsert param: If the item is not found, it is inserted to the cache if the argument autoinsert is true.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyTimedItemCache.IsPlaceUsed(VRageMath.Vector3D,System.Double,System.Int32,System.Boolean)">
+            <summary>
+            Helper function. Check temporal usage of space. Check whether the place is taken. Internally converts position to generic item.
+            Please use consistent eventSpaceMapping, otherwise cache will not find your items.
+            
+            autoinsert param: If the item is not found, it is inserted to the cache if the argument autoinsert is true.
+            </summary>
+        </member>
+        <member name="T:VRage.Utils.MyUtils">
+            <summary>
+            MyFileSystemUtils
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetRandomInt(System.Int32,System.Int32)">
+            <summary>
+            Return random int in range of minValue to maxValue, the range of return values includes minValue but not maxValue
+            </summary>
+            <param name="minValue">min</param>
+            <param name="maxValue">max</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetRandomVector3">
+            <summary>
+            Returns a uniformly-distributed random vector from inside of a box (-1,-1,-1), (1, 1, 1)
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetRandomVector3D">
+            <summary>
+            Returns a uniformly-distributed random vector from inside of a box (-1,-1,-1), (1, 1, 1)
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetRandomTimeSpan(System.TimeSpan,System.TimeSpan)">
+            <summary>
+            Returns a random TimeSpan between begin (inclusive) and end (exclusive).
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetEdgeSphereCollision(VRageMath.Vector3@,System.Single,VRage.MyTriangle_Vertices@)">
+            <summary>
+            Returns intersection point between sphere and its edges. But only if there is intersection between sphere and one of the edges.
+            If sphere intersects somewhere inside the triangle, this method will not detect it.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetInsidePolygonForSphereCollision(VRageMath.Vector3D@,VRage.MyTriangle_Vertices@)">
+            <summary>
+            Return true if point is inside the triangle.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetInsidePolygonForSphereCollision(VRageMath.Vector3@,VRage.MyTriangle_Vertices@)">
+            <summary>
+            Return true if point is inside the triangle.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetLineTriangleIntersection(VRageMath.Line@,VRage.MyTriangle_Vertices@)">
+             <summary>
+             Checks whether a ray intersects a triangleVertexes. This uses the algorithm
+             developed by Tomas Moller and Ben Trumbore, which was published in the
+             Journal of Graphics Tools, pitch 2, "Fast, Minimum Storage Ray-Triangle
+             Intersection".
+            
+             This method is implemented using the pass-by-reference versions of the
+             XNA math functions. Using these overloads is generally not recommended,
+             because they make the code less readable than the normal pass-by-value
+             versions. This method can be called very frequently in a tight inner loop,
+             however, so in this particular case the performance benefits from passing
+             everything by reference outweigh the loss of readability.
+             </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetSphereTriangleIntersection(VRageMath.BoundingSphere@,VRageMath.Plane@,VRage.MyTriangle_Vertices@)">
+            <summary>
+            Method returns intersection point between sphere and triangle (which is defined by vertexes and plane).
+            If no intersection found, method returns null.
+            See below how intersection point can be calculated, because it's not so easy - for example sphere vs. triangle will 
+            hardly generate just intersection point... more like intersection area or something.
+            </summary>
+        </member>
+        <member name="F:VRage.Utils.MyUtils.DefaultNumberSuffix">
+            <summary>
+            Default number suffix, k = thousand, m = million, g/b = billion
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetCoordAligned(VRageMath.Vector2,VRageMath.Vector2,VRage.Utils.MyGuiDrawAlignEnum)">
+            <summary>
+            Aligns rectangle, works in screen/texture/pixel coordinates, not normalized coordinates.
+            </summary>
+            <returns>Pixel coordinates for texture.</returns>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetCoordAlignedFromCenter(VRageMath.Vector2,VRageMath.Vector2,VRage.Utils.MyGuiDrawAlignEnum)">
+            <summary>
+            Modifies input coordinate (in center) using alignment and
+            size of the rectangle. Result is at position inside rectangle
+            specified by alignment.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetCoordTopLeftFromAligned(VRageMath.Vector2,VRageMath.Vector2,VRage.Utils.MyGuiDrawAlignEnum)">
+            <summary>
+            Reverses effect of alignment to compute top-left corner coordinate.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetCoordTopLeftFromAligned(VRageMath.Vector2I,VRageMath.Vector2I,VRage.Utils.MyGuiDrawAlignEnum)">
+            <summary>
+            Reverses effect of alignment to compute top-left corner coordinate.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetCoordCenterFromAligned(VRageMath.Vector2,VRageMath.Vector2,VRage.Utils.MyGuiDrawAlignEnum)">
+            <summary>
+            Reverses effect of alignment to compute center coordinate.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetCoordAlignedFromRectangle(VRageMath.RectangleF@,VRage.Utils.MyGuiDrawAlignEnum)">
+            <summary>
+            Returns coordinate within given rectangle specified by draw align. Rectangle position should be
+            upper left corner. Conversion assumes that Y coordinates increase downwards.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GenerateQuad(VRageMath.MyQuadD@,VRageMath.Vector3D@,System.Single,System.Single,VRageMath.MatrixD@)">
+            <summary>
+            Generate oriented quad by matrix
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetAngleBetweenVectors(VRageMath.Vector3,VRageMath.Vector3)">
+            <summary>
+            Calculating the Angle between two Vectors (return in radians).
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetBillboardQuadOriented(VRageMath.MyQuadD@,VRageMath.Vector3D@,System.Single,System.Single,VRageMath.Vector3@,VRageMath.Vector3@)">
+            <summary>
+            This billboard isn't facing the camera. It's always oriented in specified direction. May be used as thrusts, or inner light of reflector.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetLargestDistanceToSphere(VRageMath.Vector3D@,VRageMath.BoundingSphereD@)">
+            <summary>
+            Distance between "from" and opposite side of the "sphere". Always positive.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetLineBoundingBoxIntersection(VRageMath.Line@,VRageMath.BoundingBox@)">
+            <summary>
+            Calculates intersection between line and bounding box and if found, distance is returned. Otherwise null is returned.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetSmallestDistanceToSphere(VRageMath.Vector3D@,VRageMath.BoundingSphereD@)">
+            <summary>
+            Calculates distance from point 'from' to boundary of 'sphere'. If point is inside the sphere, distance will be negative.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetSpherePlaneIntersection(VRageMath.BoundingSphereD@,VRageMath.PlaneD@,System.Double@)">
+            <summary>
+            This tells if a sphere is BEHIND, in FRONT, or INTERSECTS a plane, also it's distance
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.GetSpherePlaneIntersection(VRageMath.BoundingSphere@,VRageMath.Plane@,System.Single@)">
+            <summary>
+            This tells if a sphere is BEHIND, in FRONT, or INTERSECTS a plane, also it's distance
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.IsLineIntersectingBoundingSphere(VRageMath.LineD@,VRageMath.BoundingSphereD@)">
+            <summary>
+            Check intersection between line and bounding sphere
+            We don't use BoundingSphere.Contains(Ray ...) because ray doesn't have an end, but line does, so we need
+            to check if line really intersects the sphere.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.Normalize(VRageMath.Vector3)">
+            <summary>
+            Protected normalize with assert
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.Normalize(VRageMath.Vector3@,VRageMath.Vector3@)">
+            <summary>
+            Protected normalize with assert
+            </summary>
+            <param name="vec"></param>
+            <param name="normalized"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.Normalize(VRageMath.Matrix@,VRageMath.Matrix@)">
+            <summary>
+            Protected normalize with assert
+            </summary>
+            <param name="m"></param>
+            <param name="normalized"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.Init``1(``0@)">
+            <summary>
+            When location is null, creates new instance, stores it in location and returns it.
+            When location is not null, returns it.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyUtils.InterlockedMax(System.Int32@,System.Int32)">
+            <returns>Previous value, not max!</returns>
+        </member>
+        <member name="T:VRage.Utils.MyVector3ISet">
+            <summary>
+            A data structure for a set of Vector3I coordinates optimized for sets with high spatial coherence (hence the name)
+            </summary>
+        </member>
+        <member name="P:VRage.Utils.MyVector3ISet.Timestamp">
+            <summary>
+            For detection of modification of the set during iteration. Every modifying operation on the set should increase the timestamp
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.MyVector3ISet.Union(VRage.Utils.MyVector3ISet)">
+            <summary>
+            Makes a union of this set and the other set and saves it in this set
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.ConcurrentNormalAggregator.PushNext(VRageMath.Vector3@)">
+            <summary>
+            Might be safely called from multiple threads at the same time.
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.ConcurrentNormalAggregator.GetAvgNormal(VRageMath.Vector3@)">
+            <summary>
+            Consumption is allowed only from one thread at the time!
+            It's not safe to call <see cref="M:VRage.Utils.ConcurrentNormalAggregator.Clear"/> method in parallel!
+            </summary>
+        </member>
+        <member name="M:VRage.Utils.ConcurrentNormalAggregator.Clear">
+            <summary>
+            Allowed to be called only from one thread at the time!
+            It's not safe to call <see cref="M:VRage.Utils.ConcurrentNormalAggregator.GetAvgNormal(VRageMath.Vector3@)"/> method in parallel!
+            </summary>
+        </member>
+        <member name="M:VRage.MyDebugUtils.IsValid(System.Single)">
+            <summary>
+            Returns true if float is valid
+            </summary>
+            <param name="f"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.IsValid(VRageMath.Vector3)">
+            <summary>
+            Returns true if Vector3 is valid
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.IsValid(VRageMath.Vector2)">
+            <summary>
+            Returns true if Vector2 is valid
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.AssertIsValid(VRageMath.Vector3D)">
+            <summary>
+            Returns true if Vector3 is valid
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.AssertIsValid(System.Nullable{VRageMath.Vector3D})">
+            <summary>
+            Returns true if Vector3 is valid
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.AssertIsValid(VRageMath.Vector3)">
+            <summary>
+            Returns true if Vector3 is valid
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.AssertIsValid(System.Nullable{VRageMath.Vector3})">
+            <summary>
+            Returns true if Vector3 is valid
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.AssertIsValid(VRageMath.Vector2)">
+            <summary>
+            Returns true if Vector2 is valid
+            </summary>
+            <param name="vec"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.AssertIsValid(System.Single)">
+            <summary>
+            Returns true if float is valid
+            </summary>
+            <param name="f"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.GetDebugName(System.Reflection.MemberInfo)">
+            <summary>
+            Determine a user friendly debug name for a method or type.
+            </summary>
+            <param name="member"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyDebugUtils.GetDebugName(System.Object)">
+            <summary>
+            Determine a user friendly debug name for a method or type.
+            </summary>
+            <param name="object"></param>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.MyLocalizationPackage">
+            <summary>
+            Lowest level storage for localization key-value pairs with support for message variants.
+            </summary>
+        </member>
+        <member name="F:VRage.MyLocalizationPackage.m_entries">
+            <summary>
+            Localization entries.
+            </summary>
+        </member>
+        <member name="F:VRage.MyLocalizationPackage.m_stringBuilderCache">
+            <summary>
+            Cache of string builders per message.
+            </summary>
+        </member>
+        <member name="P:VRage.MyLocalizationPackage.Keys">
+            <summary>
+            Set of all localization keys in this package.
+            </summary>
+        </member>
+        <member name="F:VRage.MyLocalizationPackage.ValidateVariantName">
+            <summary>
+            Callback that can be set to control the validation of variant names when registering messages.
+            </summary>
+        </member>
+        <member name="M:VRage.MyLocalizationPackage.AddMessage(System.String,System.String,System.Boolean)">
+            <summary>
+            Add a message to the package.
+            </summary>
+            <param name="key">The key for the message</param>
+            <param name="message">The message.</param>
+            <param name="overwrite">Whether to overwrite existing messages with the same key.</param>
+            <returns><c>true</c> when there was no collision with existing keys, <c>false</c> otherwise.</returns>
+        </member>
+        <member name="M:VRage.MyLocalizationPackage.Clear">
+            <summary>
+            Clear the contents of this package.
+            </summary>
+        </member>
+        <member name="M:VRage.MyLocalizationPackage.ContainsKey(VRage.Utils.MyStringId)">
+            <summary>
+            Whether this package contains a message with the provided key.
+            </summary>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.MyLocalizationPackage.TryGet(VRage.Utils.MyStringId,VRage.Utils.MyStringId,System.String@)">
+            <summary>
+            Try to get a localized message.
+            </summary>
+            <param name="key">The message key.</param>
+            <param name="variant">The message variant.</param>
+            <param name="message">The resulting string if the message was found.</param>
+            <returns>Whether the message was localized.</returns>
+        </member>
+        <member name="M:VRage.MyLocalizationPackage.TryGetStringBuilder(VRage.Utils.MyStringId,VRage.Utils.MyStringId,System.Text.StringBuilder@)">
+            <summary>
+            Try to get a localized message as a string builder.
+            </summary>
+            <param name="key">The message key.</param>
+            <param name="variant">The message variant.</param>
+            <param name="messageSb">The resulting string builder if the message was found.</param>
+            <returns>Whether the message was localized.</returns>
+        </member>
+        <member name="T:VRage.MyVertexFormatVoxelSingleData">
+             <summary>
+             Format for vertices of renderable voxel meshes
+            
+             Before changing this format check how it is used in the renderer
+             and be sure to change both places to match.
+             </summary>
+        </member>
+        <member name="F:VRage.MyVertexFormatVoxelSingleData.Material">
+            <summary>
+            For multimaterial vertex only
+            0, 1 or 2, indicates what material is on this vertex
+            </summary>
+        </member>
+        <member name="P:VRage.MyCubeInstanceData.Translation">
+            <summary>
+            Gets translation, faster than getting local matrix
+            </summary>
+        </member>
+        <member name="M:VRage.MyCubeInstanceData.ResetBones">
+            <summary>
+            Resets bones to zero and disables skinning
+            </summary>
+        </member>
+        <member name="M:VRage.MyCubeInstanceData.GetNormalizedBone(System.Int32)">
+            <returns>Vector in range [0,1]</returns>
+        </member>
+        <member name="M:VRage.MyCubeInstanceData.Denormalize(VRageMath.Vector4,System.Single)">
+            <param name="position">Scaled in range [0,1]</param>
+            <param name="range">Unscaled</param>
+            <returns>Unscaled position</returns>
+        </member>
+        <member name="T:VRage.StructDefaultAttribute">
+            <summary>
+            Specifies a static read-only default value field for structs
+            </summary>
+        </member>
+        <member name="P:VRage.MyTexts.GlobalVariantSelector">
+            <summary>
+            Global selector for translation variants.
+            </summary>
+        </member>
+        <member name="F:VRage.MyTexts.m_selectedVariant">
+            <summary>
+            Current global localization variant selector.
+            </summary>
+        </member>
+        <member name="M:VRage.MyTexts.SetGlobalVariantSelector(VRage.Utils.MyStringId)">
+            <summary>
+            Set the global variant to be selected for each translation.
+            </summary>
+            <param name="variantName"></param>
+        </member>
+        <member name="F:VRage.Voxels.MyStorageDataTypeFlags.None">
+            <summary>
+            None
+            </summary>
+        </member>
+        <member name="F:VRage.Voxels.MyStorageDataTypeFlags.Content">
+            <summary>
+            Read voxel filled ratio
+            </summary>
+        </member>
+        <member name="F:VRage.Voxels.MyStorageDataTypeFlags.Material">
+            <summary>
+            Read voxel materials
+            </summary>
+        </member>
+        <member name="F:VRage.Voxels.MyStorageDataTypeFlags.ContentAndMaterial">
+            <summary>
+            Read voxel materials and voxel filled ratio
+            </summary>
+        </member>
+        <member name="F:VRage.Voxels.MyStorageDataTypeFlags.All">
+            <summary>
+            Read all content
+            </summary>
+        </member>
+        <member name="T:VRage.Voxels.MyVoxelRequestFlags">
+             <summary>
+             Flags used when requesting voxel materials and content.
+            
+             These flags allow for optimizations such as avoiding
+             expensive material computations or quickly assigning the
+             whole storage the same material or content.
+             </summary>
+        </member>
+        <member name="F:VRage.Voxels.MyCellCoord.Lod">
+            <summary>
+            0 is the most detailed.
+            </summary>
+        </member>
+        <member name="M:VRage.Voxels.MyStorageData.Resize(VRageMath.Vector3I,VRageMath.Vector3I)">
+            <param name="start">Inclusive.</param>
+            <param name="end">Inclusive.</param>
+        </member>
+        <member name="T:VRage.Voxels.MyVoxelCoordSystems">
+            <summary>
+            Functions for transforming to and from various coordinate systems in voxel maps and for computing bounding boxes of various types of cells.
+            Note that local and world positions are (and should be) always in the min-corner!
+            </summary>
+            
+            TODO: Review this whole class
+            These are half wrong/ don't consider world matrix, beware
+        </member>
+        <member name="F:VRage.Voxels.MyVoxelDataConstants.NullMaterial">
+            <summary>
+            The byte describing the absence of material.
+            
+            This byte should never accur in areas where content is non-zero.
+            </summary>
+        </member>
+        <member name="F:VRage.Voxels.MyVoxelDataConstants.Defaults">
+            <summary>
+            Array of default values for voxel data, this array can be indexed by the integer value of MyStorageDataTypeEnum.
+            </summary>
+        </member>
+        <member name="F:VRage.Voxels.MyVoxelDataConstants.LodCount">
+            <summary>
+            There are 16 lods, 0 through 15.
+            </summary>
+        </member>
+        <member name="M:VRage.Voxels.MyVoxelDataConstants.DefaultValue(VRage.Voxels.MyStorageDataTypeEnum)">
+            <summary>
+            Lookup the default value for a given storage data type.
+            </summary>
+            <param name="type"></param>
+            <returns></returns>
+        </member>
+        <member name="M:System.BitCompressionExtensions.ReadQuaternionNormCompressed(VRage.Library.Collections.BitStream)">
+            <summary>
+            Serializes normalized quaternion into 29 bits
+            </summary>
+        </member>
+        <member name="M:System.BitCompressionExtensions.WriteQuaternionNormCompressed(VRage.Library.Collections.BitStream,VRageMath.Quaternion)">
+            <summary>
+            Serializes normalized quaternion into 29 bits
+            </summary>
+        </member>
+        <member name="M:System.BitCompressionExtensions.SerializeNormCompressed(VRage.Library.Collections.BitStream,VRageMath.Quaternion@)">
+            <summary>
+            Serializes normalized quaternion into 29 bits
+            </summary>
+        </member>
+        <member name="M:System.BitCompressionExtensions.ReadQuaternionNormCompressedIdentity(VRage.Library.Collections.BitStream)">
+            <summary>
+            Serializes normalized quaternion into 1 or 30 bits
+            </summary>
+        </member>
+        <member name="M:System.BitCompressionExtensions.WriteQuaternionNormCompressedIdentity(VRage.Library.Collections.BitStream,VRageMath.Quaternion)">
+            <summary>
+            Serializes normalized quaternion into 1 or 30 bits
+            </summary>
+        </member>
+        <member name="M:System.BitCompressionExtensions.SerializeNormCompressedIdentity(VRage.Library.Collections.BitStream,VRageMath.Quaternion@)">
+            <summary>
+            Serializes normalized quaternion into 1 or 30 bits
+            </summary>
+        </member>
+        <member name="M:System.Extensions.FindStateGroup``1(VRage.Network.IMyReplicable)">
+            <summary>
+            Finds state group of specified type.
+            Returns null when group of specified type not found.
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyDRSSettings">
+            <summary>
+            Dynamic resolution scaling settings.
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyRenderSettings">
+            <summary>
+            Settings for whole render. To make settings per draw, use RenderSetup
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyAntialiasingMode">
+            <summary>
+            VRage.Render11 only.
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyShadowsQuality">
+            <summary>
+            VRage.Render11 only.
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyTextureQuality">
+            <summary>
+            VRage.Render11 only.
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyTextureAnisoFiltering">
+            <summary>
+            VRage.Render11 only.
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyRenderSettings1">
+            <summary>
+            Naming convention from DX. Newer version for Dx11 render.
+            Put only settings that player can control (either directly or indirectly) using options here.
+            Don't put debug crap here!
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,2251 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VRage.Render11</name>
+    </assembly>
+    <members>
+        <member name="M:VRage.Render11.Culling.Frustum.MyFrustumCuller.Init(VRage.Render11.Culling.MyCullQueries,VRageMath.MyDynamicAABBTreeD,VRageMath.MyDynamicAABBTreeD,VRageMath.MyDynamicAABBTreeD)">
+            <summary>
+            Goes through all renderables and adds the ones that are in the given frustums to the lists in frustumCullQuery
+            </summary>
+        </member>
+        <member name="T:VRage.Render11.Culling.MyCullProxy">
+            <summary>
+            Contains data used for culling, but should not own any itself
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.Culling.MyCullResults.GetFlags">
+            <summary>
+            Get a bitmask of the cull lists that have contents.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Render11.Emit.MyDefaultCullDataCollector.Init(VRage.Render11.Culling.MyCullResults,VRage.Render.Scene.MyChildCullTreeData)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyDefaultCullDataCollector.Collect(VRage.Render.Scene.MyCullResultsBase,System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyInstanceDataCollector.Init(VRage.Render11.Culling.MyCullResults,VRage.Render.Scene.MyChildCullTreeData)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyInstanceDataCollector.Collect(VRage.Render.Scene.MyCullResultsBase,System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyPointLightDataCollector.Init(VRage.Render11.Culling.MyCullResults,VRage.Render.Scene.MyChildCullTreeData)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyPointLightDataCollector.Collect(VRage.Render.Scene.MyCullResultsBase,System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyCullProxyDataCollector.Init(VRage.Render11.Culling.MyCullResults,VRage.Render.Scene.MyChildCullTreeData)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyCullProxyDataCollector.Collect(VRage.Render.Scene.MyCullResultsBase,System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyPointSpotLightDataCollector.Init(VRage.Render11.Culling.MyCullResults,VRage.Render.Scene.MyChildCullTreeData)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.MyPointSpotLightDataCollector.Collect(VRage.Render.Scene.MyCullResultsBase,System.Boolean)">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Emit.CullDataEmitter.MakeMask(System.String[])">
+            <summary>
+            Make a field mask for cull results given the names of fields of that type.
+            </summary>
+            <param name="members">The list of members of <see cref="T:VRage.Render11.Culling.MyCullResults"/> to use for the mask.</param>
+            <returns>The mask for the provided fields.</returns>
+        </member>
+        <member name="M:VRage.Render11.GeometryStage2.PreparePass.MyPreparePass`2.VRageRender#IPooledObject#Cleanup">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.GeometryStage2.PrepareGroupPass.MyPrepareGroupPass.VRageRender#IPooledObject#Cleanup">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.GeometryStage2.RenderPass.MyRenderPass.VRageRender#IPooledObject#Cleanup">
+            <inheritdoc />
+        </member>
+        <member name="F:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.ProxyInfo.Proxy">
+            <summary>
+            Object actively under transition.
+            
+            When the process is complete the proxy is notified.
+            </summary>
+        </member>
+        <member name="F:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.ProxyInfo.TransitionTime">
+            <summary>
+            Total transition time in milliseconds.
+            
+            If this is positive it ticks to fully visible, fully invisible otherwise.
+            </summary>
+        </member>
+        <member name="F:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.ProxyInfo.Current">
+            <summary>
+            Current dithering time in milliseconds.
+            </summary>
+        </member>
+        <member name="F:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.ProxyInfo.FadeFinishedCallback">
+            <summary>
+            Callback to call when fade is finished.
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.Add(VRageRender.IMyAlphaTransitionProxy,System.Int32,VRage.Render.MyAlphaTransitionDirection,System.Action{System.UInt32},System.Boolean,System.Boolean)">
+            <summary>
+            Add a new proxy for transition.
+            
+            If the proxy was already added we take replace the existing transition.
+            </summary>
+            <param name="proxy">The transition proxy.</param>
+            <param name="transitionTime">The time over which to perform the blending.</param>
+            <param name="dir">Blending direction.</param>
+            <param name="finishedCallback">Optional user callback for when the process finishes.</param>
+            <param name="continuePrevious">Set the progress based on the transition time of any existing operation.</param>
+            <param name="finishPrevious"></param>
+        </member>
+        <member name="M:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.Remove(VRageRender.IMyAlphaTransitionProxy,System.Boolean)">
+            <summary>
+            Remove any transitions involving the provided proxy.
+            </summary>
+            <param name="proxy">The object to remove.</param>
+            <param name="executeCompletion">Whether to invoke the completion method before removing.</param>
+        </member>
+        <member name="M:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.Contains(VRageRender.IMyAlphaTransitionProxy)">
+            <summary>
+            Whether a proxy is undergoing a transition at the moment.
+            </summary>
+            <param name="proxy"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.CompleteOnly(VRage.Render11.GeometryStage.Geometry.MyAlphaTransition.ProxyInfo@)">
+            <summary>
+            Fire the complete callback on the proxy, but do not set the alpha.
+            </summary>
+            <param name="info"></param>
+        </member>
+        <member name="T:VRage.Render11.GeometryStage.Voxel.MyRenderVoxelActor">
+            <summary>
+            Actor used to store display voxel mesh data.
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.GeometryStage.Voxel.MyRenderVoxelActor.Contains(VRageRender.MyVoxelCellComponent)">
+            <summary>
+            Whether a cell is contained in this actor.
+            </summary>
+            <param name="cell"></param>
+            <returns></returns>
+        </member>
+        <member name="P:VRage.Render11.GeometryStage.Voxel.MyRenderVoxelMesh.Ready">
+            <summary>
+            Whether this mesh is trully ready to use.
+            </summary>
+        </member>
+        <member name="P:VRage.Render11.GeometryStage.Voxel.MyRenderVoxelMesh.DeviceDirty">
+            <summary>
+            Whether the data in the device is out of date.
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.PostprocessStage.MySaveExportedTextures.GetAcceptableViewport(VRage.Render11.Resources.ISrvBindable)">
+            <summary>
+            Exporting game's native 4K x 4K (or even larger in some cases) textures may come really expensive for large modes.
+            This method scales excessivelly large textures under acceptable dimensions.
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.Profiler.MyFrameProfilingContext.VRageRender#IPooledObject#Cleanup">
+            <inheritdoc />
+        </member>
+        <member name="M:VRage.Render11.Profiler.MyGpuProfiler.IC_BeginBlockAlways(System.String,System.String,System.String)">
+            <summary>
+            IC_BeginBlock that works even when PerformanceProfilingSymbol is false
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.Profiler.MyGpuProfiler.IC_EndBlockAlways(System.Single,System.String,System.String)">
+            <summary>
+            IC_EndBlock that works even when PerformanceProfilingSymbol is false
+            </summary>
+        </member>
+        <member name="P:VRage.Render11.Render.Utils.IMyRenderPerformanceProvider.FrameTimeMs">
+            <summary>
+            Returns update + render time of last frame in ms
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="P:VRage.Render11.Render.Utils.IMyRenderPerformanceProvider.FrameTimeAvgMs">
+            <summary>
+            Returns update + render time of last frame (Average in last second)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="F:VRage.Render11.Resources.MyPerTextureTypeUsageReport.NoncompressedCount">
+            Number of noncompressed loaded textures.
+        </member>
+        <member name="F:VRage.Render11.Resources.MyPerTextureTypeUsageReport.CompressedCount">
+            Number of loaded Compressed textures.
+        </member>
+        <member name="F:VRage.Render11.Resources.MyPerTextureTypeUsageReport.CompressedMemory">
+            Memroy usage of compressed textures.
+        </member>
+        <member name="F:VRage.Render11.Resources.MyPerTextureTypeUsageReport.NoncompressedMemory">
+            Memory usage of noncompressed textures.
+        </member>
+        <member name="F:VRage.Render11.Resources.MyFileTextureUsageReport.TexturesLoadedByTypeData">
+            Loaded textures by type.
+        </member>
+        <member name="M:VRage.Render11.Resources.MyFileTextureManager.GetTexture(System.String,VRage.Render11.Resources.MyFileTextureEnum,System.Boolean,System.Boolean,System.Boolean,System.Boolean)">
+            <remarks>On big loops, or whenever recommendable, cache the returned reference</remarks>
+        </member>
+        <member name="P:VRage.Render11.Resources.IBuffer.ByteSize">
+            <summary>
+            It's the same as <see cref="P:VRage.Render11.Resources.IBuffer.Description"/>.SizeInBytes.
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.Resources.MyResourceUtils.NormalizeFileTextureName(System.String@)">
+            <summary>Normalizes file names into lower case relative path, if possible</summary>
+            <returns>True if it's a file texture, false if the texture is ram generated</returns>
+        </member>
+        <member name="M:VRage.Render11.Resources.MyResourceUtils.NormalizeFileTextureName(System.String@,System.Uri@)">
+            <summary>Normalizes file names into lower case relative path, if possible</summary>
+            <returns>True if it's a file texture, false if the texture is ram generated</returns>
+        </member>
+        <member name="M:VRage.Render11.Resources.MyResourceUtils.GetTextureFullPath(System.String,System.String)">
+            <returns>Returns resolved texture path (rooted and without . or ..)</returns>
+        </member>
+        <member name="F:VRage.Render11.Scene.Components.MyFoliageManager.ROCKS_LOD_LIMIT">
+            <summary>
+            The farthest lod that can have rocks
+            </summary>
+        </member>
+        <member name="F:VRage.Render11.Scene.Components.MyFoliageManager.GRASS_LOD_LIMIT">
+            <summary>
+            The farthest lod that can have foliage
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.Scene.Components.MyMaterialMergeGroup.UpdateActorSubmeshes(VRageRender.MyRenderableProxy_2@,VRage.Render.Scene.IMyActor,System.Int32,System.Int32)">
+            <returns>Actor full mesh indices count</returns>
+        </member>
+        <member name="F:VRage.Render11.Scene.Components.MyRenderableComponent.m_isRenderedStandalone">
+            <summary>
+            Is used in merge-instancing to indicate whether the owning actor has been merged.
+            </summary>
+        </member>
+        <member name="M:VRage.Render11.Sprites.MySpriteMessageData.VRageRender#IPooledObject#Cleanup">
+            <inheritdoc />
+        </member>
+        <member name="M:VRageRender.IEnumerableExtensions.Yield_``1(``0)">
+            <summary>
+            Wraps this object instance into an IEnumerable&lt;T&gt;
+            consisting of a single item.
+            </summary>
+            <typeparam name="T"> Type of the object. </typeparam>
+            <param name="item"> The instance that will be wrapped. </param>
+            <returns> An IEnumerable&lt;T&gt; consisting of a single item. </returns>
+        </member>
+        <member name="F:VRageRender.MyEnvironmentMatrices.FovH">
+            <summary>Field of view Horizontal</summary>
+        </member>
+        <member name="F:VRageRender.MyEnvironmentMatrices.FovV">
+            <summary>Field of view Vertical</summary>
+        </member>
+        <member name="F:VRageRender.MyEnvironmentMatrices.LastUpdateWasSmooth">
+            <summary>
+            Whether the last matrix update was smooth.
+            </summary>
+        </member>
+        <member name="T:VRageRender.PooledObjectAttribute">
+            <summary>
+            Using this attribute on a class requires a public static method with
+            the PooledObjectCleaner attribute in the class. There should be a public
+            parameterless constructor defined too.
+            </summary>
+        </member>
+        <member name="T:VRageRender.MyGenericObjectPool">
+            <summary>
+            A copy of MyObjectsPool that handles types a little different for the MyObjectPoolManager
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyGenericObjectPool.AllocateOrCreate(VRageRender.IPooledObject@)">
+            <summary>
+            Returns true when new item was allocated
+            </summary>
+        </member>
+        <member name="M:VRageRender.IMyAlphaTransitionProxy.SetAlpha(VRage.Render.MyAlphaMode,System.Single)">
+            <summary>
+            Set the alpha value for the transition proxy.
+            </summary>
+            <param name="mode">Mode of the alpha value.</param>
+            <param name="value">Value of the alpha blending.</param>
+        </member>
+        <member name="M:VRageRender.IMyAlphaTransitionProxy.TransitionComplete(VRage.Render.MyAlphaTransitionDirection,System.Action{System.UInt32})">
+            <summary>
+            Called upon completion of the transition operation.
+            </summary>
+            <param name="direction"></param>
+            <param name="transitionFinishedCallback"></param>
+        </member>
+        <member name="M:VRageRender.IMyAlphaTransitionProxy.TransitionStart(VRage.Render.MyAlphaTransitionDirection)">
+            <summary>
+            Called upon completion of the transition operation.
+            </summary>
+            <param name="direction"></param>        
+        </member>
+        <member name="F:VRageRender.MyLodMeshInfo.TriangleDensity">
+            <summary>Triangle density in the squared diagonal</summary>
+        </member>
+        <member name="F:VRageRender.MyLodMeshInfo.MultimaterialOffset">
+             <summary>
+             Summary offset where multimaterial parts start.
+            
+             While we keep meshes organized by materials we draw all single material at once,
+             we similarly draw all multi material at once.
+             </summary>
+        </member>
+        <member name="M:VRageRender.MyMeshes.UpdateVoxelCell(VRageRender.MeshId,VRageRender.Voxels.MyVoxelRenderCellData@,VRageRender.Voxels.IMyVoxelUpdateBatch)">
+            <summary>
+            Update the contents of a designated voxel mesh.
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyScreenDecals.IterateDecals(System.Collections.Generic.HashSet{System.UInt32},System.UInt32)">
+            <returns>True if visible decals are found</returns>
+        </member>
+        <member name="M:VRageRender.MyMeshMaterialInfo.RequestResources(VRageRender.MyMeshMaterialInfo@,System.Boolean)">
+            <summary>
+            Register used textures and preload if requested
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyMeshMaterials1.GetMaterialTextureMacros(VRage.Render11.Resources.MyFileTextureEnum)">
+            <summary>Get macro bundles for texture types</summary>
+        </member>
+        <member name="M:VRageRender.MyMeshMaterials1.GetMaterialTextureBlendState(VRage.Render11.Resources.MyFileTextureEnum,System.Boolean)">
+            <summary>Bind blend states for alpha blending</summary>
+        </member>
+        <member name="T:VRageRender.MyRenderableProxy">
+            <summary>
+            Contains data needed to render an actor or part of it.
+            Does not own any data
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyRenderableProxy.VRageRender#IPooledObject#Cleanup">
+            <inheritdoc />
+        </member>
+        <member name="T:VRageRender.MyRenderableProxy_2">
+            <summary>
+            Renderable proxies for merge-instancing
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyRenderLod.VRageRender#IPooledObject#Cleanup">
+            <inheritdoc />
+        </member>
+        <member name="F:VRageRender.MyShadowCascades.m_tmpUntransformedVertices">
+            <summary>
+            Creates shadowmap queries and appends them to the provided list
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyShadows.OnDeviceInit">
+            <inheritdoc />
+        </member>
+        <member name="M:VRageRender.MyShadows.OnDeviceReset">
+            <inheritdoc />
+        </member>
+        <member name="M:VRageRender.MyShadows.OnDeviceEnd">
+            <inheritdoc />
+        </member>
+        <member name="M:VRageRender.MyHighlight.DrawMeshSection(VRageRender.MeshId,VRage.Render11.Scene.Components.MyRenderableComponent,VRageRender.MyRenderLod,System.Int32,VRageRender.MyHighlightDesc)">
+            <returns>True if the section was found</returns>
+        </member>
+        <member name="M:VRageRender.MyHighlight.AddObjects(System.UInt32,System.String[],System.Nullable{VRageMath.Color},System.Single,System.Single,System.Int32)">
+            <summary>
+            
+            </summary>
+            <param name="ID"></param>
+            <param name="sectionNames">null for all the mesh</param>
+            <param name="outlineColor"></param>
+            <param name="thickness">Zero or negative remove the outline</param>                
+            <param name="pulseTimeInSeconds"></param>
+            <param name="instanceId"></param>
+        </member>
+        <member name="M:VRageRender.MyBillboardRenderer.Gather(VRage.Render11.RenderContext.MyRenderContext,System.Boolean)">
+            <summary>
+            
+            </summary>
+            <param name="rc"></param>
+            <param name="immediateContext"></param>        
+        </member>
+        <member name="M:VRageRender.IDRSState.ResetHistory">
+            Reset dynamic resolution's history. 
+        </member>
+        <member name="M:VRageRender.IDRSState.IsSupported">
+            Returns whether dynamic resolution is supported on this platform.
+            
+             Using dynamic resolution on unsupported platforms is extremely dangerous for gameplay
+             experience, since it may have a bug dropping resolution or frame rate more than it should.
+        </member>
+        <member name="M:VRageRender.IDRSState.GetResolutionFractionApproximation">
+            Returns a non thread safe aproximation of the current resolution fraction applied on render thread, mostly used for stats and analytic. 
+        </member>
+        <member name="M:VRageRender.IDRSState.GetResolutionFractionUpperBound">
+            Returns the max resolution resolution fraction. 
+        </member>
+        <member name="M:VRageRender.IDRSState.SetEnabled(System.Boolean)">
+            Enables/Disables dynamic resolution. This is only called by GEngine automatically. 
+        </member>
+        <member name="M:VRageRender.IDRSState.IsEnabled">
+            Returns whether dynamic resolution scaling is enabled for GEngine to know the EDRSStatus. 
+        </member>
+        <member name="M:VRageRender.IDRSState.BeginFrame">
+            Process dynamic resolution scaling events. UEngine::EmitDRSEvent() guareentee to have all events being ordered. 
+        </member>
+        <member name="T:VRageRender.MyDefaultDRSStateProxy">
+            Render thread proxy for engine's dynamic resolution state.
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.CreateDefaultState">
+            Creates a default dynamic resolution state using this proxy that queries GPU timing from the RHI. 
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.Reset_RenderThread">
+            Resets the proxy. 
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.CreateNewPreviousFrameTimings(System.Single,System.Single)">
+            Create a new previous frame and feeds its timings and returns history's unique id. 
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.CommitPreviousFrameGPUTimings(System.UInt64,System.Single,System.Single,System.Boolean)">
+            Commit GPU busy times
+            
+            	@param	HistoryFrameId The history's unique id for the frame returned by CreateNewPreviousFrameTimings_RenderThread()
+            	@param	TotalFrameGPUBusyTimeMs Total GPU busy time for the frame.
+            	@param	drsGPUBusyTimeMs GPU time for sub parts of the frame that does dynamic resolution scaling.
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.RefreshCurentFrameResolutionFraction">
+            Refresh resolution fraction's from history. 
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.GetResolutionFractionUpperBound">
+            Returns the view fraction upper bound. 
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.QueryCurentFrameResolutionFraction">
+            Returns the view fraction that should be used for current frame. 
+        </member>
+        <member name="M:VRageRender.MyDRSHeuristicProxy.GetResolutionFractionApproximation">
+            Returns a non thread safe approximation of the current resolution fraction applied on render thread. 
+        </member>
+        <member name="F:VRageRender.MyRender11.CurrentDrawTime">
+            <summary>
+            Do not use these timers for anything affecting rendered stuff. Use MyCommon.FrameTime instead.
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyRenderFont.DrawString(VRage.Render11.Sprites.MySpritesRenderer,VRageMath.Vector2D,VRageMath.Color,System.String,System.Double,System.Boolean,System.Double)">
+            <summary>
+            Draw the given string at vOrigin using the specified color
+            </summary>
+            <param name="renderer"></param>
+            <param name="position">Direction on the baseline. Text will advance from this position.</param>
+            <param name="colorMask"></param>
+            <param name="text"></param>
+            <param name="scale"></param>
+            <param name="ignoreBounds"></param>
+            <param name="maxTextWidth">Maximum width of the text. Texts wider than this will be truncated and they will end with an ellipsis.</param>
+            <returns>Width of the text (in pixels).</returns>                
+        </member>
+        <member name="T:VRageRender.MyRenderStatsDraw">
+            <summary>
+            Draws statistics
+            </summary>
+        </member>
+        <member name="F:VRageRender.MyVoxelCellComponent.m_offset">
+            <summary>
+            Offset of this mesh in the container.
+            </summary>
+        </member>
+        <member name="M:VRageRender.MyTransparentModelRenderer.RenderDepthOnly(VRage.Render11.RenderContext.MyRenderContext,VRage.Render11.Resources.IDepthStencil,VRage.Render11.Resources.IRtvBindable,System.Single,System.Single)">
+            <summary>Render depth and normals of windows to the specified target</summary>
+            <returns>True if transparent model to be rendered found</returns>
+            <param name="rc"></param>
+            <param name="depthStencil"></param>
+            <param name="gbuffer1"></param>
+            <param name="squaredDistanceMin">Squared distance internal minor</param>
+            <param name="squaredDistanceMax"></param>
+        </member>
+        <member name="M:VRageRender.MyTransparentRendering.HandleTransparentModels(VRageRender.MyRenderCullResultFlat,System.Double)">
+            <returns>True if window Transparent models decals and is not too far</returns>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.DDS.MagicHeader">
+            <summary>
+            Magic code to identify DDS header
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.DDS.PixelFormat">
+            <summary>
+            Internal structure used to describe a DDS pixel format.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDS.PixelFormat.#ctor(SharpDX.Toolkit.Graphics.DDS.PixelFormatFlags,System.Int32,System.Int32,System.UInt32,System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Graphics.DDS.PixelFormat" /> struct.
+            </summary>
+            <param name="flags">The flags.</param>
+            <param name="fourCC">The four CC.</param>
+            <param name="rgbBitCount">The RGB bit count.</param>
+            <param name="rBitMask">The r bit mask.</param>
+            <param name="gBitMask">The g bit mask.</param>
+            <param name="bBitMask">The b bit mask.</param>
+            <param name="aBitMask">A bit mask.</param>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.DDS.PixelFormatFlags">
+            <summary>
+            PixelFormat flags.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.DDS.HeaderFlags">
+            <summary>
+            DDS Header flags.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.DDS.SurfaceFlags">
+            <summary>
+            DDS Surface flags.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.DDS.CubemapFlags">
+            <summary>
+            DDS Cubemap flags.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.DDSFlags">
+            <summary>
+            Flags used by <see cref="M:SharpDX.Toolkit.Graphics.DDSHelper.LoadFromDDSMemory(System.IntPtr,System.Int32,System.Boolean,System.Nullable{System.Runtime.InteropServices.GCHandle},System.String)"/>.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.LegacyMap.#ctor(SharpDX.DXGI.Format,SharpDX.Toolkit.Graphics.DDSHelper.ConversionFlags,SharpDX.Toolkit.Graphics.DDS.PixelFormat)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Graphics.DDSHelper.LegacyMap" /> struct.
+            </summary>
+            <param name="format">The format.</param>
+            <param name="conversionFlags">The conversion flags.</param>
+            <param name="pixelFormat">The pixel format.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.DecodeDDSHeader(System.IntPtr,System.Int32,SharpDX.Toolkit.Graphics.DDSFlags,SharpDX.Toolkit.Graphics.ImageDescription@,SharpDX.Toolkit.Graphics.DDSHelper.ConversionFlags@)">
+            <summary>
+            Decodes DDS header including optional DX10 extended header
+            </summary>
+            <param name="headerPtr">Pointer to the DDS header.</param>
+            <param name="size">Size of the DDS content.</param>
+            <param name="flags">Flags used for decoding the DDS header.</param>
+            <param name="description">Output texture description.</param>
+            <param name="convFlags">Output conversion flags.</param>
+            <exception cref="T:System.ArgumentException">If the argument headerPtr is null</exception>
+            <exception cref="T:System.InvalidOperationException">If the DDS header contains invalid data.</exception>
+            <returns>True if the decoding is successful, false if this is not a DDS header.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.EncodeDDSHeader(SharpDX.Toolkit.Graphics.ImageDescription,SharpDX.Toolkit.Graphics.DDSFlags,System.IntPtr,System.Int32,System.Int32@)">
+            <summary>
+            Encodes DDS file header (magic value, header, optional DX10 extended header)
+            </summary>
+            <param name="flags">Flags used for decoding the DDS header.</param>
+            <param name="description">Output texture description.</param>
+            <param name="pDestination">Pointer to the DDS output header. Can be set to IntPtr.Zero to calculated the required bytes.</param>
+            <param name="maxsize">The maximum size of the destination buffer.</param>
+            <param name="required">Output the number of bytes required to write the DDS header.</param>
+            <exception cref="T:System.ArgumentException">If the argument headerPtr is null</exception>
+            <exception cref="T:System.InvalidOperationException">If the DDS header contains invalid data.</exception>
+            <returns>True if the decoding is successful, false if this is not a DDS header.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.LegacyExpandScanline(System.IntPtr,System.Int32,SharpDX.DXGI.Format,System.IntPtr,System.Int32,SharpDX.Toolkit.Graphics.DDSHelper.TEXP_LEGACY_FORMAT,System.Int32*,SharpDX.Toolkit.Graphics.DDSHelper.ScanlineFlags)">
+            <summary>
+            Converts an image row with optional clearing of alpha value to 1.0
+            </summary>
+            <param name="pDestination"></param>
+            <param name="outSize"></param>
+            <param name="outFormat"></param>
+            <param name="pSource"></param>
+            <param name="inSize"></param>
+            <param name="inFormat"></param>
+            <param name="pal8"></param>
+            <param name="flags"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.LoadFromDDSMemory(System.IntPtr,System.Int32,System.Boolean,System.Nullable{System.Runtime.InteropServices.GCHandle},System.String)">
+            <summary>
+            Load a DDS file in memory
+            </summary>
+            <param name="pSource">Source buffer</param>
+            <param name="size">Size of the DDS texture.</param>
+            <param name="makeACopy">Whether or not to make a copy of the DDS</param>
+            <param name="handle"></param>
+            <param name="debugName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.TryLoadDDSStreamWithMipSelection(System.IO.Stream,SharpDX.Toolkit.Graphics.DDSHelper.MipSkipSelector,SharpDX.Toolkit.Graphics.Image@,System.Int32@,System.Boolean@)">
+            <summary>
+            Tries to load a image file to memory
+            </summary>
+            <param name="stream"></param>
+            <param name="selector"></param>
+            <param name="image"></param>
+            <param name="mipsSkipped"></param>
+            <param name="loadFailed"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.CreateImageFromDDS(System.IntPtr,System.Int32,System.Int32,SharpDX.Toolkit.Graphics.ImageDescription,SharpDX.Toolkit.Graphics.Image.PitchFlags,SharpDX.Toolkit.Graphics.DDSHelper.ConversionFlags,System.Int32*,System.Nullable{System.Runtime.InteropServices.GCHandle})">
+            <summary>
+            Converts or copies image data from pPixels into scratch image data
+            </summary>
+            <param name="pDDS"></param>
+            <param name="offset"></param>
+            <param name="size"></param>
+            <param name="metadata"></param>
+            <param name="cpFlags"></param>
+            <param name="convFlags"></param>
+            <param name="pal8"></param>
+            <param name="handle"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.ExpandScanline(System.IntPtr,System.Int32,System.IntPtr,System.Int32,SharpDX.DXGI.Format,SharpDX.Toolkit.Graphics.DDSHelper.ScanlineFlags)">
+            <summary>
+            Converts an image row with optional clearing of alpha value to 1.0
+            </summary>
+            <param name="pDestination"></param>
+            <param name="outSize"></param>
+            <param name="pSource"></param>
+            <param name="inSize"></param>
+            <param name="inFormat"></param>
+            <param name="flags"></param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.CopyScanline(System.IntPtr,System.Int32,System.IntPtr,System.Int32,SharpDX.DXGI.Format,SharpDX.Toolkit.Graphics.DDSHelper.ScanlineFlags)">
+            <summary>
+            Copies an image row with optional clearing of alpha value to 1.0.
+            </summary>
+            <remarks>
+            This method can be used in place as well, otherwise copies the image row unmodified.
+            </remarks>
+            <param name="pDestination">The destination buffer.</param>
+            <param name="outSize">The destination size.</param>
+            <param name="pSource">The source buffer.</param>
+            <param name="inSize">The source size.</param>
+            <param name="format">The <see cref="T:SharpDX.DXGI.Format"/> of the source scanline.</param>
+            <param name="flags">Scanline flags used when copying the scanline.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.DDSHelper.SwizzleScanline(System.IntPtr,System.Int32,System.IntPtr,System.Int32,SharpDX.DXGI.Format,SharpDX.Toolkit.Graphics.DDSHelper.ScanlineFlags)">
+            <summary>
+            Swizzles (RGB &lt;-&gt; BGR) an image row with optional clearing of alpha value to 1.0.
+            </summary>
+            <param name="pDestination">The destination buffer.</param>
+            <param name="outSize">The destination size.</param>
+            <param name="pSource">The source buffer.</param>
+            <param name="inSize">The source size.</param>
+            <param name="format">The <see cref="T:SharpDX.DXGI.Format"/> of the source scanline.</param>
+            <param name="flags">Scanline flags used when copying the scanline.</param>
+            <remarks>
+            This method can be used in place as well, otherwise copies the image row unmodified.
+            </remarks>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.Image">
+            <summary>
+            Provides method to instantiate an image 1D/2D/3D supporting TextureArray and mipmaps on the CPU or to load/save an image from the disk.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.Image.pixelBuffers">
+            <summary>
+            Pixel buffers.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.Image.pixelBufferArray">
+            <summary>
+            Provides access to all pixel buffers.
+            </summary>
+            <remarks>
+            For Texture3D, each z slice of the Texture3D has a pixelBufferArray * by the number of mipmaps.
+            For other textures, there is Description.MipLevels * Description.ArraySize pixel buffers.
+            </remarks>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.Image.totalSizeInBytes">
+            <summary>
+            Gets the total number of bytes occupied by this image in memory.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.Image.buffer">
+            <summary>
+            Pointer to the buffer.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.Image.bufferIsDisposable">
+            <summary>
+            True if the buffer must be disposed.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.Image.handle">
+            <summary>
+            Handle != null if the buffer is a pinned managed object on the LOH (Large Object Heap).
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.Image.Description">
+            <summary>
+            Description of this image.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.#ctor(SharpDX.Toolkit.Graphics.ImageDescription,System.IntPtr,System.Int32,System.Nullable{System.Runtime.InteropServices.GCHandle},System.Boolean,SharpDX.Toolkit.Graphics.Image.PitchFlags)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Graphics.Image" /> class.
+            </summary>
+            <param name="description">The image description.</param>
+            <param name="dataPointer">The pointer to the data buffer.</param>
+            <param name="offset">The offset from the beginning of the data buffer.</param>
+            <param name="handle">The handle (optional).</param>
+            <param name="bufferIsDisposable">if set to <c>true</c> [buffer is disposable].</param>
+            <param name="pitchFlags"></param>
+            <exception cref="T:System.InvalidOperationException">If the format is invalid, or width/height/depth/array size is invalid with respect to the dimension.</exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.GetMipMapDescription(System.Int32)">
+            <summary>
+            Gets the mipmap description of this instance for the specified mipmap level.
+            </summary>
+            <param name="mipmap">The mipmap.</param>
+            <returns>A description of a particular mipmap for this texture.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.GetPixelBuffer(System.Int32,System.Int32)">
+            <summary>
+            Gets the pixel buffer for the specified array/z slice and mipmap level.
+            </summary>
+            <param name="arrayOrZSliceIndex">For 3D image, the parameter is the Z slice, otherwise it is an index into the texture array.</param>
+            <param name="mipmap">The mipmap.</param>
+            <returns>A <see cref="F:SharpDX.Toolkit.Graphics.Image.pixelBufferArray"/>.</returns>
+            <exception cref="T:System.ArgumentException">If arrayOrZSliceIndex or mipmap are out of range.</exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.GetPixelBuffer(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Gets the pixel buffer for the specified array/z slice and mipmap level.
+            </summary>
+            <param name="arrayIndex">Index into the texture array. Must be set to 0 for 3D images.</param>
+            <param name="zIndex">Z index for 3D image. Must be set to 0 for all 1D/2D images.</param>
+            <param name="mipmap">The mipmap.</param>
+            <returns>A <see cref="F:SharpDX.Toolkit.Graphics.Image.pixelBufferArray"/>.</returns>
+            <exception cref="T:System.ArgumentException">If arrayIndex, zIndex or mipmap are out of range.</exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Register(SharpDX.Toolkit.Graphics.ImageFileType,SharpDX.Toolkit.Graphics.Image.ImageLoadDelegate,SharpDX.Toolkit.Graphics.Image.ImageSaveDelegate,SharpDX.Toolkit.Graphics.Image.ImageLoadHeaderDelegate)">
+            <summary>
+            Registers a loader/saver for a specified image file type.
+            </summary>
+            <param name="type">The file type (use integer and explicit casting to <see cref="T:SharpDX.Toolkit.Graphics.ImageFileType"/> to register other file format.</param>
+            <param name="loader">The loader delegate (can be null).</param>
+            <param name="saver">The saver delegate (can be null).</param>
+            <param name="loadHeader"></param>
+            <exception cref="T:System.ArgumentException"></exception>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.Image.DataPointer">
+            <summary>
+            Gets a pointer to the image buffer in memory.
+            </summary>
+            <value>A pointer to the image buffer in memory.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.Image.PixelBuffer">
+            <summary>
+            Provides access to all pixel buffers.
+            </summary>
+            <remarks>
+            For Texture3D, each z slice of the Texture3D has a pixelBufferArray * by the number of mipmaps.
+            For other textures, there is Description.MipLevels * Description.ArraySize pixel buffers.
+            </remarks>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.Image.TotalSizeInBytes">
+            <summary>
+            Gets the total number of bytes occupied by this image in memory.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.ToDataBox">
+            <summary>
+            Gets the databox from this image.
+            </summary>
+            <returns>The databox of this image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.ComputeDataBox">
+            <summary>
+            Gets the databox from this image.
+            </summary>
+            <returns>The databox of this image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New(SharpDX.Toolkit.Graphics.ImageDescription)">
+            <summary>
+            Creates a new instance of <see cref="T:SharpDX.Toolkit.Graphics.Image"/> from an image description.
+            </summary>
+            <param name="description">The image description.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New1D(System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat,System.Int32)">
+            <summary>
+            Creates a new instance of a 1D <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <param name="arraySize">Size of the array.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New2D(System.Int32,System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat,System.Int32)">
+            <summary>
+            Creates a new instance of a 2D <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="height">The height.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <param name="arraySize">Size of the array.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.NewCube(System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat)">
+            <summary>
+            Creates a new instance of a Cube <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New3D(System.Int32,System.Int32,System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat)">
+            <summary>
+            Creates a new instance of a 3D <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="height">The height.</param>
+            <param name="depth">The depth.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New(SharpDX.Toolkit.Graphics.ImageDescription,System.IntPtr)">
+            <summary>
+            Creates a new instance of <see cref="T:SharpDX.Toolkit.Graphics.Image"/> from an image description.
+            </summary>
+            <param name="description">The image description.</param>
+            <param name="dataPointer">Pointer to an existing buffer.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New1D(System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat,System.Int32,System.IntPtr)">
+            <summary>
+            Creates a new instance of a 1D <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <param name="arraySize">Size of the array.</param>
+            <param name="dataPointer">Pointer to an existing buffer.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New2D(System.Int32,System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat,System.Int32,System.IntPtr)">
+            <summary>
+            Creates a new instance of a 2D <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="height">The height.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <param name="arraySize">Size of the array.</param>
+            <param name="dataPointer">Pointer to an existing buffer.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.NewCube(System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat,System.IntPtr)">
+            <summary>
+            Creates a new instance of a Cube <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <param name="dataPointer">Pointer to an existing buffer.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.New3D(System.Int32,System.Int32,System.Int32,SharpDX.Toolkit.Graphics.MipMapCount,SharpDX.Toolkit.Graphics.PixelFormat,System.IntPtr)">
+            <summary>
+            Creates a new instance of a 3D <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="height">The height.</param>
+            <param name="depth">The depth.</param>
+            <param name="mipMapCount">The mip map count.</param>
+            <param name="format">The format.</param>
+            <param name="dataPointer">Pointer to an existing buffer.</param>
+            <returns>A new image.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Load(SharpDX.DataPointer,System.String,System.Boolean)">
+            <summary>
+            Loads an image from an unmanaged memory pointer.
+            </summary>
+            <param name="dataBuffer">Pointer to an unmanaged memory. If makeACopy is false, this buffer must be allocated with <see cref="M:SharpDX.Utilities.AllocateMemory(System.Int32,System.Int32)"/>.</param>
+            <param name="debugName"></param>
+            <param name="makeACopy">True to copy the content of the buffer to a new allocated buffer, false otherwhise.</param>
+            <returns>An new image.</returns>
+            <remarks>If makeACopy is set to false, the returned image is now the holder of the unmanaged pointer and will release it on Dispose. </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Load(System.IntPtr,System.Int32,System.String,System.Boolean)">
+            <summary>
+            Loads an image from an unmanaged memory pointer.
+            </summary>
+            <param name="dataPointer">Pointer to an unmanaged memory. If makeACopy is false, this buffer must be allocated with <see cref="M:SharpDX.Utilities.AllocateMemory(System.Int32,System.Int32)"/>.</param>
+            <param name="dataSize">Size of the unmanaged buffer.</param>
+            <param name="debugName"></param>
+            <param name="makeACopy">True to copy the content of the buffer to a new allocated buffer, false otherwise.</param>
+            <returns>An new image.</returns>
+            <remarks>If makeACopy is set to false, the returned image is now the holder of the unmanaged pointer and will release it on Dispose. </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Load(System.Byte[],System.String)">
+            <summary>
+            Loads an image from a managed buffer.
+            </summary>
+            <param name="buffer">Reference to a managed buffer.</param>
+            <param name="debugName"></param>
+            <returns>An new image.</returns>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Load(System.IO.Stream,System.String)">
+            <summary>
+            Loads the specified image from a stream.
+            </summary>
+            <param name="imageStream">The image stream.</param>
+            <param name="debugName"></param>
+            <returns>An new image.</returns>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Load(System.String)">
+            <summary>
+            Loads the specified image from a file.
+            </summary>
+            <param name="fileName">The filename.</param>
+            <returns>An new image.</returns>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Save(System.String)">
+            <summary>
+            Saves this instance to a file.
+            </summary>
+            <param name="fileName">The destination file. Filename must end with a known extension (dds, bmp, jpg, png, gif, tiff, wmp, tga)</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Save(System.String,SharpDX.Toolkit.Graphics.ImageFileType)">
+            <summary>
+            Saves this instance to a file.
+            </summary>
+            <param name="fileName">The destination file.</param>
+            <param name="fileType">Specify the output format.</param>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Save(System.IO.Stream,SharpDX.Toolkit.Graphics.ImageFileType)">
+            <summary>
+            Saves this instance to a stream.
+            </summary>
+            <param name="imageStream">The destination stream.</param>
+            <param name="fileType">Specify the output format.</param>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Load(System.IntPtr,System.Int32,System.Boolean,System.Nullable{System.Runtime.InteropServices.GCHandle},System.String)">
+            <summary>
+            Loads an image from the specified pointer.
+            </summary>
+            <param name="dataPointer">The data pointer.</param>
+            <param name="dataSize">Size of the data.</param>
+            <param name="makeACopy">if set to <c>true</c> [make A copy].</param>
+            <param name="handle">The handle.</param>
+            <param name="debugName"></param>
+            <returns></returns>
+            <exception cref="T:System.NotSupportedException"></exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.Save(SharpDX.Toolkit.Graphics.PixelBuffer[],System.Int32,SharpDX.Toolkit.Graphics.ImageDescription,System.IO.Stream,SharpDX.Toolkit.Graphics.ImageFileType)">
+            <summary>
+            Saves this instance to a stream.
+            </summary>
+            <param name="pixelBuffers">The buffers to save.</param>
+            <param name="count">The number of buffers to save.</param>
+            <param name="description">Global description of the buffer.</param>
+            <param name="imageStream">The destination stream.</param>
+            <param name="fileType">Specify the output format.</param>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.CalculateMipLevels(System.Int32,System.Int32,SharpDX.Toolkit.Graphics.MipMapCount)">
+            <summary>
+            Calculates the number of miplevels for a Texture 2D.
+            </summary>
+            <param name="width">The width of the texture.</param>
+            <param name="height">The height of the texture.</param>
+            <param name="mipLevels">A <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount"/>, set to true to calculates all mipmaps, to false to calculate only 1 miplevel, or > 1 to calculate a specific amount of levels.</param>
+            <returns>The number of miplevels.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.CalculateMipLevels(System.Int32,System.Int32,System.Int32,SharpDX.Toolkit.Graphics.MipMapCount)">
+            <summary>
+            Calculates the number of miplevels for a Texture 2D.
+            </summary>
+            <param name="width">The width of the texture.</param>
+            <param name="height">The height of the texture.</param>
+            <param name="depth">The depth of the texture.</param>
+            <param name="mipLevels">A <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount"/>, set to true to calculates all mipmaps, to false to calculate only 1 miplevel, or > 1 to calculate a specific amount of levels.</param>
+            <returns>The number of miplevels.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.CalculateImageArray(SharpDX.Toolkit.Graphics.ImageDescription,SharpDX.Toolkit.Graphics.Image.PitchFlags,System.Int32@,System.Int32@)">
+            <summary>
+            Determines number of image array entries and pixel size.
+            </summary>
+            <param name="imageDesc">Description of the image to create.</param>
+            <param name="pitchFlags">Pitch flags.</param>
+            <param name="bufferCount">Output number of mipmap.</param>
+            <param name="pixelSizeInBytes">Output total size to allocate pixel buffers for all images.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.Image.SetupImageArray(System.IntPtr,System.Int32,SharpDX.Toolkit.Graphics.ImageDescription,SharpDX.Toolkit.Graphics.Image.PitchFlags,SharpDX.Toolkit.Graphics.PixelBuffer[])">
+            <summary>
+            Allocates PixelBuffers 
+            </summary>
+            <param name="buffer"></param>
+            <param name="pixelSize"></param>
+            <param name="imageDesc"></param>
+            <param name="pitchFlags"></param>
+            <param name="output"></param>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.ImageContentReader">
+            <summary>
+            Content reader for an image.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.ImageDescription">
+            <summary>
+            A description for <see cref="T:SharpDX.Toolkit.Graphics.Image"/>.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageDescription.Dimension">
+            <summary>
+            The dimension of a texture.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageDescription.Width">
+            <summary>	
+            <dd> <p>Texture width (in texels). The  range is from 1 to <see cref="F:SharpDX.Direct3D11.Resource.MaximumTexture1DSize"/> (16384). However, the range is actually constrained by the feature level at which you create the rendering device. For more information about restrictions, see Remarks.</p> </dd>	
+            </summary>	
+            <remarks>
+            This field is valid for all textures.
+            </remarks>
+            <msdn-id>ff476252</msdn-id>	
+            <unmanaged>unsigned int Width</unmanaged>	
+            <unmanaged-short>unsigned int Width</unmanaged-short>	
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageDescription.Height">
+            <summary>	
+            <dd> <p>Texture height (in texels). The  range is from 1 to <see cref="F:SharpDX.Direct3D11.Resource.MaximumTexture3DSize"/> (2048). However, the range is actually constrained by the feature level at which you create the rendering device. For more information about restrictions, see Remarks.</p> </dd>	
+            </summary>	
+            <remarks>
+            This field is only valid for Texture2D, Texture3D and TextureCube/>.
+            </remarks>
+            <msdn-id>ff476254</msdn-id>	
+            <unmanaged>unsigned int Height</unmanaged>	
+            <unmanaged-short>unsigned int Height</unmanaged-short>	
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageDescription.Depth">
+            <summary>	
+            <dd> <p>Texture depth (in texels). The  range is from 1 to <see cref="F:SharpDX.Direct3D11.Resource.MaximumTexture3DSize"/> (2048). However, the range is actually constrained by the feature level at which you create the rendering device. For more information about restrictions, see Remarks.</p> </dd>	
+            </summary>	
+            <remarks>
+            This field is only valid for Texture3D/>.
+            </remarks>
+            <msdn-id>ff476254</msdn-id>	
+            <unmanaged>unsigned int Depth</unmanaged>	
+            <unmanaged-short>unsigned int Depth</unmanaged-short>	
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageDescription.ArraySize">
+            <summary>	
+            <dd> <p>Number of textures in the array. The  range is from 1 to <see cref="F:SharpDX.Direct3D11.Resource.MaximumTexture1DArraySize"/> (2048). However, the range is actually constrained by the feature level at which you create the rendering device. For more information about restrictions, see Remarks.</p> </dd>	
+            </summary>	
+            <remarks>
+            This field is only valid for Texture1D, Texture2D and TextureCube/>
+            </remarks>
+            <remarks>
+            This field is only valid for textures: Texture1D, Texture2D and TextureCube/>.
+            </remarks>
+            <msdn-id>ff476252</msdn-id>	
+            <unmanaged>unsigned int ArraySize</unmanaged>	
+            <unmanaged-short>unsigned int ArraySize</unmanaged-short>	
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageDescription.MipLevels">
+            <summary>	
+            <dd> <p>The maximum number of mipmap levels in the texture. See the remarks in <strong><see cref="T:SharpDX.Direct3D11.ShaderResourceViewDescription.Texture1DResource"/></strong>. Use 1 for a multisampled texture; or 0 to generate a full set of subtextures.</p> </dd>	
+            </summary>	
+            <msdn-id>ff476252</msdn-id>	
+            <unmanaged>unsigned int MipLevels</unmanaged>	
+            <unmanaged-short>unsigned int MipLevels</unmanaged-short>	
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageDescription.Format">
+            <summary>	
+            <dd> <p>Texture format (see <strong><see cref="T:SharpDX.DXGI.Format"/></strong>).</p> </dd>	
+            </summary>	
+            <msdn-id>ff476252</msdn-id>	
+            <unmanaged>DXGI_FORMAT Format</unmanaged>	
+            <unmanaged-short>DXGI_FORMAT Format</unmanaged-short>	
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.ImageFileType">
+            <summary>
+            Image file format used by <see cref="M:SharpDX.Toolkit.Graphics.Image.Save(System.String,SharpDX.Toolkit.Graphics.ImageFileType)"/>
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Dds">
+            <summary>
+            A DDS file.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Png">
+            <summary>
+            A PNG file.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Gif">
+            <summary>
+            A GIF file.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Jpg">
+            <summary>
+            A JPG file.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Bmp">
+            <summary>
+            A BMP file.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Tiff">
+            <summary>
+            A TIFF file.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Wmp">
+            <summary>
+            A WMP file.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Tga">
+            <summary>
+            A TGA File.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ImageFileType.Tktx">
+            <summary>
+            A TKTX File.
+            </summary>
+            <remarks>
+            This is a format available with this toolkit, similar to DDS, but It doesn't require any conversion and is a straight dump of the memory pixel buffers.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.ImageSharpHelper.LoadFromMemory(System.IntPtr,System.Int32,System.Boolean,System.Nullable{System.Runtime.InteropServices.GCHandle},System.String)">
+            <summary>
+            Load a file in memory
+            </summary>
+            <param name="pSource">Source buffer</param>
+            <param name="size">Size of the DDS texture.</param>
+            <param name="makeACopy">Whether or not to make a copy of the DDS</param>
+            <param name="handle"></param>
+            <param name="debugName"></param>
+            <returns></returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.MipMapCount">
+            <summary>
+            A simple wrapper to specify number of mipmaps.
+             Set to true to specify all mipmaps or sets an integer value >= 1
+            to specify the exact number of mipmaps.
+            </summary>
+            <remarks>
+            This structure use implicit conversion:
+            <ul>
+            <li>Set to <c>true</c> to specify all mipmaps.</li>
+            <li>Set to <c>false</c> to specify a single mipmap.</li>
+            <li>Set to an integer value >=1 to specify an exact count of mipmaps.</li>
+            </ul>
+            </remarks>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapCount.Auto">
+            <summary>
+            Automatic mipmap level based on texture size.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapCount.#ctor(System.Boolean)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount" /> struct.
+            </summary>
+            <param name="allMipMaps">if set to <c>true</c> generates all mip maps.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapCount.#ctor(System.Int32)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount" /> struct.
+            </summary>
+            <param name="count">The count.</param>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapCount.Count">
+            <summary>
+            Number of mipmaps.
+            </summary>
+            <remarks>
+            Zero(0) means generate all mipmaps. One(1) generates a single mipmap... etc.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapCount.op_Implicit(SharpDX.Toolkit.Graphics.MipMapCount)~System.Boolean">
+            <summary>
+            Performs an explicit conversion from <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount"/> to <see cref="T:System.Boolean"/>.
+            </summary>
+            <param name="mipMap">The value.</param>
+            <returns>The result of the conversion.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapCount.op_Implicit(System.Boolean)~SharpDX.Toolkit.Graphics.MipMapCount">
+            <summary>
+            Performs an explicit conversion from <see cref="T:System.Boolean"/> to <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount"/>.
+            </summary>
+            <param name="mipMapAll">True to generate all mipmaps, false to use a single mipmap.</param>
+            <returns>The result of the conversion.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapCount.op_Implicit(SharpDX.Toolkit.Graphics.MipMapCount)~System.Int32">
+            <summary>
+            Performs an explicit conversion from <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount"/> to <see cref="T:System.Int32"/>.
+            </summary>
+            <param name="mipMap">The value.</param>
+            <returns>The count of mipmap (0 means all mipmaps).</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapCount.op_Implicit(System.Int32)~SharpDX.Toolkit.Graphics.MipMapCount">
+            <summary>
+            Performs an explicit conversion from <see cref="T:System.Int32"/> to <see cref="T:SharpDX.Toolkit.Graphics.MipMapCount"/>.
+            </summary>
+            <param name="mipMapCount">True to generate all mipmaps, false to use a single mipmap.</param>
+            <returns>The result of the conversion.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.MipMapDescription">
+            <summary>
+            Describes a mipmap.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapDescription.#ctor(System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Graphics.MipMapDescription" /> class.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="height">The height.</param>
+            <param name="depth">The depth.</param>
+            <param name="rowStride">The row stride.</param>
+            <param name="depthStride">The depth stride.</param>
+            <param name="widthPacked">The packed width.</param>
+            <param name="heightPacked">The packed height.</param>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.Width">
+            <summary>
+            Width of this mipmap.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.Height">
+            <summary>
+            Height of this mipmap.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.WidthPacked">
+            <summary>
+            Width of this mipmap.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.HeightPacked">
+            <summary>
+            Height of this mipmap.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.Depth">
+            <summary>
+            Depth of this mipmap.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.RowStride">
+            <summary>
+            RowStride of this mipmap (number of bytes per row).
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.DepthStride">
+            <summary>
+            DepthStride of this mipmap (number of bytes per depth slice).
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.MipMapDescription.MipmapSize">
+            <summary>
+            Size in bytes of this whole mipmap.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapDescription.op_Equality(SharpDX.Toolkit.Graphics.MipMapDescription,SharpDX.Toolkit.Graphics.MipMapDescription)">
+            <summary>
+            Implements the ==.
+            </summary>
+            <param name="left">The left.</param>
+            <param name="right">The right.</param>
+            <returns>The result of the operator.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.MipMapDescription.op_Inequality(SharpDX.Toolkit.Graphics.MipMapDescription,SharpDX.Toolkit.Graphics.MipMapDescription)">
+            <summary>
+            Implements the !=.
+            </summary>
+            <param name="left">The left.</param>
+            <param name="right">The right.</param>
+            <returns>The result of the operator.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.PixelBuffer">
+            <summary>
+            An unmanaged buffer of pixels.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.PixelBuffer.isStrictRowStride">
+            <summary>
+            True when RowStride == sizeof(pixelformat) * width
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.#ctor(System.Int32,System.Int32,SharpDX.DXGI.Format,System.Int32,System.Int32,System.IntPtr)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Graphics.PixelBuffer" /> struct.
+            </summary>
+            <param name="width">The width.</param>
+            <param name="height">The height.</param>
+            <param name="format">The format.</param>
+            <param name="rowStride">The row pitch.</param>
+            <param name="bufferStride">The slice pitch.</param>
+            <param name="dataPointer">The pixels.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBuffer.Width">
+            <summary>
+            Gets the width.
+            </summary>
+            <value>The width.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBuffer.Height">
+            <summary>
+            Gets the height.
+            </summary>
+            <value>The height.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBuffer.Format">
+            <summary>
+            Gets the format (this value can be changed)
+            </summary>
+            <value>The format.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBuffer.PixelSize">
+            <summary>
+            Gets the pixel size in bytes.
+            </summary>
+            <value>The pixel size in bytes.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBuffer.RowStride">
+            <summary>
+            Gets the row stride in number of bytes.
+            </summary>
+            <value>The row stride in number of bytes.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBuffer.BufferStride">
+            <summary>
+            Gets the total size in bytes of this pixel buffer.
+            </summary>
+            <value>The size in bytes of the pixel buffer.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBuffer.DataPointer">
+            <summary>
+            Gets the pointer to the pixel buffer.
+            </summary>
+            <value>The pointer to the pixel buffer.</value>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.CopyTo(SharpDX.Toolkit.Graphics.PixelBuffer)">
+            <summary>
+            Copies this pixel buffer to a destination pixel buffer.
+            </summary>
+            <param name="pixelBuffer">The destination pixel buffer.</param>
+            <remarks>
+            The destination pixel buffer must have exactly the same dimensions (width, height) and format than this instance.
+            Destination buffer can have different row stride.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.Save(System.String,SharpDX.Toolkit.Graphics.ImageFileType)">
+            <summary>
+            Saves this pixel buffer to a file.
+            </summary>
+            <param name="fileName">The destination file.</param>
+            <param name="fileType">Specify the output format.</param>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.Save(System.IO.Stream,SharpDX.Toolkit.Graphics.ImageFileType)">
+            <summary>
+            Saves this pixel buffer to a stream.
+            </summary>
+            <param name="imageStream">The destination stream.</param>
+            <param name="fileType">Specify the output format.</param>
+            <remarks>This method support the following format: <c>dds, bmp, jpg, png, gif, tiff, wmp, tga</c>.</remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.GetPixel``1(System.Int32,System.Int32)">
+            <summary>
+            Gets the pixel value at a specified position.
+            </summary>
+            <typeparam name="T">Type of the pixel data</typeparam>
+            <param name="x">The x-coordinate.</param>
+            <param name="y">The y-coordinate.</param>
+            <returns>The pixel value.</returns>
+            <remarks>
+            Caution, this method doesn't check bounding.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.SetPixel``1(System.Int32,System.Int32,``0)">
+            <summary>
+            Gets the pixel value at a specified position.
+            </summary>
+            <typeparam name="T">Type of the pixel data</typeparam>
+            <param name="x">The x-coordinate.</param>
+            <param name="y">The y-coordinate.</param>
+            <param name="value">The pixel value.</param>
+            <remarks>
+            Caution, this method doesn't check bounding.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.GetPixels``1(System.Int32)">
+            <summary>
+            Gets scanline pixels from the buffer.
+            </summary>
+            <typeparam name="T">Type of the pixel data</typeparam>
+            <param name="yOffset">The y line offset.</param>
+            <returns>Scanline pixels from the buffer</returns>
+            <exception cref="T:System.ArgumentException">If the sizeof(T) is an invalid size</exception>
+            <remarks>
+            This method is working on a row basis. The yOffset is specifying the first row to get 
+            the pixels from.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.GetPixels``1(``0[],System.Int32)">
+            <summary>
+            Gets scanline pixels from the buffer.
+            </summary>
+            <typeparam name="T">Type of the pixel data</typeparam>
+            <param name="pixels">An allocated scanline pixel buffer</param>
+            <param name="yOffset">The y line offset.</param>
+            <returns>Scanline pixels from the buffer</returns>
+            <exception cref="T:System.ArgumentException">If the sizeof(T) is an invalid size</exception>
+            <remarks>
+            This method is working on a row basis. The yOffset is specifying the first row to get 
+            the pixels from.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.GetPixels``1(``0[],System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Gets scanline pixels from the buffer.
+            </summary>
+            <typeparam name="T">Type of the pixel data</typeparam>
+            <param name="pixels">An allocated scanline pixel buffer</param>
+            <param name="yOffset">The y line offset.</param>
+            <param name="pixelIndex">Offset into the destination pixels buffer.</param>
+            <param name="pixelCount">Number of pixels to write into the destination pixels buffer.</param>
+            <exception cref="T:System.ArgumentException">If the sizeof(T) is an invalid size</exception>
+            <remarks>
+            This method is working on a row basis. The yOffset is specifying the first row to get 
+            the pixels from.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.SetPixels``1(``0[],System.Int32)">
+            <summary>
+            Sets scanline pixels to the buffer.
+            </summary>
+            <typeparam name="T">Type of the pixel data</typeparam>
+            <param name="sourcePixels">Source pixel buffer</param>
+            <param name="yOffset">The y line offset.</param>
+            <exception cref="T:System.ArgumentException">If the sizeof(T) is an invalid size</exception>
+            <remarks>
+            This method is working on a row basis. The yOffset is specifying the first row to get 
+            the pixels from.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelBuffer.SetPixels``1(``0[],System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Sets scanline pixels to the buffer.
+            </summary>
+            <typeparam name="T">Type of the pixel data</typeparam>
+            <param name="sourcePixels">Source pixel buffer</param>
+            <param name="yOffset">The y line offset.</param>
+            <param name="pixelIndex">Offset into the source sourcePixels buffer.</param>
+            <param name="pixelCount">Number of pixels to write into the source sourcePixels buffer.</param>
+            <exception cref="T:System.ArgumentException">If the sizeof(T) is an invalid size</exception>
+            <remarks>
+            This method is working on a row basis. The yOffset is specifying the first row to get 
+            the pixels from.
+            </remarks>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.PixelBufferArray">
+            <summary>
+            Used by <see cref="T:SharpDX.Toolkit.Graphics.Image"/> to provide a selector to a <see cref="T:SharpDX.Toolkit.Graphics.PixelBuffer"/>.
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBufferArray.Item(System.Int32)">
+            <summary>
+            Gets the pixel buffer.
+            </summary>
+            <returns>A <see cref="T:SharpDX.Toolkit.Graphics.PixelBuffer"/>.</returns>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBufferArray.Count">
+            <summary>
+            Gets the total number of pixel buffers.
+            </summary>
+            <returns>The total number of pixel buffers.</returns>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBufferArray.Item(System.Int32,System.Int32)">
+            <summary>
+            Gets the pixel buffer for the specified array/z slice and mipmap level.
+            </summary>
+            <param name="arrayOrDepthSlice">For 3D image, the parameter is the Z slice, otherwise it is an index into the texture array.</param>
+            <param name="mipIndex">The mip map slice index.</param>
+            <returns>A <see cref="T:SharpDX.Toolkit.Graphics.PixelBuffer"/>.</returns>
+        </member>
+        <member name="P:SharpDX.Toolkit.Graphics.PixelBufferArray.Item(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Gets the pixel buffer for the specified array/z slice and mipmap level.
+            </summary>
+            <param name="arrayIndex">Index into the texture array. Must be set to 0 for 3D images.</param>
+            <param name="zIndex">Z index for 3D image. Must be set to 0 for all 1D/2D images.</param>
+            <param name="mipIndex">The mip map slice index.</param>
+            <returns>A <see cref="T:SharpDX.Toolkit.Graphics.PixelBuffer"/>.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.PixelFormat">
+            <summary>
+            PixelFormat is equivalent to <see cref="T:SharpDX.DXGI.Format"/>.
+            </summary>
+            <remarks>
+            This structure is implicitly cast-able to and from <see cref="T:SharpDX.DXGI.Format"/>, you can use it in place where <see cref="T:SharpDX.DXGI.Format"/> is required
+            and vice-versa.
+            Usage is slightly different from <see cref="T:SharpDX.DXGI.Format"/>, as you have to select the type of the pixel format first.
+            and then access the available pixel formats for this type. Example: PixelFormat.UNorm.R8.
+            </remarks>
+            <msdn-id>bb173059</msdn-id>	
+            <unmanaged>DXGI_FORMAT</unmanaged>	
+            <unmanaged-short>DXGI_FORMAT</unmanaged-short>	
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.PixelFormat.Value">
+            <summary>
+            Gets the value as a <see cref="T:SharpDX.DXGI.Format"/> enum.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Graphics.PixelFormat.#ctor(SharpDX.DXGI.Format)">
+            <summary>
+            Internal constructor.
+            </summary>
+            <param name="format"></param>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.TextureDimension">
+            <summary>
+            Defines the dimension of a texture.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.TextureDimension.Texture1D">
+            <summary>
+            The texture dimension is 1D.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.TextureDimension.Texture2D">
+            <summary>
+            The texture dimension is 2D.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.TextureDimension.Texture3D">
+            <summary>
+            The texture dimension is 3D.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.TextureDimension.TextureCube">
+            <summary>
+            The texture dimension is a CubeMap.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Graphics.ViewType">
+            <summary>
+            Defines how a view is selected from a resource.
+            </summary>
+            <remarks>
+            This selection model is taken from Nuaj by Patapom (http://wiki.patapom.com/index.php/Nuaj)
+            </remarks>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ViewType.Full">
+            <summary>
+            Gets a texture view for the whole texture for all mips/arrays dimensions.
+            </summary>
+            <example>Here is what the view covers with whatever mipLevelIndex/arrayIndex
+            
+                   Array0 Array1 Array2
+                  ______________________
+             Mip0 |   X  |   X  |   X  |
+                  |------+------+------|
+             Mip1 |   X  |   X  |   X  |
+                  |------+------+------|
+             Mip2 |   X  |   X  |   X  |
+                  ----------------------
+            </example>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ViewType.Single">
+            <summary>
+            Gets a single texture view at the specified index in the mip hierarchy and in the array of textures
+            The texture view contains a single texture element at the specified mip level and array index
+            </summary>
+            <example>Here is what the view covers with mipLevelIndex=1 and mrrayIndex=1
+            
+                   Array0 Array1 Array2
+                  ______________________
+             Mip0 |      |      |      |
+                  |------+------+------|
+             Mip1 |      |  X   |      |
+                  |------+------+------|
+             Mip2 |      |      |      |
+                  ----------------------
+            </example>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ViewType.ArrayBand">
+            <summary>
+            Gets a band texture view at the specified index in the mip hierarchy and in the array of textures
+            The texture view contains all the mip level texture elements from the specified mip level and array index
+            </summary>
+            <example>Here is what the view covers with mipLevelIndex=1 and mrrayIndex=1
+            
+                   Array0 Array1 Array2
+                  ______________________
+             Mip0 |      |      |      |
+                  |------+------+------|
+             Mip1 |      |  X   |      |
+                  |------+------+------|
+             Mip2 |      |  X   |      |
+                  ----------------------
+            </example>
+        </member>
+        <member name="F:SharpDX.Toolkit.Graphics.ViewType.MipBand">
+            <summary>
+            Gets a band texture view at the specified index in the mip hierarchy and in the array of textures
+            The texture view contains all the array texture elements from the specified mip level and array index
+            </summary>
+            <example>Here is what the view covers with mipLevelIndex=1 and mrrayIndex=1
+            
+                   Array0 Array1 Array2
+                  ______________________
+             Mip0 |      |      |      |
+                  |------+------+------|
+             Mip1 |      |  X   |  X   |
+                  |------+------+------|
+             Mip2 |      |      |      |
+                  ----------------------
+            </example>
+        </member>
+        <member name="T:SharpDX.Toolkit.Collections.ObservableCollection`1">
+            <summary>
+            An observable collection.
+            </summary>
+            <typeparam name="T">Type of a collection item</typeparam>
+        </member>
+        <member name="E:SharpDX.Toolkit.Collections.ObservableCollection`1.ItemAdded">
+            <summary>
+            Raised when an item is added to this instance.
+            </summary>
+        </member>
+        <member name="E:SharpDX.Toolkit.Collections.ObservableCollection`1.ItemRemoved">
+            <summary>
+            Raised when a item is removed from this instance.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Collections.ObservableCollectionEventArgs`1">
+            <summary>
+            An event providing the item changed in a collection (inserted or removed).
+            </summary>
+            <typeparam name="T">Type of a collection item</typeparam>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableCollectionEventArgs`1.#ctor(`0)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Collections.ObservableCollectionEventArgs`1" /> class.
+            </summary>
+            <param name="item">The item from the collection.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableCollectionEventArgs`1.Item">
+            <summary>
+            Gets the item from the collection that was inserted or removed.
+            </summary>
+            <value>The collection item.</value>
+        </member>
+        <member name="T:SharpDX.Toolkit.Collections.ObservableDictionary`2">
+            <summary>
+            An observable dictionary.
+            </summary>
+            <typeparam name="TKey">The dictionary's key type.</typeparam>
+            <typeparam name="TValue">The dictionary's value type.</typeparam>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.#ctor">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.#ctor(System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.#ctor(System.Collections.Generic.IEqualityComparer{`0})">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.#ctor(System.Collections.Generic.IDictionary{`0,`1})">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.#ctor(System.Collections.Generic.IDictionary{`0,`1},System.Collections.Generic.IEqualityComparer{`0})">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.#ctor(System.Int32,System.Collections.Generic.IEqualityComparer{`0})">
+            <inheritdoc/>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableDictionary`2.Keys">
+            <summary>
+            Returns the collection of the keys present in dictionary.
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableDictionary`2.Values">
+            <summary>
+            Gets the collection of the values present in dictionary.
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableDictionary`2.Count">
+            <summary>
+            Gets the cound of items present in dictionary.
+            </summary>
+        </member>
+        <member name="E:SharpDX.Toolkit.Collections.ObservableDictionary`2.ItemAdded">
+            <summary>
+            Is raised when a new item is added to the dictionary.
+            </summary>
+        </member>
+        <member name="E:SharpDX.Toolkit.Collections.ObservableDictionary`2.ItemRemoved">
+            <summary>
+            Is raised when an item is removed from the dictionary.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.GetEnumerator">
+            <summary>
+            Gets the enumerator of this dictionary.
+            </summary>
+            <returns>The enumerator instance of the dictionary.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.Clear">
+            <summary>
+            Removes all items from the dictionary.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.Add(`0,`1)">
+            <summary>
+            Adds a new value with the specified key to dictionary.
+            </summary>
+            <param name="key">The added key.</param>
+            <param name="value">The added value.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.ContainsKey(`0)">
+            <summary>
+            Checks whether the dictionary contains the specified key.
+            </summary>
+            <param name="key">The key to check for presence.</param>
+            <returns>true if the dictionary contains the provided key, false - otherwise.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.Remove(`0)">
+            <summary>
+            Removes the value corresponding to the specified key from dictionary.
+            </summary>
+            <param name="key">The key to remove.</param>
+            <returns>true if the item was removed, false - otherwise.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.TryGetValue(`0,`1@)">
+            <summary>
+            Tries to get the value associated with the specified key.
+            </summary>
+            <param name="key">The key.</param>
+            <param name="value">Contains the returned value on success.</param>
+            <returns>true if the value was returned successfuly, false - otherwise.</returns>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableDictionary`2.Item(`0)">
+            <summary>
+            Gets or sets a value associated with the specified key.
+            </summary>
+            <param name="key">The key.</param>
+            <returns>The associated value.</returns>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableDictionary`2.System#Collections#Generic#ICollection{System#Collections#Generic#KeyValuePair{TKey,TValue}}#IsReadOnly">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.System#Collections#IEnumerable#GetEnumerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.System#Collections#Generic#ICollection{System#Collections#Generic#KeyValuePair{TKey,TValue}}#Add(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.System#Collections#Generic#ICollection{System#Collections#Generic#KeyValuePair{TKey,TValue}}#Remove(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.System#Collections#Generic#ICollection{System#Collections#Generic#KeyValuePair{TKey,TValue}}#Contains(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.System#Collections#Generic#ICollection{System#Collections#Generic#KeyValuePair{TKey,TValue}}#CopyTo(System.Collections.Generic.KeyValuePair{`0,`1}[],System.Int32)">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.OnItemAdded(SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs{`0,`1})">
+            <inheritdoc/>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionary`2.OnItemRemoved(SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs{`0,`1})">
+            <inheritdoc/>
+        </member>
+        <member name="T:SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs`2">
+            <summary>
+            Event arguments for the <see cref="E:SharpDX.Toolkit.Collections.ObservableDictionary`2.ItemAdded"/> and <see cref="E:SharpDX.Toolkit.Collections.ObservableDictionary`2.ItemRemoved"/> events.
+            </summary>
+            <typeparam name="TKey">The dictionary key type.</typeparam>
+            <typeparam name="TValue">The dictionary value type.</typeparam>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs`2.#ctor(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs`2"/> class from the provided <see cref="T:System.Collections.Generic.KeyValuePair`2"/>.
+            </summary>
+            <param name="pair">The <see cref="T:System.Collections.Generic.KeyValuePair`2"/> that contains the event arguments.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs`2.#ctor(`0,`1)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs`2"/> class from the provided key and value.
+            </summary>
+            <param name="key">The event's key argument.</param>
+            <param name="value">The event's value argument.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs`2.Key">
+            <summary>
+            Gets the event's key argument.
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Collections.ObservableDictionaryEventArgs`2.Value">
+            <summary>
+            Gets the event's value argument.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Component">
+            <summary>
+            A disposable component base class.
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Component.DisposeCollector">
+            <summary>
+            Gets or sets the disposables.
+            </summary>
+            <value>The disposables.</value>
+        </member>
+        <member name="M:SharpDX.Toolkit.Component.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Component"/> class.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Component.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Component" /> class with an immutable name.
+            </summary>
+            <param name="name">The name.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.Component.IsAttached">
+            <summary>
+            Gets or sets a value indicating whether this instance is attached to a collector.
+            </summary>
+            <value>
+            	<c>true</c> if this instance is attached to a collector; otherwise, <c>false</c>.
+            </value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Component.IsDisposed">
+            <summary>
+            Gets a value indicating whether this instance is disposed.
+            </summary>
+            <value>
+            	<c>true</c> if this instance is disposed; otherwise, <c>false</c>.
+            </value>
+        </member>
+        <member name="E:SharpDX.Toolkit.Component.Disposing">
+            <summary>
+            Occurs when when Dispose is called.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Component.Dispose">
+            <summary>
+            Releases unmanaged and - optionally - managed resources
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Component.Dispose(System.Boolean)">
+            <summary>
+            Disposes of object resources.
+            </summary>
+            <param name="disposeManagedResources">If true, managed resources should be
+            disposed of in addition to unmanaged resources.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Component.ToDispose``1(``0)">
+            <summary>
+            Adds a disposable object to the list of the objects to dispose.
+            </summary>
+            <param name="toDisposeArg">To dispose.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Component.RemoveAndDispose``1(``0@)">
+            <summary>
+            Dispose a disposable object and set the reference to null. Removes this object from the ToDispose list.
+            </summary>
+            <param name="objectToDispose">Object to dispose.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Component.RemoveToDispose``1(``0)">
+            <summary>
+            Removes a disposable object to the list of the objects to dispose.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="toDisposeArg">To dispose.</param>
+        </member>
+        <member name="T:SharpDX.Toolkit.ComponentBase">
+            <summary>
+            A lightweight Component base class.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.ComponentBase.name">
+            <summary>
+            Occurs while this component is disposing and before it is disposed.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.ComponentBase.isNameImmutable">
+            <summary>
+            Gets or sets a value indicating whether the name of this instance is immutable.
+            </summary>
+            <value><c>true</c> if this instance is name immutable; otherwise, <c>false</c>.</value>
+        </member>
+        <member name="M:SharpDX.Toolkit.ComponentBase.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.ComponentBase" /> class with a mutable name.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.ComponentBase.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.ComponentBase" /> class with an immutable name.
+            </summary>
+            <param name="name">The name.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.ComponentBase.Name">
+            <summary>
+            Gets the name of this component.
+            </summary>
+            <value>The name.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.ComponentBase.Tag">
+            <summary>
+            Gets or sets the tag associated to this object.
+            </summary>
+            <value>The tag.</value>
+        </member>
+        <member name="E:SharpDX.Toolkit.ComponentBase.PropertyChanged">
+            <summary>
+            Occurs when a property value changes.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.AssetNotFoundException">
+            <summary>
+            Exception when an asset was not found from the <see cref="T:SharpDX.Toolkit.Content.ContentManager"/>.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.AssetNotFoundException.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Content.AssetNotFoundException" /> class.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.AssetNotFoundException.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Content.AssetNotFoundException" /> class with the specified message.
+            </summary>
+            <param name="message">The exception message.</param>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.AssetNotFoundException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Content.AssetNotFoundException" /> class with the specified message and inner exception.
+            </summary>
+            <param name="message">The exception message.</param>
+            <param name="innerException">The inner exception.</param>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.ContentManager">
+            <summary>
+            The content manager implementation is responsible to load and store content data (texture, songs, effects...etc.) using 
+            several <see cref="T:SharpDX.Toolkit.Content.IContentResolver"/> to resolve a stream from an asset name and several registered <see cref="T:SharpDX.Toolkit.Content.IContentReader"/>
+            to convert data from stream.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentManager.#ctor(System.IServiceProvider)">
+            <summary>
+            Initializes a new instance of ContentManager. Reference page contains code sample.
+            </summary>
+            <param name="serviceProvider">The service provider that the ContentManager should use to locate services.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.ContentManager.Resolvers">
+            <summary>
+            Add or remove registered <see cref="T:SharpDX.Toolkit.Content.IContentResolver"/> to this instance.
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.ContentManager.Readers">
+            <summary>
+            Add or remove registered <see cref="T:SharpDX.Toolkit.Content.IContentReader"/> to this instance.
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.ContentManager.ReaderFactories">
+            <summary>
+            Add or remove a registered <see cref="T:SharpDX.Toolkit.Content.IContentReaderFactory"/> to this instance.
+            </summary>
+            <value>The reader factories.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.ContentManager.ServiceProvider">
+            <summary>
+            Gets the service provider associated with the ContentManager.
+            </summary>
+            <value>The service provider.</value>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.ContentManager.RootDirectory">
+            <summary>
+            Gets or sets the root directory.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentManager.Exists(System.String)">
+            <summary>
+            Checks if the specified assets exists.
+            </summary>
+            <param name="assetName">The asset name with extension.</param>
+            <returns><c>true</c> if the specified assets exists, <c>false</c> otherwise</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentManager.Load``1(System.String,System.Object)">
+            <summary>
+            Loads an asset that has been processed by the Content Pipeline.  Reference page contains code sample.
+            </summary>
+            <typeparam name="T">Type of the asset</typeparam>
+            <param name="assetName">The asset name </param>
+            <param name="options">The options to pass to the content reader (null by default).</param>
+            <returns>``0.</returns>
+            <exception cref="T:SharpDX.Toolkit.Content.AssetNotFoundException">If the asset was not found from all <see cref="T:SharpDX.Toolkit.Content.IContentResolver" />.</exception>
+            <exception cref="T:System.NotSupportedException">If no content reader was suitable to decode the asset.</exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentManager.Load(System.Type,System.String,System.Object)">
+            <summary>
+            Loads an asset that has been processed by the Content Pipeline.  Reference page contains code sample.
+            </summary>
+            <param name="assetType">Asset Type</param>
+            <param name="assetName">The asset name </param>
+            <param name="options">The options to pass to the content reader (null by default).</param>
+            <returns>Asset</returns>
+            <exception cref="T:SharpDX.Toolkit.Content.AssetNotFoundException">If the asset was not found from all <see cref="T:SharpDX.Toolkit.Content.IContentResolver" />.</exception>
+            <exception cref="T:System.NotSupportedException">If no content reader was suitable to decode the asset.</exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentManager.Unload">
+            <summary>
+            Unloads all data that was loaded by this ContentManager. All data will be disposed.
+            </summary>
+            <remarks>
+            Unlike <see cref="M:SharpDX.Toolkit.Content.ContentManager.Load``1(System.String,System.Object)"/> method, this method is not thread safe and must be called by a single caller at a single time.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentManager.Unload``1(System.String)">
+            <summary>
+            Unloads and disposes an asset.
+            </summary>
+            <param name="assetName">The asset name</param>
+            <returns><c>true</c> if the asset exists and was unloaded, <c>false</c> otherwise.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentManager.Unload(System.Type,System.String)">
+            <summary>
+            Unloads and disposes an asset.
+            </summary>
+            <param name="assetType">The asset type</param>
+            <param name="assetName">The asset name</param>
+            <returns><c>true</c> if the asset exists and was unloaded, <c>false</c> otherwise.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.ContentManager.AssetKey">
+            <summary>
+            Use this key to store loaded assets.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.ContentReaderAttribute">
+            <summary>
+            This attributes is used by data that are providing a <see cref="T:SharpDX.Toolkit.Content.IContentReader"/> for decoding data from a stream.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.ContentReaderAttribute.#ctor(System.Type)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Content.ContentReaderAttribute" /> class.
+            </summary>
+            <param name="contentReaderType">Type of the content reader.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.ContentReaderAttribute.ContentReaderType">
+            <summary>
+            Gets the type of the content reader.
+            </summary>
+            <value>The type of the content reader.</value>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.ContentReaderParameters">
+            <summary>
+            Parameters used by <see cref="M:SharpDX.Toolkit.Content.IContentReader.ReadContent(SharpDX.Toolkit.Content.IContentManager,SharpDX.Toolkit.Content.ContentReaderParameters@)"/>
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Content.ContentReaderParameters.AssetName">
+            <summary>
+            Name of the asset currently loaded when using <see cref="M:SharpDX.Toolkit.Content.IContentManager.Load``1(System.String,System.Object)"/>.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Content.ContentReaderParameters.AssetType">
+            <summary>
+            Type of the asset currently loaded when using <see cref="M:SharpDX.Toolkit.Content.IContentManager.Load``1(System.String,System.Object)"/>.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Content.ContentReaderParameters.Stream">
+            <summary>
+            Stream of the asset to load.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Content.ContentReaderParameters.KeepStreamOpen">
+            <summary>
+            This parameter is an out parameter for <see cref="M:SharpDX.Toolkit.Content.IContentReader.ReadContent(SharpDX.Toolkit.Content.IContentManager,SharpDX.Toolkit.Content.ContentReaderParameters@)"/>. Set to true to let the ContentManager close the stream once the reader is done.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Content.ContentReaderParameters.Options">
+            <summary>
+            Custom options provided when using <see cref="M:SharpDX.Toolkit.Content.IContentManager.Load``1(System.String,System.Object)"/>.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.FileSystemContentResolver">
+            <summary>
+            This <see cref="T:SharpDX.Toolkit.Content.IContentResolver" /> is loading an asset name from a root directory from a physical disk.
+            </summary>
+        </member>
+        <member name="F:SharpDX.Toolkit.Content.FileSystemContentResolver.DefaultExtension">
+            <summary>
+            The default extension for asset files which is appended to any asset names that do not specify an extension.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.FileSystemContentResolver.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:SharpDX.Toolkit.Content.FileSystemContentResolver" /> class.
+            </summary>
+            <param name="rootDirectory">The root directory.</param>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.FileSystemContentResolver.RootDirectory">
+            <summary>
+            Gets the root directory from where assets will be loaded from the disk.
+            </summary>
+            <value>The root directory.</value>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.FileSystemContentResolver.GetAssetPath(System.String,System.Boolean)">
+            <summary>
+            Gets the full asset path based on the root directory and default extension.
+            </summary>
+            <param name="assetName">The asset name.</param>
+            <param name="forceAppendExtension">A value indicating whether to append the default extension even if the supplied name already has one.</param>
+            <returns>The full asset path.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.IContentManager">
+            <summary>
+            The content manager interface provides a service to load and store content data (texture, songs, effects...etc.).
+            </summary>
+        </member>
+        <member name="P:SharpDX.Toolkit.Content.IContentManager.ServiceProvider">
+            <summary>
+            Gets the service provider associated with the ContentManager.
+            </summary>
+            <value>The service provider.</value>
+            <remarks>
+            The service provider can be used by some <see cref="T:SharpDX.Toolkit.Content.IContentReader"/> when for example a GraphicsDevice needs to be 
+            used to instantiate a content.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentManager.Exists(System.String)">
+            <summary>
+            Checks if the specified assets exists.
+            </summary>
+            <param name="assetName">The asset name with extension.</param>
+            <returns><c>true</c> if the specified assets exists, <c>false</c> otherwise</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentManager.Load``1(System.String,System.Object)">
+            <summary>
+            Loads an asset that has been processed by the Content Pipeline.  Reference page contains code sample.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="assetName">Full asset name (with its extension)</param>
+            <param name="options">The options to pass to the content reader (null by default).</param>
+            <returns>``0.</returns>
+            <exception cref="T:SharpDX.Toolkit.Content.AssetNotFoundException">If the asset was not found from all <see cref="T:SharpDX.Toolkit.Content.IContentResolver" />.</exception>
+            <exception cref="T:System.NotSupportedException">If no content reader was suitable to decode the asset.</exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentManager.Load(System.Type,System.String,System.Object)">
+            <summary>
+            Loads an asset that has been processed by the Content Pipeline.  Reference page contains code sample.
+            </summary>
+            <param name="assetType">Asset Type</param>
+            <param name="assetName">Full asset name (with its extension)</param>
+            <param name="options">The options to pass to the content reader (null by default).</param>
+            <returns>Asset</returns>
+            <exception cref="T:SharpDX.Toolkit.Content.AssetNotFoundException">If the asset was not found from all <see cref="T:SharpDX.Toolkit.Content.IContentResolver" />.</exception>
+            <exception cref="T:System.NotSupportedException">If no content reader was suitable to decode the asset.</exception>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentManager.Unload">
+            <summary>
+            Unloads all data that was loaded by this ContentManager. All data will be disposed.
+            </summary>
+            <remarks>
+            Unlike <see cref="M:SharpDX.Toolkit.Content.ContentManager.Load``1(System.String,System.Object)"/> method, this method is not thread safe and must be called by a single caller at a single time.
+            </remarks>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentManager.Unload``1(System.String)">
+            <summary>
+            Unloads and disposes an asset.
+            </summary>
+            <param name="assetName">The asset name</param>
+            <returns><c>true</c> if the asset exists and was unloaded, <c>false</c> otherwise.</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentManager.Unload(System.Type,System.String)">
+            <summary>
+            Unloads and disposes an asset.
+            </summary>
+            <param name="assetType">The asset type</param>
+            <param name="assetName">The asset name</param>
+            <returns><c>true</c> if the asset exists and was unloaded, <c>false</c> otherwise.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.IContentReader">
+            <summary>
+            A content reader is in charge of reading object data from a stream.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentReader.ReadContent(SharpDX.Toolkit.Content.IContentManager,SharpDX.Toolkit.Content.ContentReaderParameters@)">
+            <summary>
+            Reads the content of a particular data from a stream.
+            </summary>
+            <param name="contentManager">The content manager.</param>
+            <param name="parameters"></param>
+            <returns>The data decoded from the stream, or null if the kind of asset is not supported by this content reader.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.IContentReaderFactory">
+            <summary>
+            A factory to create <see cref="T:SharpDX.Toolkit.Content.IContentReader"/> when a specific type is requested
+            from the <see cref="T:SharpDX.Toolkit.Content.IContentManager"/>.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentReaderFactory.TryCreate(System.Type)">
+            <summary>
+            Returns an instance of a <see cref="T:SharpDX.Toolkit.Content.IContentReader"/> for loading the specified type or null if not handled by this factory.
+            </summary>
+            <param name="type">The type.</param>
+            <returns>An instance of a <see cref="T:SharpDX.Toolkit.Content.IContentReader"/> for loading the specified type or null if not handled..</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.IContentResolver">
+            <summary>
+            A content resolver is in charge of locating a stream from an asset name.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentResolver.Exists(System.String)">
+            <summary>
+            Checks if the specified asset name exists.
+            </summary>
+            <param name="assetName">Name of the asset.</param>
+            <returns><c>true</c> if the specified asset name exists, <c>false</c> otherwise</returns>
+        </member>
+        <member name="M:SharpDX.Toolkit.Content.IContentResolver.Resolve(System.String)">
+            <summary>
+            Resolves the specified asset name to a stream.
+            </summary>
+            <param name="assetName">Name of the asset.</param>
+            <returns>A Stream of the asset. This value can be null if this resolver was not able to locate the asset.</returns>
+        </member>
+        <member name="T:SharpDX.Toolkit.Content.NamespaceDoc">
+            <summary>
+            The <see cref="N:SharpDX.Toolkit.Content"/> namespace provides classes to handle game content.
+            </summary>
+        </member>
+        <member name="T:SharpDX.Toolkit.PathUtility">
+            <summary>
+            Path utility methods.
+            </summary>
+        </member>
+        <member name="M:SharpDX.Toolkit.PathUtility.GetNormalizedPath(System.String)">
+            <summary>
+            Transform a path by replacing '/' by '\' and transforming relative '..' or current path '.' to an absolute path. See remarks.
+            </summary>
+            <param name="path">A path string</param>
+            <returns>A normalized path.</returns>
+            <remarks>
+            Unlike <see cref="T:System.IO.Path"/> , this doesn't make a path absolute to the actual file system.
+            </remarks>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,903 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VRage.Scripting</name>
+    </assembly>
+    <members>
+        <member name="T:VRage.Scripting.AnalysisExtensions">
+            <summary>
+                Contains various utilities used by the scripting engine.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.Analyzers.WhitelistDiagnosticAnalyzer">
+            <summary>
+                This analyzer scans a syntax tree for prohibited type and member references.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MemorySafeTypes.MemorySafeStringBuilderExtensions.CompareUpdate(System.Text.StringBuilder,System.String)">
+            <summary>
+            Compares string builder with text,
+            when it's different, Clears string builder and Appends text.
+            Returns true when original string builder was modified.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MemorySafeTypes.MemorySafeStringBuilderExtensions.CompareUpdate(System.Text.StringBuilder,System.Text.StringBuilder)">
+            <summary>
+            Compares string builder with text,
+            when it's different, Clears string builder and Appends text.
+            Returns true when original string builder was modified.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MemorySafeTypes.MemorySafeStringBuilderExtensions.TrimEnd(System.Text.StringBuilder,System.Int32)">
+            <summary>
+            Removes the specified number of characters from the end.
+            </summary>
+            <param name="sb">The sb.</param>
+            <param name="length">The length.</param>
+        </member>
+        <member name="M:VRage.Scripting.MemorySafeTypes.MemorySafeStringBuilderExtensions.TrimTrailingWhitespace(System.Text.StringBuilder)">
+            <summary>
+            Removes whitespace from the end.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MemorySafeTypes.MemorySafeStringBuilderExtensions.CompareTo(System.Text.StringBuilder,System.String)">
+            <summary>
+            returns 0 if its the same
+            </summary>
+            <param name="self"></param>
+            <param name="other"></param>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.Scripting.MyScriptCompiler">
+            <summary>
+            Provides a compiler for scripts, with support for a type whitelist and instruction counting.
+            </summary>
+        </member>
+        <member name="P:VRage.Scripting.MyScriptCompiler.DiagnosticOutputPath">
+            <summary>
+            If this property is set, the compiler will write altered scripts and diagnostics to this folder.
+            </summary>
+        </member>
+        <member name="P:VRage.Scripting.MyScriptCompiler.EnableDebugInformation">
+            <summary>
+            Determines whether debug information is enabled on a global level. This decision can be made on a per-script fashion
+            on each of the compile methods, but if this property is set to <c>true</c>, it will override any parameter value.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.Compile(VRage.Scripting.MyApiTarget,System.String,System.Collections.Generic.IEnumerable{VRage.Scripting.Script},System.Collections.Generic.List{VRage.Scripting.Message},System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Compiles a script.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.InjectMod(Microsoft.CodeAnalysis.CSharp.CSharpCompilation,Microsoft.CodeAnalysis.SyntaxTree,System.Int32)">
+            <summary>
+            Injects perf counters and ProtoMember tags into Mod's syntax tree.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.AnalyzeDiagnostics(System.Collections.Immutable.ImmutableArray{Microsoft.CodeAnalysis.Diagnostic},System.Collections.Generic.List{VRage.Scripting.Message},System.Boolean@)">
+            <summary>
+            Analyzes the given diagnostics and places errors and warnings in the messages lists.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.WriteDiagnostics(VRage.Scripting.MyApiTarget,System.String,System.Collections.Generic.IEnumerable{VRage.Scripting.Message},System.Boolean)">
+            <summary>
+            If diagnostic output is enabled, this method writes the log of a compilation.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.WriteDiagnostics(VRage.Scripting.MyApiTarget,System.String,System.Collections.Generic.IList{Microsoft.CodeAnalysis.SyntaxTree},System.String)">
+            <summary>
+            If diagnostics is enabled, this method writes.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.AddImplicitInGameNamespacesFromTypes(System.Type[])">
+            <summary>
+             Adds the given namespaces for automatic inclusion in the in game script wrapper.
+             **This method does NOT whitelist namespaces!
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.AddImplicitTypeMapping(System.Type,System.String)">
+            <summary>
+            Adds a type mapper using for inclusion in the in game script wrapper.
+            **This method does NOT whitelist types!
+            </summary>
+            <param name="type"></param>
+            <param name="mappedName">The new name of the type. Leave as null to map to the type name.</param>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.AddImplicitTypeMappings(System.Type[])">
+            <summary>
+            Adds a type mapper using for inclusion in the in game script wrapper.
+            **This method does NOT whitelist types!
+            </summary>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.AddUnblockableInGameExceptions(System.Type[])">
+            <summary>
+            Adds the given exceptions to the unblockable list for in game scripts. These exceptions will be added to try/catch expressions so they cannot be caught in-game.
+            </summary>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptCompiler.GetInGameScript(System.String,System.String,System.String,System.String)">
+            <summary>
+            Creates a complete code file from an in game script.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.MyWhitelistException">
+            <summary>
+            Exceptions during registration of whitelisted type members
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.MyScriptWhitelist">
+            <summary>
+                The script whitelist contains information about which types and type members are allowed in the
+                various types of scripts.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptWhitelist.OpenBatch">
+            <summary>
+                Opens the whitelist, allowing for addition of new members.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptWhitelist.Clear">
+            <summary>
+                Clears the whitelist.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptWhitelist.MyWhitelistBatch.AllowNamespaceOfTypes(VRage.Scripting.MyWhitelistTarget,System.Type[])">
+            <summary>
+                Adds the entire namespace of one or more given types.
+            </summary>
+            <param name="target"></param>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptWhitelist.MyWhitelistBatch.AllowTypes(VRage.Scripting.MyWhitelistTarget,System.Type[])">
+            <summary>
+                Adds one or more specific types and all their members to the whitelist.
+            </summary>
+            <param name="target"></param>
+            <param name="types"></param>
+        </member>
+        <member name="M:VRage.Scripting.MyScriptWhitelist.MyWhitelistBatch.AllowMembers(VRage.Scripting.MyWhitelistTarget,System.Reflection.MemberInfo[])">
+            <summary>
+                Adds only the specified members to the whitelist.
+            </summary>
+            <param name="target"></param>
+            <param name="members"></param>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.AnnotatedIdentifier(System.String)">
+            <summary>
+                Injected nodes should not be whitelist checked, so they are tagged with an
+                annotation to allow the whitelist analyzer to skip them.
+            </summary>
+            <param name="identifierName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.Annotated``1(``0)">
+            <summary>
+                Injected nodes should not be whitelist checked, so they are tagged with an
+                annotation to allow the whitelist analyzer to skip them.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="node"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.EnterMethodCall">
+            <summary>
+                Creates an EnterMethod API call
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.ExitMethodCall">
+            <summary>
+                Creates an ExitMethod API call
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.YieldGuard(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax,Microsoft.CodeAnalysis.CSharp.Syntax.TypeSyntax)">
+            <summary>
+                Injects guard to yield expression to prevent it from leaking method-chain counter
+            </summary>
+            <param name="expression">Original yield expression</param>
+            <param name="genericAttribute">Explicit guard type</param>
+            <returns>Injected yield expression</returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.ReenterYieldMethodCall">
+            <summary>
+                Creates an ExitMethod API call
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.VisitPropertyDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax)">
+            <summary>
+            Catch expression bodied properties and rewrite them into full fat get-only ones so <see cref="M:VRage.Scripting.Rewriters.PerfCountingRewriter.VisitAccessorDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.AccessorDeclarationSyntax)"/> can handle the rest.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.VisitDestructorDeclaration(Microsoft.CodeAnalysis.CSharp.Syntax.DestructorDeclarationSyntax)">
+            <summary>
+            Should not be allowed for neither Mods nor PB but inject it too, just in case
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.PerfCountingRewriter.VisitYieldStatement(Microsoft.CodeAnalysis.CSharp.Syntax.YieldStatementSyntax)">
+            <summary>
+            Injects `yield return`-statement's expression with call to <see cref="M:VRage.Scripting.CompilerMethods.ModPerfCounter.YieldGuard``1(System.Int32,``0)"/> to prevent from leaking.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.Rewriters.ResourceMonitoringRewriter">
+            <summary>
+            Injects various methods for runtime tracking of the script's resource usage.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.ProcessMethod(Microsoft.CodeAnalysis.CSharp.Syntax.BaseMethodDeclarationSyntax)">
+            <summary>
+            Generates the instruction counter and call chain depth counter for any form of method (except properties which must be handled by themselves).
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.CreateDelegateMethodBody(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax,System.Boolean)">
+            <summary>
+            Replaces an expression based method declaration with a block based one in order to facilitate instruction and method call chain counting.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.ProcessAnonymousFunction(Microsoft.CodeAnalysis.CSharp.Syntax.AnonymousFunctionExpressionSyntax,Microsoft.CodeAnalysis.INamedTypeSymbol)">
+            <summary>
+            Generates the instruction counter and call chain depth counter for any form of delegate (anonymous methods, lambdas).
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.VisitCatchClause(Microsoft.CodeAnalysis.CSharp.Syntax.CatchClauseSyntax)">
+            <summary>
+            The goal is to inject instruction counter, but also inject an auto catcher for all exceptions that have been marked as unblockable in the compiler.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.VisitUsingStatement(Microsoft.CodeAnalysis.CSharp.Syntax.UsingStatementSyntax)">
+            <summary>
+            // The goal is to rewrite each `using` statement to try/finally construct to allow easy dead checking.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.VisitYieldStatement(Microsoft.CodeAnalysis.CSharp.Syntax.YieldStatementSyntax)">
+            <summary>
+            Injects `yield return`-statement's expression with call to <see cref="M:VRage.Library.Compiler.IlInjector.YieldGuard``1(``0)"/> to prevent from leaking.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.GenerateStableUniqueIdentifier(Microsoft.CodeAnalysis.FileLinePositionSpan)">
+            <summary>
+            Generates a unique-ish identifier to use for variables.
+            It is based on the span location, so the identifier will be the same across calls with the same span.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.EnterMethodCall">
+            <summary>
+            Creates a call to the call chain depth counter.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.ExitMethodCall">
+            <summary>
+            Creates a call to the call chain depth counter.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.IsDeadCall">
+            <summary>
+            Creates a call to determine whether a given script instance is dead.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.YieldGuard(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax,Microsoft.CodeAnalysis.CSharp.Syntax.TypeSyntax)">
+            <summary>
+            Injects guard to yield expression to prevent it from leaking method-chain counter.
+            </summary>
+            <param name="expression">Original yield expression</param>
+            <param name="genericAttribute">Explicit guard type</param>
+            <returns>Injected yield expression</returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.GetBlockResumeLocation(Microsoft.CodeAnalysis.SyntaxNode)">
+            <summary>
+            Gets the locations to generate #line pragmas for to generate correct error messages, to be used with the <see cref="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.InjectedBlock(Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax,Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax)" /> method.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.InjectedBlock(Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax,Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax)">
+            <summary>
+            Either injects counter methods into an existing block syntax, or generates a block syntax to place the counter method in.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ResourceMonitoringRewriter.InjectBlockAsMethodBody(Microsoft.CodeAnalysis.CSharp.Syntax.BlockSyntax)">
+            <summary>
+            Wraps methodBody into try/finally and makes sure that EnterMethod and ExitMethod compiler calls are emitted.
+            </summary>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ScriptRewriter.AnnotatedIdentifier(System.String)">
+            <summary>
+            Injected nodes should not be whitelist checked, so they are tagged with an annotation to allow the whitelist analyzer to skip them.
+            </summary>
+            <param name="identifierName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Scripting.Rewriters.ScriptRewriter.Annotated``1(``0)">
+            <summary>
+            Injected nodes should not be whitelist checked, so they are tagged with an annotation to allow the whitelist analyzer to skip them.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.Rewriters.TypeSafetyAndBlockRewriter">
+            <summary>
+            Replaces certain types with memory-safe tracked variants so that they can be monitored.
+            It also adds blocks/brackets in all relevant locations, e.g. if statement, foreach, etc.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.TypeKeyExtensions">
+            <summary>
+                Roslyn does not provide a good way to compare a <see cref="T:System.Type" /> with an <see cref="T:Microsoft.CodeAnalysis.ISymbol" />. These
+                extensions aim to provide "good enough" comparisons. In addition it adds a few other key types to be used
+                for the <see cref="T:VRage.Scripting.MyScriptWhitelist" />.
+            </summary>
+        </member>
+        <member name="T:VRage.Scripting.TypeKeyQuantity">
+            <summary>
+            Determines what quantity a given type key should represent (see individual members)
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.TypeKeyQuantity.None">
+            <summary>
+            No quantity
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.TypeKeyQuantity.ThisOnly">
+            <summary>
+            This specific member only
+            </summary>
+        </member>
+        <member name="F:VRage.Scripting.TypeKeyQuantity.AllMembers">
+            <summary>
+            This and all nested members
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.MyVSCompiler.Compile">
+            <summary>
+            Creates a fresh new compilation of source files.
+            Does not load any assembly.
+            </summary>
+            <returns>Success if no compilation errors were encountered.</returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.MyVSCompiler.LoadAssembly(System.String)">
+            <summary>
+            Loads assembly.
+            <returns>Loading success.</returns>
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.MyVSCompiler.Emit(System.IO.Stream,System.IO.Stream)">
+            <summary>
+            Write the final assembly and it's symbols to the provided streams.
+            </summary>
+            <param name="assemblyOutputStream"></param>
+            <param name="symbolsOutputStream"></param>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxBuilderNode">
+            <summary>
+            This node does not generate any syntax, but runs the preprocessing
+            part and initializes the collecting of syntax.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxDelayNode">
+            <summary>
+            Sequence dependent node that creates syntax for timed delay
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxEventNode">
+            <summary>
+            This node represents a Method signature / entrypoint to method.
+            Contains only general information about the method signature.
+            Generates no syntax.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxForEachNode">
+            <summary>
+            Sequence dependent node that creates syntax for ForEach
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxForLoopNode">
+            <summary>
+            Sequence dependent node that creates syntax for For loops
+            with support for custom initial index, increment and last index.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxGetterNode">
+            <summary>
+            This node represents a class variable name getter.
+            Genertes no syntax and only provides other node with
+            variable name.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxInputNode">
+            <summary>
+            Special case of Event node. The logic is the same for both,
+            but on the gui side the logic is different. Thats why I kept
+            it separated also here.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxInterfaceMethodNode">
+            <summary>
+            Simple method declaration node for implementing the interface methods.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxKeyEventNode">
+            <summary>
+            Special case of Event node that also generates some syntax.
+            Creates a simple if statement that filters the input to this node.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxLogicGateNode">
+            <summary>
+            Sequence independent node that creates syntax for basic 
+            boolean algebra operations. AND OR NOT XOR NAND NOR.
+            It joins all provided values into a change of operations
+            started and ended with parenthesis.
+            </summary>
+        </member>
+        <member name="F:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Depth">
+            <summary>
+            Depth of the node in the graph.
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Preprocessed">
+            <summary>
+            Tells if the node was already preprocessed.
+            (default value is false)
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.SequenceDependent">
+            <summary>
+            Tells whenever the node has sequence or not.
+            </summary>
+        </member>
+        <member name="F:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.SubTreeNodes">
+            <summary>
+            Nodes that got referenced more than once at one syntax level.
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Reset">
+            <summary>
+            Resets nodes to state when they are ready for new run of the builder.
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.VariableSyntaxName(System.String,System.Boolean)">
+            <summary>
+            Unique identifier within class syntax.
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Collected">
+            <summary>
+            Is getting set to true the first time the syntax from this node is collected.
+            Prevents duplicities in syntax.
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.DebugCollected">
+            <summary>
+            Indication of debug data collected
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.CollectInputExpressions(System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax},System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax})">
+            <summary>
+            Returns ordered set of expressions from value suppliers.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.CollectSequenceExpressions(System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax},System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax})">
+            <summary>
+            Returns ordered set of all expressions.
+            </summary>
+            <param name="expressions"></param>
+            <param name="statementsToAppend"></param>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.SequenceInputs">
+            <summary>
+            List of sequence input nodes connected to this one.
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.SequenceOutputs">
+            <summary>
+            List of sequence output nodes connected to this one.
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Outputs">
+            <summary>
+            Output nodes.
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Inputs">
+            <summary>
+            Input Nodes.
+            </summary>
+        </member>
+        <member name="F:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.m_objectBuilder">
+            <summary>
+            Data container;
+            </summary>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.ObjectBuilder">
+            <summary>
+            Data container getter.
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.#ctor(VRage.Game.MyObjectBuilder_ScriptNode)">
+            <summary>
+            Constructor.
+            </summary>
+            <param name="ob">Should never be a base of _scriptNode.</param>
+        </member>
+        <member name="P:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Navigator">
+            <summary>
+            Member used for in-graph navigation.
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.Preprocess(System.Int32)">
+            <summary>
+            Pre-generation process that loads necessary data in derived nodes
+            and adjusts the internal state of graph to generation ready state.
+            </summary>
+            <param name="currentDepth"></param>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.TryRegisterInputNodes(System.Int32,System.Collections.Generic.List{VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode})">
+            <summary>
+            Tries to put the node of id into collection.
+            </summary>
+            <param name="nodeID">Id of looked for node.</param>
+            <param name="collection">Target collection.</param>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.TryRegisterOutputNodes(System.Int32,System.Collections.Generic.List{VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode})">
+            <summary>
+            Tries to put the node of id into collection.
+            </summary>
+            <param name="nodeID">Id of looked for node.</param>
+            <param name="collection">Target collection.</param>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxNode.GetHashCode">
+            <summary>
+            Method that is needed for Hashing purposes.
+            Id should be a unique identifier within a graph.
+            </summary>
+            <returns>Id of node.</returns>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxOutputNode">
+            <summary>
+            Output node that fills in the output values of a method.
+            </summary>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxScriptNode">
+            <summary>
+            Represents a method call from local instance of Script class.
+            Contains some data that are used out of the graph generation process.
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.ScriptBuilder.Nodes.MyVisualSyntaxScriptNode.InstanceDeclaration">
+            <summary>
+            MyClass m_instanceName = new MyClass();
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:VRage.Game.VisualScripting.MyVisualScriptBuilder">
+            <summary>
+            Creates class syntax for provided file.
+            
+            Notes:
+            WorldScripts
+                Consist of Event methods having only input purpose, so they have no output variables and void return value.
+                One event type with same signature can appear on multiple places in the script. Such situaltion mean that 
+                the method body will have multiple sections that will be later evaluated independently without 
+                any order dependency.
+            
+            NormalScripts
+                Should have only one input as entry point of the method and multiple or none Output nodes. Output nodes have
+                parameters defined. Method signature will contain input variables (from input node), output variables (from 
+                outputs - all outputs must have same signature) and bool return value. 
+                Return value tells the system if the output node was reached and whenever we should or should not continue
+                executing the sequence chain.
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.MyVisualScriptBuilder.Load">
+            <summary>
+            Loads the script file.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.MyVisualScriptBuilder.Build">
+            <summary>
+            Creates syntax of a class generated out of interactionNodes.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsDerivedTypeOf(Microsoft.CodeAnalysis.ITypeSymbol,Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Checks symbol history for ancestor of the type.
+            </summary>
+            <param name="derivedType"></param>
+            <param name="type"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsSequenceDependent(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Checks for sequnce dependency by Attribute.
+            </summary>
+            <param name="methodSyntax"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsStatic(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Checks for Static modification in method syntax.
+            </summary>
+            <param name="methodSyntax"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.DeclaringClass(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Looks class that is the method container.
+            </summary>
+            <param name="methodSyntax"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.SerializeToObjectBuilder(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Creates string that can be further loaded from string.
+            Full signature with parameters.
+            </summary>
+            <param name="syntax"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.SerializeToObjectBuilder(Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Creates string representation of type symbol that can be further
+            reconstructed. Full namespace + name.
+            </summary>
+            <param name="typeSymbol"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsOut(Microsoft.CodeAnalysis.CSharp.Syntax.ParameterSyntax)">
+            <summary>
+            Checks parameter for Out keyword.
+            </summary>
+            <param name="paramSyntax"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.LiteComparator(Microsoft.CodeAnalysis.ITypeSymbol,Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Comapres two types for equality by theire name.
+            </summary>
+            <param name="current"></param>
+            <param name="another"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsString(Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Is type of string?
+            </summary>
+            <param name="symbol"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsInt(Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Is type of integer?
+            </summary>
+            <param name="symbol"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsFloat(Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Is type of float?
+            </summary>
+            <param name="symbol"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MyRoslynExtensions.IsBool(Microsoft.CodeAnalysis.ITypeSymbol)">
+            <summary>
+            Is type of Bool?
+            </summary>
+            <param name="symbol"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.UsingStatementSyntax(System.String)">
+            <summary>
+            Creates using directive from identifiers "System","Collection".
+            </summary>
+            <param name="namespace"></param>
+            <returns>Null if less than 2 identifiers passed.</returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.GenericFieldDeclaration(System.Type,System.String,System.Nullable{Microsoft.CodeAnalysis.SyntaxTokenList})">
+            <summary>
+            Generic Field declaration creation.
+            </summary>
+            <param name="type">Field type.</param>
+            <param name="fieldVariableName">Name of the field.</param>
+            <param name="modifiers">Modifiers - null creates public modifier list</param>
+            <returns>Complete field declaration syntax.</returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.GenericTypeSyntax(System.Type)">
+            <summary>
+            Generic type syntax creation.
+            </summary>
+            <param name="type">C# type</param>
+            <returns>Type Syntax</returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.GenericObjectCreation(System.Type,System.Collections.Generic.IEnumerable{Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax})">
+            <summary>
+            Creates generic type object creation syntax. new type(argumentExpressions).
+            </summary>
+            <param name="type">Type of created object.</param>
+            <param name="argumentExpressions">Initializer argument expressions.</param>
+            <returns>Object creatation expression.</returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.DelegateAssignment(System.String,System.String)">
+            <summary>
+            deletageIdentifier += methodName;
+            </summary>
+            <param name="deletageIdentifier"></param>
+            <param name="methodName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.DelegateRemoval(System.String,System.String)">
+            <summary>
+            delegateIdentifier -= methodName
+            </summary>
+            <param name="deletageIdentifier"></param>
+            <param name="methodName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.PublicClass(System.String)">
+            <summary>
+            Creates public class with empty body.
+            </summary>
+            <param name="name"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.MemberDeclaration(System.String,System.String)">
+            <summary>
+            Creates basic member declaration with provided name and type.
+            </summary>
+            <param name="memberName">Valid name.</param>
+            <param name="memberType">Valid type.</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.VariableAssignmentExpression(System.String,System.String,Microsoft.CodeAnalysis.CSharp.SyntaxKind)">
+            <summary>
+            Creates assignment expression for given variableName and value.
+            </summary>
+            <param name="variableName"></param>
+            <param name="value"></param>
+            <param name="expressionKind"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.VectorAssignmentExpression(System.String,System.String,System.Double,System.Double,System.Double)">
+            <summary>
+            Creates assignment expression variableName = vectorType(x,y,z);
+            </summary>
+            <param name="variableName"></param>
+            <param name="vectorType"></param>
+            <param name="x"></param>
+            <param name="y"></param>
+            <param name="z"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.ReferenceTypeInstantiation(System.String,System.String,Microsoft.CodeAnalysis.CSharp.Syntax.LiteralExpressionSyntax[])">
+            <summary>
+            Expression of type "var variableName = new type(values....);"
+            </summary>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.VectorArgumentSyntax(System.Double)">
+            <summary>
+            Creates arguments of type NumericLiteral for given value.
+            </summary>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.ArithmeticStatement(System.String,System.String,System.String,System.String)">
+            <summary>
+            Craetes expression of type "var resultVariableName = leftSide 'operation' rightSide;"
+            </summary>
+            <param name="resultVariableName"></param>
+            <param name="leftSide"></param>
+            <param name="rightSide"></param>
+            <param name="operation"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.IfExpressionSyntax(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax,System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax},System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax})">
+            <summary>
+            Creates conditional statement with given statements for true/false clauses and condition syntax.
+            </summary>
+            <param name="condition"></param>
+            <param name="statements"></param>
+            <param name="elseStatements"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.IfExpressionSyntax(System.String,System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax},System.Collections.Generic.List{Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax})">
+            <summary>
+            Creates conditional statement with given statements for true/false clauses and condition variable name.
+            </summary>
+            <param name="conditionVariableName"></param>
+            <param name="statements"></param>
+            <param name="elseStatements"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.CastExpression(System.String,System.String,System.String)">
+            <summary>
+            Creates declaration statement for expression of "var varName = (type)castedVariableName;"
+            </summary>
+            <param name="castedVariableName"></param>
+            <param name="type"></param>
+            <param name="resultVariableName"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.PublicMethodDeclaration(System.String,Microsoft.CodeAnalysis.CSharp.SyntaxKind,System.Collections.Generic.List{System.String},System.Collections.Generic.List{System.String},System.Collections.Generic.List{System.String},System.Collections.Generic.List{System.String})">
+            <summary>
+            Creates public void methodName(paramType1 paramName1,..,paramTypeN paramNameN) {}.
+            </summary>
+            <param name="methodName"></param>
+            <param name="predefinedReturnType"></param>
+            <param name="inputParameterNames"></param>
+            <param name="inputParameterTypes"></param>
+            <param name="outputParameterNames"></param>
+            <param name="outputParameterTypes"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.Parameters(System.Collections.Generic.List{System.String},System.Collections.Generic.List{System.String},System.Boolean)">
+            <summary>
+            Craetes parameter list syntax from given parameterNames.
+            </summary>
+            <param name="parameterNames"></param>
+            <param name="types"></param>
+            <param name="areOutputs">Adds out keyword to every single one.</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.ParameterSyntax(System.String,System.String)">
+            <summary>
+            Creates parameter syntax out of given data.
+            </summary>
+            <param name="name">Unique variable name within script class.</param>
+            <param name="typeIdentifier"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.ParameterSyntax(System.String,System.Type)">
+            <summary>
+            Creates parameter syntax out of given data.
+            </summary>
+            <param name="name">Unique variable name within script class.</param>
+            <param name="type">The type of the parameter</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.LocalVariable(System.String,System.String,Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax)">
+            <summary>
+            Creates syntax for output variable declaration.
+            Can be used to create var type.
+            </summary>
+            <param name="typeData"></param>
+            <param name="variableName"></param>
+            <param name="initializer"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.MethodInvocation(System.String,System.Collections.Generic.IEnumerable{System.String},System.String)">
+            <summary>
+             Creates syntax of type "Method(arg0,arg1,..);"
+            </summary>
+            <param name="className">Used for static method invocation.</param>
+            <param name="methodName">Name of the method.</param>
+            <param name="orderedVariableNames">Should be the same order as method signature.</param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.CreateArgumentSyntax(System.String)">
+            <summary>
+            Craetes simple argument.
+            </summary>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.SimpleAssignment(System.String,Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax)">
+            <summary>
+            Creates assignment for given variable.
+            variableName = rightSide;
+            </summary>
+            <param name="variableName"></param>
+            <param name="rightSide"></param>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Game.VisualScripting.Utils.MySyntaxFactory.Constructor(Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax)">
+            <summary>
+            Creates corresponding parameterless constructor to passed class.
+            </summary>
+            <param name="classDeclaration"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

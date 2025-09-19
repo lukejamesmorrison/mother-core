@@ -1,0 +1,278 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VRage.Input</name>
+    </assembly>
+    <members>
+        <member name="T:VRage.Input.IMyControllerControl">
+            <summary>
+            Describes interface of the control
+            </summary>
+        </member>
+        <member name="P:VRage.Input.IMyControllerControl.Code">
+            <summary>
+            Code of the control
+            </summary>
+        </member>
+        <member name="P:VRage.Input.IMyControllerControl.Condition">
+            <summary>
+            Condition if control should be active
+            </summary>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.IsNewPressed">
+            <summary>
+            Checks if control is newly pressed
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.IsNewPressedRepeating">
+            <summary>
+            Checks if control is newly pressed with repeat feature
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.IsPressed">
+            <summary>
+            Checks if control is pressed
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.IsNewReleased">
+            <summary>
+            Checks if control is newly released
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.AnalogValue">
+            <summary>
+            Gets analog value of the control
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.ControlCode">
+            <summary>
+            Gets control code
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.IsNewPressedXinput">
+            <summary>
+            Checks if control is newly pressed (works only for LT and RT buttons)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.IMyControllerControl.IsNewReleasedXinput">
+            <summary>
+            Checks if control is newly released (works only for LT and RT buttons)
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.MyControl.GetAnalogState">
+            <summary>
+            Return the analog state between 0 (not pressed at all) and 1 (fully pressed).
+            If a digital button is mapped to an analog control, it can return only 0 or 1.
+            </summary>
+        </member>
+        <member name="M:VRage.Input.MyControl.ToString">
+            <summary>
+            Causes allocation. Creates single string with list of assigned controls.
+            </summary>
+        </member>
+        <member name="M:VRage.Input.MyControl.ToStringBuilder(System.String)">
+            <summary>
+            Causes allocation. Creates single StringBuilder with list of assigned controls. Caller
+            takes ownership of returned StringBuilder (it is not stored internally).
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControllerHelper.ButtonTextEvaluator">
+            <summary>
+            Evaluator that can be used to replace button names with their icon.
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControllerHelper.m_isJoystickYAxisState_Reversing">
+            <summary>
+            if current axis is being stretched in negative direction m_isJoystickYAxisState_Reversing.value == true
+            </summary>
+        </member>
+        <member name="T:VRage.Input.MyControlStateType">
+            <summary>
+            Defines states of the control, newly means that control just changed to that state and it will change to next state right after
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControlStateType.NEW_PRESSED">
+            <summary>
+            When control is newly pressed
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControlStateType.PRESSED">
+            <summary>
+            When control is pressed
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControlStateType.NEW_RELEASED">
+            <summary>
+            When control is newly released
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControlStateType.NEW_PRESSED_REPEATING">
+            <summary>
+            When control is newly pressed with repeat feature
+            </summary>
+        </member>
+        <member name="T:VRage.Input.MyControlType">
+            <summary>
+            Defines types of the control
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControlType.JoystickAxis">
+            <summary>
+            Control is axis (for example sticks on gamepad, anything analog)
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyControlType.JoystickButton">
+            <summary>
+            Control is button
+            </summary>
+        </member>
+        <member name="T:VRage.Input.MyFakeControl">
+            <summary>
+            Loading hints require Controls for displaying, but some things cannot be binded to (any direction on Stick or DPad). For this reason fake controls exist, to be able to display control elements That cannot even have binding
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyVRageInput.m_isJoystickYAxisState_Reversing">
+            <summary>
+            if current axis is being stretched in negative direction m_isJoystickYAxisState_Reversing.value == true
+            </summary>
+        </member>
+        <member name="M:VRage.Input.MyVRageInput.IsAnyJoystickAxisPressed">
+            <summary>
+            Detects if any controller axis is active
+            We skip sliders as those are tricky to set to ZERO position so they keep joystick constantly active
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.Input.MyVRageInput.GetMousePosition">
+            <summary>
+            Returns immediatelly current cursor position.
+            Obtains position on every call, it can get cursor data with higher rate than 60 fps
+            </summary>
+        </member>
+        <member name="M:VRage.Input.MyVRageInput.GetGamepadKeyDirections(System.Int32@,System.Int32@)">
+            <summary>
+            Get the actual and previous gamepad key directions (use the first POV controller).
+            Returns false if this type of input is not available.
+            </summary>
+        </member>
+        <member name="T:VRage.Input.MyJoystickButtonsEnum">
+            <summary>
+            Buttons enumeration. If you add new button here, don't forget to change value in MyJoystickConstants
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J01">
+            <summary>
+            Gamepad button A
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J02">
+            <summary>
+            Gamepad button B
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J03">
+            <summary>
+            Gamepad button X
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J04">
+            <summary>
+            Gamepad button Y
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J05">
+            <summary>
+            Gamepad LB
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J06">
+            <summary>
+            Gamepad RB
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J07">
+            <summary>
+            Gamepad View button
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J08">
+            <summary>
+            Gamepad Menu button
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J09">
+            <summary>
+            Gamepad LS press
+            </summary>
+        </member>
+        <member name="F:VRage.Input.MyJoystickButtonsEnum.J10">
+            <summary>
+            Gamepad RS press
+            </summary>
+        </member>
+        <member name="T:VRage.Input.MyKeys">
+            <summary>
+            Enumeration for virtual keys.
+            </summary>
+        </member>
+        <member name="M:VRage.ModAPI.IMyControl.GetAnalogState">
+            <summary>
+            Return the analog state between 0 (not pressed at all) and 1 (fully pressed).
+            If a digital button is mapped to an analog control, it can return only 0 or 1.
+            </summary>
+        </member>
+        <member name="P:VRage.ModAPI.IMyControl.IsEnabled">
+            <summary>
+            if control is enabled or not
+            </summary>
+        </member>
+        <member name="M:VRage.ModAPI.IMyControl.GetKeyboardModifier">
+            <summary>
+            Gets keyboard modifiers for the primary key
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.ModAPI.IMyControl.GetSecondKeyboardModifier">
+            <summary>
+            Gets keyboard modifiers for the secondary key
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:VRage.ModAPI.IMyInput.GetControl(VRage.Input.MyKeys,VRage.ModAPI.MyKeyboardModifiers)">
+            <summary>
+            Gets control for combination of key + modifiers
+            </summary>
+            <param name="key">key</param>
+            <param name="modifiers">modifiers</param>
+            <returns></returns>
+        </member>
+        <member name="F:VRage.ModAPI.MyKeyboardModifiers.None">
+            <summary>
+            No modifier
+            </summary>
+        </member>
+        <member name="F:VRage.ModAPI.MyKeyboardModifiers.Control">
+            <summary>
+            Both left and right control
+            </summary>
+        </member>
+        <member name="F:VRage.ModAPI.MyKeyboardModifiers.Shift">
+            <summary>
+            Both left and right shift
+            </summary>
+        </member>
+        <member name="F:VRage.ModAPI.MyKeyboardModifiers.Alt">
+            <summary>
+            Both left and right ALT
+            </summary>
+        </member>
+    </members>
+</doc>

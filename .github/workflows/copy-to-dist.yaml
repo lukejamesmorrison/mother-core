@@ -1,0 +1,31 @@
+name: Copy files to dist
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repo
+      - uses: actions/checkout@v4
+
+      # 2. Make sure /dist exists
+      - name: Ensure dist folder exists
+        run: mkdir -p dist
+
+      # 3. Copy specific files into dist
+      # 👉 Edit this list to match exactly what you want
+      - name: Copy files
+        run: |
+          cp src/Mother.cs dist/
+          
+          cp src/main.cs dist/
+
+          cp -r src/Commands dist/
+          cp -r src/Modules dist/
+          cp -r src/Utilties dist/
+
