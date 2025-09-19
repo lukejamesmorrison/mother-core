@@ -25,9 +25,9 @@ jobs:
           cp src/.gitattributes dist/
 
           mkdir -p dist/src
-          cp -r src/Commands dist/src/
-          cp -r src/Modules dist/src/
-          cp -r src/Utilities dist/src/
+          cp -r src/Commands dist/
+          cp -r src/Modules dist/
+          cp -r src/Utilities dist/
 
           cp CHANGELOG.md dist/
           cp LICENSE.md dist/
