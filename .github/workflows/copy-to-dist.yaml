@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'   # Only run when pushing tags like v1.0.0
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -24,7 +27,7 @@ jobs:
           cp -r src/Commands dist/
           cp -r src/Modules dist/
           cp -r src/Utilities dist/
-          
+
           cp CHANGELOG.md dist/
           cp LICENSE.md dist/
           cp README.md dist/
