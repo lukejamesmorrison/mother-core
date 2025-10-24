@@ -499,8 +499,8 @@ namespace IngameScript
 
                 // Environment
                 { "SafeRadius", $"{Mother.SafeZone.Radius}" },
-                { "gravity", $"{Mother.GetGravity()}"   },
-                { "speed", $"{Mother.RemoteControl.GetShipSpeed()}" }
+                { "gravity", $"{Mother?.GetGravity() ?? Vector3D.Zero}"   },
+                { "speed", $"{Mother?.RemoteControl?.GetShipSpeed()}" }
             };
         }
 

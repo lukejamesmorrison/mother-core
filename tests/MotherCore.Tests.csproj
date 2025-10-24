@@ -27,5 +27,7 @@
       <ProjectReference Include="..\MotherCoreTest\MotherCoreTest.csproj" />
     </ItemGroup>
 
+	<Import Project="..\src\MotherCore.projitems" Label="Shared" />
+
 
 </Project>

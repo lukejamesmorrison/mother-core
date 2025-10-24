@@ -113,6 +113,27 @@ namespace IngameScript
             Mother = mother;
         }
 
+        /// <summary>Boot the BlockCatalogue: discover construct, load blocks, then start refresh.</summary>
+        public override IEnumerator<double> BootCoroutine()
+        {
+            Boot();
+
+            // 1) Discover construct + load & parse blocks (batched).
+            foreach (var t in DiscoverConstructAndLoadBlocksCoroutine(Mother.CubeGrid))
+                yield return t;
+
+            // 2) Register hooks that depend on TerminalBlocks / BlockConfigs.
+            RegisterBlockHooksFromProgrammableBlockConfiguration();
+
+            // 3) Start rotating configuration refresh AFTER initial load completes.
+            InitiateBlockConfigurationRefresh();
+
+            // If you moved event subscription here, keep it; otherwise remove this line.
+            // SubscribeToEvents();
+
+            yield break;
+        }
+
         /// <summary>
         /// Boot the module. We determine all grids that are part of the main 
         /// construct, load the blocks on the grids and subscribe to events.
@@ -125,14 +146,15 @@ namespace IngameScript
             Clock = Mother.GetModule<Clock>();
 
             // Load construct and blocks
-            LoadLocalGridIds(Mother.CubeGrid);
-            LoadBlocks();
+            //LoadLocalGridIds(Mother.CubeGrid);
+            //LoadBlocks();
+            //Clock.AddCoroutine(DiscoverConstructAndLoadBlocksCoroutine(Mother.CubeGrid));
 
             // Events
             SubscribeToEvents();
 
             // Start automatic block configuration refresh
-            InitiateBlockConfigurationRefresh();
+            //InitiateBlockConfigurationRefresh();
         }
 
         /// <summary>
@@ -161,26 +183,25 @@ namespace IngameScript
         /// Load all Terminal Blocks on the grid. We load block groups, 
         /// and register block configuration and hooks.
         /// </summary>
-        public void LoadBlocks()
-        {
-            // Clear caches
-            BlockTags.Clear();
-            BlockHooks.Clear();
-            BlockConfigs.Clear();
+        //public void LoadBlocks()
+        //{
+        //    // Clear caches
+        //    BlockTags.Clear();
+        //    BlockHooks.Clear();
+        //    BlockConfigs.Clear();
 
-            // Load all IMyTerminalBlock blocks from the grid terminal system.
-            GetBlocksFromGridTerminalSystem(TerminalBlocks);
+        //    // Load all IMyTerminalBlock blocks from the grid terminal system.
+        //    GetBlocksFromGridTerminalSystem(TerminalBlocks);
 
-            // Load remote control - we should improve this implementation later. 
+        //    // Load remote control - we should improve this implementation later. 
+        //    LoadRemoteControlBlock();
 
-            LoadRemoteControlBlock();
+        //    LoadBlockConfigurations();
 
-            LoadBlockConfigurations();
+        //    RegisterBlockHooksFromProgrammableBlockConfiguration();
 
-            RegisterBlockHooksFromProgrammableBlockConfiguration();
-
-            LoadBlockGroups();
-        }
+        //    LoadBlockGroups();
+        //}
 
         /// <summary>
         /// Subscribe to events that are relevant for this module.
@@ -307,13 +328,13 @@ namespace IngameScript
         /// <typeparam name="T"></typeparam>
         /// <param name="blocks"></param>
         /// <param name="filter"></param>
-        void GetBlocksFromGridTerminalSystem<T>(List<T> blocks, Func<T, bool> filter = null) where T : class, IMyTerminalBlock
-        {
-            Mother.GridTerminalSystem.GetBlocksOfType(blocks, block =>
-            {
-                return LocalGridIds.Contains(block.CubeGrid.EntityId) && (filter == null || filter(block));
-            });
-        }
+        //void GetBlocksFromGridTerminalSystem<T>(List<T> blocks, Func<T, bool> filter = null) where T : class, IMyTerminalBlock
+        //{
+        //    Mother.GridTerminalSystem.GetBlocksOfType(blocks, block =>
+        //    {
+        //        return LocalGridIds.Contains(block.CubeGrid.EntityId) && (filter == null || filter(block));
+        //    });
+        //}
 
         /// <summary>
         /// Get blocks of a specific type from the construct.
@@ -336,10 +357,10 @@ namespace IngameScript
                     && newConfiguration.ToString() != BlockConfigs[block].ToString();
         }
 
-        bool BlockIsMother(IMyTerminalBlock block)
-        {
-            return block is IMyProgrammableBlock && block.EntityId == Mother.Id;
-        }
+        //bool BlockIsMother(IMyTerminalBlock block)
+        //{
+        //    return block is IMyProgrammableBlock && block.EntityId == Mother.Id;
+        //}
 
         /// <summary>
         /// Load block configurations from the custom data of each block. We do 
@@ -668,6 +689,7 @@ namespace IngameScript
         /// </summary>
         void LoadRemoteControlBlock()
         {
+
             List<IMyRemoteControl> blocks = TerminalBlocks
                 .OfType<IMyRemoteControl>()
                 .ToList();
@@ -688,7 +710,6 @@ namespace IngameScript
             // getters.  This class should not change a value on Mother directly.
             // Use Mother method as last resort.
             Mother.RemoteControl = PrimaryRemoteControlBlock;
-   
         }
 
         /// <summary>
@@ -698,45 +719,213 @@ namespace IngameScript
         /// IMyCubeBlock.IsSameConstructAs() method to reduced complexity.
         /// </summary>
         /// <param name="startingGrid"></param>
-        void LoadLocalGridIds(IMyCubeGrid startingGrid)
+        //void LoadLocalGridIds(IMyCubeGrid startingGrid)
+        //{
+        //    HashSet<long> localGridIds = new HashSet<long>();
+        //    Queue<IMyCubeGrid> gridsToCheck = new Queue<IMyCubeGrid>();
+
+        //    // StartAutopilot with the main grid
+        //    gridsToCheck.Enqueue(startingGrid);
+
+        //    while (gridsToCheck.Count > 0)
+        //    {
+        //        IMyCubeGrid currentGrid = gridsToCheck.Dequeue();
+
+        //        // Skip if already visited
+        //        if (localGridIds.Contains(currentGrid.EntityId)) continue;
+
+        //        // Mark this grid as visited
+        //        localGridIds.Add(currentGrid.EntityId);
+
+        //        // connection blocks
+        //        List<IMyMechanicalConnectionBlock> connectionBlocks = new List<IMyMechanicalConnectionBlock>();
+
+        //        Mother.GridTerminalSystem.GetBlocksOfType(
+        //            connectionBlocks, 
+        //            block => block.CubeGrid == currentGrid || block.TopGrid == currentGrid
+        //        );
+
+        //        foreach (var block in connectionBlocks)
+        //        {
+        //            // Add the connected grid to the queue
+        //            if (block.TopGrid != null && !localGridIds.Contains(block.TopGrid.EntityId))
+        //                gridsToCheck.Enqueue(block.TopGrid);
+
+        //            // Add the current grid to the queue
+        //            else if (block.CubeGrid != null && !localGridIds.Contains(block.CubeGrid.EntityId))
+        //                gridsToCheck.Enqueue(block.CubeGrid);
+        //        }
+        //    }
+
+        //    LocalGridIds = localGridIds;
+        //}
+
+        // --- NEW: batching caches for construct discovery ---
+        readonly List<IMyMechanicalConnectionBlock> _mechBlocksCache = new List<IMyMechanicalConnectionBlock>(256);
+        readonly Queue<IMyCubeGrid> _gridBfsQueue = new Queue<IMyCubeGrid>(64);
+        readonly HashSet<long> _visitedGrids = new HashSet<long>();
+        Dictionary<long, List<long>> _gridAdjacency = new Dictionary<long, List<long>>(128);
+
+        // --- NEW: small tunables ---
+        const int GRIDS_PER_TICK = 40;           // how many subgrids to traverse per tick
+        const int BLOCKS_PER_TICK_LOAD = 500;   // how many terminal blocks to parse per tick
+
+        // NEW: master coroutine for catalog boot workload
+        IEnumerable<double> DiscoverConstructAndLoadBlocksCoroutine(IMyCubeGrid start)
         {
-            HashSet<long> localGridIds = new HashSet<long>();
-            Queue<IMyCubeGrid> gridsToCheck = new Queue<IMyCubeGrid>();
+            // Build adjacency from mechanical blocks (one terminal scan)
+            BuildMechanicalAdjacency();
 
-            // StartAutopilot with the main grid
-            gridsToCheck.Enqueue(startingGrid);
+            // BFS the construct in batches
+            _gridBfsQueue.Clear();
+            _visitedGrids.Clear();
+            LocalGridIds.Clear();
 
-            while (gridsToCheck.Count > 0)
+            _gridBfsQueue.Enqueue(start);
+
+            while (_gridBfsQueue.Count > 0)
             {
-                IMyCubeGrid currentGrid = gridsToCheck.Dequeue();
+                int processed = 0;
 
-                // Skip if already visited
-                if (localGridIds.Contains(currentGrid.EntityId)) continue;
-
-                // Mark this grid as visited
-                localGridIds.Add(currentGrid.EntityId);
-
-                // connection blocks
-                List<IMyMechanicalConnectionBlock> connectionBlocks = new List<IMyMechanicalConnectionBlock>();
-
-                Mother.GridTerminalSystem.GetBlocksOfType(
-                    connectionBlocks, 
-                    block => block.CubeGrid == currentGrid || block.TopGrid == currentGrid
-                );
-
-                foreach (var block in connectionBlocks)
+                while (_gridBfsQueue.Count > 0 && processed < GRIDS_PER_TICK)
                 {
-                    // Add the connected grid to the queue
-                    if (block.TopGrid != null && !localGridIds.Contains(block.TopGrid.EntityId))
-                        gridsToCheck.Enqueue(block.TopGrid);
+                    var g = _gridBfsQueue.Dequeue();
+                    long gid = g.EntityId;
 
-                    // Add the current grid to the queue
-                    else if (block.CubeGrid != null && !localGridIds.Contains(block.CubeGrid.EntityId))
-                        gridsToCheck.Enqueue(block.CubeGrid);
+                    if (_visitedGrids.Contains(gid)) { processed++; continue; }
+
+                    _visitedGrids.Add(gid);
+                    LocalGridIds.Add(gid);
+
+                    List<long> neighbors;
+                    if (_gridAdjacency.TryGetValue(gid, out neighbors))
+                    {
+                        for (int i = 0; i < neighbors.Count; i++)
+                        {
+                            long nid = neighbors[i];
+                            var nGrid = TryGetGridFromId(nid);
+                            if (nGrid != null && !_visitedGrids.Contains(nid))
+                                _gridBfsQueue.Enqueue(nGrid);
+                        }
+                    }
+
+                    processed++;
                 }
+
+                // yield each slice to stay under instruction limits
+                yield return 0;
             }
 
-            LocalGridIds = localGridIds;
+            // With LocalGridIds set, load + parse terminal blocks in batches
+            foreach (var t in LoadBlocksCoroutine())
+                yield return t;
         }
+
+        // NEW: build grid adjacency once from all mechanical connection blocks
+        void BuildMechanicalAdjacency()
+        {
+            _mechBlocksCache.Clear();
+            _gridAdjacency.Clear();
+
+            Mother.GridTerminalSystem.GetBlocksOfType(_mechBlocksCache);
+
+            for (int i = 0; i < _mechBlocksCache.Count; i++)
+            {
+                var m = _mechBlocksCache[i];
+                var a = m.CubeGrid;
+                var b = m.TopGrid;
+                if (a == null || b == null) continue;
+
+                long aid = a.EntityId, bid = b.EntityId;
+
+                List<long> al;
+                if (!_gridAdjacency.TryGetValue(aid, out al))
+                    _gridAdjacency[aid] = al = new List<long>(4);
+                if (!al.Contains(bid)) al.Add(bid);
+
+                List<long> bl;
+                if (!_gridAdjacency.TryGetValue(bid, out bl))
+                    _gridAdjacency[bid] = bl = new List<long>(4);
+                if (!bl.Contains(aid)) bl.Add(aid);
+            }
+        }
+
+        // NEW: quick helper to recover an IMyCubeGrid reference by id from the cache
+        IMyCubeGrid TryGetGridFromId(long id)
+        {
+            for (int i = 0; i < _mechBlocksCache.Count; i++)
+            {
+                var b = _mechBlocksCache[i];
+                if (b.CubeGrid != null && b.CubeGrid.EntityId == id) return b.CubeGrid;
+                if (b.TopGrid != null && b.TopGrid.EntityId == id) return b.TopGrid;
+            }
+            return null;
+        }
+
+        // NEW: batched variant of your LoadBlocks()
+        IEnumerable<double> LoadBlocksCoroutine()
+        {
+            // mirror your existing LoadBlocks(), but split work across ticks
+            BlockTags.Clear();
+            BlockHooks.Clear();
+            BlockConfigs.Clear();
+            TerminalBlocks.Clear();
+
+            var all = new List<IMyTerminalBlock>();
+            //var all = new List<IMyTerminalBlock>(1024);
+            Mother.GridTerminalSystem.GetBlocks(all);
+
+            // keep only blocks on our construct
+            for (int i = 0; i < all.Count; i++)
+            {
+                var tb = all[i];
+                if (LocalGridIds.Contains(tb.CubeGrid.EntityId))
+                    TerminalBlocks.Add(tb);
+            }
+
+            //Mother.Print("Construct compiled.");
+
+            // keep your current RC selection logic
+            LoadRemoteControlBlock();
+
+            // parse configs/tags/hooks in slices
+            int index = 0;
+            while (index < TerminalBlocks.Count)
+            {
+                int take = Math.Min(BLOCKS_PER_TICK_LOAD, TerminalBlocks.Count - index);
+
+                for (int i = 0; i < take; i++)
+                {
+                    var block = TerminalBlocks[index + i];
+
+                    var ini = new MyIni();
+                    MyIniParseResult res;
+
+                    if (ini.TryParse(block.CustomData, out res))
+                    {
+                        BlockConfigs[block] = ini;
+
+                        if (ini.ToString().Length == 0)
+                            SetDefaultConfiguration(block, ini);
+
+                        if (ini.ContainsSection("general"))
+                            LoadBlockTags(block, ini);
+
+                        if (ini.ContainsSection("hooks"))
+                            LoadBlockHooks(block, ini);
+                    }
+                }
+
+                index += take;
+                yield return 0; // slice to next tick
+            }
+
+            LoadBlockGroups(); // unchanged
+
+            //Mother.Print("Blocks loaded.");
+
+            yield return 0;
+        }
+
     }
 }

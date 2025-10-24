@@ -221,12 +221,12 @@ namespace IngameScript
         /// <summary>
         /// Update the loader indicator state.
         /// </summary>
-        void UpdateLoader() => LoaderLeft = !LoaderLeft; 
+        void UpdateLoader() => LoaderLeft = !LoaderLeft;
 
         /// <summary>
         /// Get the loader indicator.
         /// </summary>
         /// <returns></returns>
-        public string GetLoader() => LoaderLeft ? "/" : "\\"; 
+        public string GetLoader() => LoaderLeft ? "/" : "\\";
     }
 }

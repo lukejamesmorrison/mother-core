@@ -329,6 +329,8 @@ namespace IngameScript
 
                 Print($"Booting modules: ({i + 1} / {total})");
 
+                //module.Boot();
+
                 var boot = module.BootCoroutine();
 
                 while (boot.MoveNext())
@@ -627,6 +629,9 @@ namespace IngameScript
         /// <returns></returns>
         public Vector3D GetGravity()
         {
+            if( RemoteControl == null)
+                return Vector3D.Zero;
+
             Vector3D gravity = RemoteControl.GetArtificialGravity();
 
             // No artificial gravity detected
