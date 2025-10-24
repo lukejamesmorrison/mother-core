@@ -180,30 +180,6 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Load all Terminal Blocks on the grid. We load block groups, 
-        /// and register block configuration and hooks.
-        /// </summary>
-        //public void LoadBlocks()
-        //{
-        //    // Clear caches
-        //    BlockTags.Clear();
-        //    BlockHooks.Clear();
-        //    BlockConfigs.Clear();
-
-        //    // Load all IMyTerminalBlock blocks from the grid terminal system.
-        //    GetBlocksFromGridTerminalSystem(TerminalBlocks);
-
-        //    // Load remote control - we should improve this implementation later. 
-        //    LoadRemoteControlBlock();
-
-        //    LoadBlockConfigurations();
-
-        //    RegisterBlockHooksFromProgrammableBlockConfiguration();
-
-        //    LoadBlockGroups();
-        //}
-
-        /// <summary>
         /// Subscribe to events that are relevant for this module.
         /// </summary>
         void SubscribeToEvents()
@@ -319,22 +295,6 @@ namespace IngameScript
             // Store initial state
             BlockStates[block.EntityId] = handler.GetBlockCurrentState(block);
         }
-
-        /// <summary>
-        /// Get blocks of a specific type from the construct from the grid terminal system. We 
-        /// only call this during boot, and otherwise use TerminalBlocks as our block lookup
-        /// during runtime.Blocks may be filtered via an option parameter. 
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="blocks"></param>
-        /// <param name="filter"></param>
-        //void GetBlocksFromGridTerminalSystem<T>(List<T> blocks, Func<T, bool> filter = null) where T : class, IMyTerminalBlock
-        //{
-        //    Mother.GridTerminalSystem.GetBlocksOfType(blocks, block =>
-        //    {
-        //        return LocalGridIds.Contains(block.CubeGrid.EntityId) && (filter == null || filter(block));
-        //    });
-        //}
 
         /// <summary>
         /// Get blocks of a specific type from the construct.
@@ -711,54 +671,6 @@ namespace IngameScript
             // Use Mother method as last resort.
             Mother.RemoteControl = PrimaryRemoteControlBlock;
         }
-
-        /// <summary>
-        /// Load local grid IDs. This includes the main grid and any grids connected via a hinge, 
-        /// rotor or piston.  We do this to ensure our grid does not target blocks on other 
-        /// grids when connected via a connector. This method circumvents the 
-        /// IMyCubeBlock.IsSameConstructAs() method to reduced complexity.
-        /// </summary>
-        /// <param name="startingGrid"></param>
-        //void LoadLocalGridIds(IMyCubeGrid startingGrid)
-        //{
-        //    HashSet<long> localGridIds = new HashSet<long>();
-        //    Queue<IMyCubeGrid> gridsToCheck = new Queue<IMyCubeGrid>();
-
-        //    // StartAutopilot with the main grid
-        //    gridsToCheck.Enqueue(startingGrid);
-
-        //    while (gridsToCheck.Count > 0)
-        //    {
-        //        IMyCubeGrid currentGrid = gridsToCheck.Dequeue();
-
-        //        // Skip if already visited
-        //        if (localGridIds.Contains(currentGrid.EntityId)) continue;
-
-        //        // Mark this grid as visited
-        //        localGridIds.Add(currentGrid.EntityId);
-
-        //        // connection blocks
-        //        List<IMyMechanicalConnectionBlock> connectionBlocks = new List<IMyMechanicalConnectionBlock>();
-
-        //        Mother.GridTerminalSystem.GetBlocksOfType(
-        //            connectionBlocks, 
-        //            block => block.CubeGrid == currentGrid || block.TopGrid == currentGrid
-        //        );
-
-        //        foreach (var block in connectionBlocks)
-        //        {
-        //            // Add the connected grid to the queue
-        //            if (block.TopGrid != null && !localGridIds.Contains(block.TopGrid.EntityId))
-        //                gridsToCheck.Enqueue(block.TopGrid);
-
-        //            // Add the current grid to the queue
-        //            else if (block.CubeGrid != null && !localGridIds.Contains(block.CubeGrid.EntityId))
-        //                gridsToCheck.Enqueue(block.CubeGrid);
-        //        }
-        //    }
-
-        //    LocalGridIds = localGridIds;
-        //}
 
         // --- NEW: batching caches for construct discovery ---
         readonly List<IMyMechanicalConnectionBlock> _mechBlocksCache = new List<IMyMechanicalConnectionBlock>(256);
