@@ -834,8 +834,6 @@ namespace IngameScript
 
             LoadBlockGroups(); // unchanged
 
-            //Mother.Print("Blocks loaded.");
-
             yield return 0;
         }
 
