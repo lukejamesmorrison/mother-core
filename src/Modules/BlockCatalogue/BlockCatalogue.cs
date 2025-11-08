@@ -105,6 +105,21 @@ namespace IngameScript
         const int BLOCKS_PER_CYCLE = 50;
 
         /// <summary>
+        /// The name of the general configuration section.
+        /// </summary>
+        const string SECTION_GENERAL = "general";
+
+        /// <summary>
+        /// The key for block tags in the a block configuration.
+        /// </summary>
+        const string KEY_TAGS = "tags";
+
+        /// <summary>
+        /// The name of the hooks configuration section.
+        /// </summary>
+        const string SECTION_HOOKS = "hooks";
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
@@ -113,30 +128,30 @@ namespace IngameScript
             Mother = mother;
         }
 
-        /// <summary>Boot the BlockCatalogue: discover construct, load blocks, then start refresh.</summary>
+        /// <summary>
+        /// Boot the module over multiple cycles. We discover all constructs 
+        /// connected via mechanical blocks and store their configuration.
+        /// </summary>
         public override IEnumerator<double> BootCoroutine()
         {
+            // Run standard boot.
             Boot();
 
-            // 1) Discover construct + load & parse blocks (batched).
+            // Load blocks across construct.
             foreach (var t in DiscoverConstructAndLoadBlocksCoroutine(Mother.CubeGrid))
                 yield return t;
 
-            // 2) Register hooks that depend on TerminalBlocks / BlockConfigs.
+            // Register block hooks.
             RegisterBlockHooksFromProgrammableBlockConfiguration();
 
-            // 3) Start rotating configuration refresh AFTER initial load completes.
-            InitiateBlockConfigurationRefresh();
-
-            // If you moved event subscription here, keep it; otherwise remove this line.
-            // SubscribeToEvents();
+            // Initiate auto-refresh of block configurations.
+            Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine());
 
             yield break;
         }
 
         /// <summary>
-        /// Boot the module. We determine all grids that are part of the main 
-        /// construct, load the blocks on the grids and subscribe to events.
+        /// Boot the module. We registered useful modules and subscribe to events.
         /// </summary>
         public override void Boot()
         {
@@ -145,25 +160,11 @@ namespace IngameScript
             EventBus = Mother.GetModule<EventBus>();
             Clock = Mother.GetModule<Clock>();
 
-            // Load construct and blocks
-            //LoadLocalGridIds(Mother.CubeGrid);
-            //LoadBlocks();
-            //Clock.AddCoroutine(DiscoverConstructAndLoadBlocksCoroutine(Mother.CubeGrid));
-
             // Events
-            SubscribeToEvents();
-
-            // Start automatic block configuration refresh
-            //InitiateBlockConfigurationRefresh();
-        }
-
-        /// <summary>
-        /// Initiate a block configuration refresh routine. This will reload block configurations
-        /// on a consistent interval so respond to player changes.
-        /// </summary>
-        void InitiateBlockConfigurationRefresh()
-        {
-            Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine());
+            EventBus.Subscribe<ConnectorLockedEvent>(this);
+            EventBus.Subscribe<ConnectorUnlockedEvent>(this);
+            EventBus.Subscribe<MergeBlockLockedEvent>(this);
+            EventBus.Subscribe<MergeBlockOffEvent>(this);
         }
 
         /// <summary>
@@ -177,17 +178,6 @@ namespace IngameScript
             Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine(), 1);
 
             yield return 0;
-        }
-
-        /// <summary>
-        /// Subscribe to events that are relevant for this module.
-        /// </summary>
-        void SubscribeToEvents()
-        {
-            EventBus.Subscribe<ConnectorLockedEvent>(this);
-            EventBus.Subscribe<ConnectorUnlockedEvent>(this);
-            EventBus.Subscribe<MergeBlockLockedEvent>(this);
-            EventBus.Subscribe<MergeBlockOffEvent>(this);
         }
 
         /// <summary>
@@ -218,7 +208,8 @@ namespace IngameScript
 
             foreach (var block in blocksToProcess)
             {
-                if (!BlocksToMonitor.ContainsKey(block)) continue; // Skip if block is not registered
+                // Skip if block is not registered
+                if (!BlocksToMonitor.ContainsKey(block)) continue; 
 
                 IBlockStateHandler handler = BlocksToMonitor[block];
 
@@ -229,7 +220,7 @@ namespace IngameScript
                 {
                     handler.OnBlockStateChanged(block);
 
-                    BlockStates[block.EntityId] = currentState; // Update stored state
+                    BlockStates[block.EntityId] = currentState;
                 }
             }
 
@@ -263,7 +254,7 @@ namespace IngameScript
             MyIni blockConfiguration = GetBlockConfiguration(block);
 
             // if tag not in the block's tags
-            string tagsValue = $"{blockConfiguration.Get("general", "tags")}";
+            string tagsValue = $"{blockConfiguration.Get(SECTION_GENERAL, KEY_TAGS)}";
 
             if (tagsValue == "")
                 tagsValue = tag;
@@ -271,7 +262,7 @@ namespace IngameScript
             else if (!tagsValue.Contains(tag))
                 tagsValue += $",{tag}";
 
-            blockConfiguration.Set("general", "tags", tagsValue);
+            blockConfiguration.Set(SECTION_GENERAL, KEY_TAGS, tagsValue);
             block.CustomData = blockConfiguration.ToString();
 
             if (!BlockTags.ContainsKey(tag))
@@ -369,11 +360,11 @@ namespace IngameScript
                     SetDefaultConfiguration(block, blockConfiguration);
 
                 // Load block tags
-                if (blockConfiguration.ContainsSection("general"))
+                if (blockConfiguration.ContainsSection(SECTION_GENERAL))
                     LoadBlockTags(block, blockConfiguration);
 
                 // Load block hooks
-                if (blockConfiguration.ContainsSection("hooks"))
+                if (blockConfiguration.ContainsSection(SECTION_HOOKS))
                     LoadBlockHooks(block, blockConfiguration);
             }
         }
@@ -404,7 +395,7 @@ namespace IngameScript
         /// <param name="blockConfiguration"></param>
         void LoadBlockTags(IMyTerminalBlock block, MyIni blockConfiguration)
         {
-            string tagsValue = $"{blockConfiguration.Get("general", "tags")}";
+            string tagsValue = $"{blockConfiguration.Get(SECTION_GENERAL, KEY_TAGS)}";
 
             if (tagsValue == "") return;
 
@@ -429,11 +420,11 @@ namespace IngameScript
             var hooks = new Dictionary<string, string>();
 
             List<MyIniKey> keys = new List<MyIniKey>();
-            blockConfiguration.GetKeys("hooks", keys);
+            blockConfiguration.GetKeys(SECTION_HOOKS, keys);
 
             foreach (var hookName in keys)
             {
-                string hookValue = $"{blockConfiguration.Get("hooks", hookName.Name)}";
+                string hookValue = $"{blockConfiguration.Get(SECTION_HOOKS, hookName.Name)}";
                 string simplifiedValue = ReplaceThisKeywordWithBlockName(block, hookValue);
 
                 hooks[hookName.Name] = simplifiedValue;
@@ -450,11 +441,10 @@ namespace IngameScript
         /// <returns></returns>
         string ReplaceThisKeywordWithBlockName(IMyTerminalBlock block, string hookValue)
         {
-            // Create a new string to store the result
             StringBuilder modifiedValue = new StringBuilder();
             int startIndex = 0;
 
-            // Iterate through the string and manually replace "this" when appropriate
+            // Iterate through the string and replace "this" keyword
             while (startIndex < hookValue.Length)
             {
                 int index = hookValue.IndexOf("this", startIndex);
@@ -497,7 +487,7 @@ namespace IngameScript
             MyIni programmableBlockConfig = Configuration.Ini;
 
             List<MyIniKey> keys = new List<MyIniKey>();
-            programmableBlockConfig.GetKeys("hooks", keys);
+            programmableBlockConfig.GetKeys(SECTION_HOOKS, keys);
 
             // print each hookName in the "hooks" section
             foreach (var key in keys)
@@ -517,7 +507,7 @@ namespace IngameScript
                         if (!BlockHooks.ContainsKey(block))
                             BlockHooks[block] = new Dictionary<string, string>();
 
-                        BlockHooks[block][hookName] = programmableBlockConfig.Get("hooks", key.Name).ToString();
+                        BlockHooks[block][hookName] = programmableBlockConfig.Get(SECTION_HOOKS, key.Name).ToString();
                     }
                 }
             }
@@ -655,7 +645,7 @@ namespace IngameScript
                 .ToList();
 
             if (blocks.Count == 0)
-                throw new Exception("\n\nNo remote control block found. Add one to your grid and press 'Recompile'.\n");
+                throw new Exception("\n\nNo remote control block found. Add one and 'Recompile'.\n");
 
             PrimaryRemoteControlBlock = blocks[0];
 
@@ -672,78 +662,104 @@ namespace IngameScript
             Mother.RemoteControl = PrimaryRemoteControlBlock;
         }
 
-        // --- NEW: batching caches for construct discovery ---
-        readonly List<IMyMechanicalConnectionBlock> _mechBlocksCache = new List<IMyMechanicalConnectionBlock>(256);
-        readonly Queue<IMyCubeGrid> _gridBfsQueue = new Queue<IMyCubeGrid>(64);
-        readonly HashSet<long> _visitedGrids = new HashSet<long>();
-        Dictionary<long, List<long>> _gridAdjacency = new Dictionary<long, List<long>>(128);
+        /// <summary>
+        /// Cache of mechanical blocks for adjacency building.
+        /// </summary>
+        readonly List<IMyMechanicalConnectionBlock> mechanicalBlocksCache = new List<IMyMechanicalConnectionBlock>();
 
-        // --- NEW: small tunables ---
-        const int GRIDS_PER_TICK = 40;           // how many subgrids to traverse per tick
-        const int BLOCKS_PER_TICK_LOAD = 500;   // how many terminal blocks to parse per tick
+        /// <summary>
+        /// Queue for BFS grid traversal during construct discovery.
+        /// </summary>
+        readonly Queue<IMyCubeGrid> gridBfsQueue = new Queue<IMyCubeGrid>();
 
-        // NEW: master coroutine for catalog boot workload
+        /// <summary>
+        /// Set of visited grid IDs during construct discovery.
+        /// </summary>
+        readonly HashSet<long> visitedGrids = new HashSet<long>();
+
+        /// <summary>
+        /// Adjacency map of grids connected via mechanical blocks.
+        /// </summary>
+        Dictionary<long, List<long>> gridAdjacencyMap = new Dictionary<long, List<long>>();
+
+        /// <summary>
+        /// Number of grids to traverse per tick when discovering the construct.
+        /// Grids are connected via mechanical blocks (rotor, hinge, piston).
+        /// </summary>
+        const int GRIDS_PER_TICK = 40;
+
+        /// <summary>
+        /// Number of blocks to parse per tick when loading block configurations.
+        /// </summary>
+        const int BLOCKS_PER_TICK_LOAD = 500;
+
+        /// <summary>
+        /// Coroutine to discover all grids in the construct and load blocks in batches.
+        /// </summary>
+        /// <param name="start"></param>
+        /// <returns></returns>
         IEnumerable<double> DiscoverConstructAndLoadBlocksCoroutine(IMyCubeGrid start)
         {
-            // Build adjacency from mechanical blocks (one terminal scan)
+            // Build adjacency from mechanical blocks
             BuildMechanicalAdjacency();
 
             // BFS the construct in batches
-            _gridBfsQueue.Clear();
-            _visitedGrids.Clear();
+            gridBfsQueue.Clear();
+            visitedGrids.Clear();
             LocalGridIds.Clear();
 
-            _gridBfsQueue.Enqueue(start);
+            gridBfsQueue.Enqueue(start);
 
-            while (_gridBfsQueue.Count > 0)
+            while (gridBfsQueue.Count > 0)
             {
                 int processed = 0;
 
-                while (_gridBfsQueue.Count > 0 && processed < GRIDS_PER_TICK)
+                while (gridBfsQueue.Count > 0 && processed < GRIDS_PER_TICK)
                 {
-                    var g = _gridBfsQueue.Dequeue();
+                    var g = gridBfsQueue.Dequeue();
                     long gid = g.EntityId;
 
-                    if (_visitedGrids.Contains(gid)) { processed++; continue; }
+                    if (visitedGrids.Contains(gid)) { processed++; continue; }
 
-                    _visitedGrids.Add(gid);
+                    visitedGrids.Add(gid);
                     LocalGridIds.Add(gid);
 
                     List<long> neighbors;
-                    if (_gridAdjacency.TryGetValue(gid, out neighbors))
+                    if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
                         for (int i = 0; i < neighbors.Count; i++)
                         {
                             long nid = neighbors[i];
                             var nGrid = TryGetGridFromId(nid);
-                            if (nGrid != null && !_visitedGrids.Contains(nid))
-                                _gridBfsQueue.Enqueue(nGrid);
+                            if (nGrid != null && !visitedGrids.Contains(nid))
+                                gridBfsQueue.Enqueue(nGrid);
                         }
                     }
 
                     processed++;
                 }
 
-                // yield each slice to stay under instruction limits
                 yield return 0;
             }
 
-            // With LocalGridIds set, load + parse terminal blocks in batches
             foreach (var t in LoadBlocksCoroutine())
                 yield return t;
         }
 
-        // NEW: build grid adjacency once from all mechanical connection blocks
+        /// <summary>
+        /// Build mechanical adjacency map from all mechanical blocks on the main 
+        /// grid. This allows us to traverse connected grids efficiently.
+        /// </summary>
         void BuildMechanicalAdjacency()
         {
-            _mechBlocksCache.Clear();
-            _gridAdjacency.Clear();
+            mechanicalBlocksCache.Clear();
+            gridAdjacencyMap.Clear();
 
-            Mother.GridTerminalSystem.GetBlocksOfType(_mechBlocksCache);
+            Mother.GridTerminalSystem.GetBlocksOfType(mechanicalBlocksCache);
 
-            for (int i = 0; i < _mechBlocksCache.Count; i++)
+            for (int i = 0; i < mechanicalBlocksCache.Count; i++)
             {
-                var m = _mechBlocksCache[i];
+                var m = mechanicalBlocksCache[i];
                 var a = m.CubeGrid;
                 var b = m.TopGrid;
                 if (a == null || b == null) continue;
@@ -751,43 +767,49 @@ namespace IngameScript
                 long aid = a.EntityId, bid = b.EntityId;
 
                 List<long> al;
-                if (!_gridAdjacency.TryGetValue(aid, out al))
-                    _gridAdjacency[aid] = al = new List<long>(4);
+                if (!gridAdjacencyMap.TryGetValue(aid, out al))
+                    gridAdjacencyMap[aid] = al = new List<long>(4);
                 if (!al.Contains(bid)) al.Add(bid);
 
                 List<long> bl;
-                if (!_gridAdjacency.TryGetValue(bid, out bl))
-                    _gridAdjacency[bid] = bl = new List<long>(4);
+                if (!gridAdjacencyMap.TryGetValue(bid, out bl))
+                    gridAdjacencyMap[bid] = bl = new List<long>(4);
                 if (!bl.Contains(aid)) bl.Add(aid);
             }
         }
 
-        // NEW: quick helper to recover an IMyCubeGrid reference by id from the cache
+        /// <summary>
+        /// Try to get a grid from its entity ID by searching mechanical blocks cache.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         IMyCubeGrid TryGetGridFromId(long id)
         {
-            for (int i = 0; i < _mechBlocksCache.Count; i++)
+            for (int i = 0; i < mechanicalBlocksCache.Count; i++)
             {
-                var b = _mechBlocksCache[i];
+                var b = mechanicalBlocksCache[i];
                 if (b.CubeGrid != null && b.CubeGrid.EntityId == id) return b.CubeGrid;
                 if (b.TopGrid != null && b.TopGrid.EntityId == id) return b.TopGrid;
             }
             return null;
         }
 
-        // NEW: batched variant of your LoadBlocks()
+        /// <summary>
+        /// Coroutine to load blocks in batches. This allows us to stay under instruction
+        /// limits and load entire block catalogue over multiple cycles.
+        /// </summary>
+        /// <returns></returns>
         IEnumerable<double> LoadBlocksCoroutine()
         {
-            // mirror your existing LoadBlocks(), but split work across ticks
             BlockTags.Clear();
             BlockHooks.Clear();
             BlockConfigs.Clear();
             TerminalBlocks.Clear();
 
             var all = new List<IMyTerminalBlock>();
-            //var all = new List<IMyTerminalBlock>(1024);
             Mother.GridTerminalSystem.GetBlocks(all);
 
-            // keep only blocks on our construct
+            // keep only blocks in the construct
             for (int i = 0; i < all.Count; i++)
             {
                 var tb = all[i];
@@ -795,12 +817,9 @@ namespace IngameScript
                     TerminalBlocks.Add(tb);
             }
 
-            //Mother.Print("Construct compiled.");
-
-            // keep your current RC selection logic
             LoadRemoteControlBlock();
 
-            // parse configs/tags/hooks in slices
+            // parse configs/tags/hooks
             int index = 0;
             while (index < TerminalBlocks.Count)
             {
@@ -811,6 +830,7 @@ namespace IngameScript
                     var block = TerminalBlocks[index + i];
 
                     var ini = new MyIni();
+
                     MyIniParseResult res;
 
                     if (ini.TryParse(block.CustomData, out res))
@@ -820,22 +840,21 @@ namespace IngameScript
                         if (ini.ToString().Length == 0)
                             SetDefaultConfiguration(block, ini);
 
-                        if (ini.ContainsSection("general"))
+                        if (ini.ContainsSection(SECTION_GENERAL))
                             LoadBlockTags(block, ini);
 
-                        if (ini.ContainsSection("hooks"))
+                        if (ini.ContainsSection(SECTION_HOOKS))
                             LoadBlockHooks(block, ini);
                     }
                 }
 
                 index += take;
-                yield return 0; // slice to next tick
+                yield return 0;
             }
 
-            LoadBlockGroups(); // unchanged
+            LoadBlockGroups();
 
             yield return 0;
         }
-
     }
 }
