@@ -141,7 +141,8 @@ namespace IngameScript
             string commandQueueIndicator = Mother.GetModule<CommandBus>().WaypointRoutineQueue.WaypointRoutines.Count > 0 ? "Q" : "   ";
             string waitQueueIndicator = Mother.GetModule<Clock>().QueuedTaskCount > 0 ? "W" : "   ";
 
-            //return "";
+            int remoteScriptCount = Mother.GetModule<CommandBus>().RemoteCommands.Count;
+            string remoteIndicator = remoteScriptCount > 0 ? $"R{remoteScriptCount}" : "   ";
 
             return String.Join(
                 "  ",
@@ -150,7 +151,8 @@ namespace IngameScript
                 autopilotIndication,
                 activeRequests,
                 activityMonitorIndicator,
-                almanacCount
+                almanacCount,
+                remoteIndicator
             );
         }
 

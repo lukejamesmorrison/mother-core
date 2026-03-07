@@ -117,21 +117,55 @@ namespace IngameScript
 
             // ROUTES
             Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
-            Router.RegisterRoute("sync", request => SyncWithLocalMotherInstances(request));
+            Router.RegisterRoute("sync", request => HandleSyncRequest(request));
 
-            // Send local broadcast - WIP
-            //LocalPing();
+            // Ping local scripts to perform handshake after boot completes
+            Clock.QueueForLater(() => LocalPing(), 0.5);
+            
+            // Re-sync local scripts periodically to catch late-booting scripts
+            Clock.Schedule(LocalPing, 5);
 
-            // Ping local, then schedule recurring ping every 2 seconds.
-            //PingLocal();
+            // Ping remote grids periodically
             Clock.Schedule(Ping, 2);
         }
 
-        Response SyncWithLocalMotherInstances(Request request)
+        /// <summary>
+        /// Handles a sync request from another local Mother instance.
+        /// Returns our local commands in the response body.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Response HandleSyncRequest(Request request)
         {
-            //Mother.Print("New request to sync!");
+            // Register the remote script's commands
+            long originId = request.HLong("OriginId");
+            string commandsStr = request.BString("Commands");
+            string originName = request.HString("OriginName");
+            
+            if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
+            {
+                var commands = new List<string>(commandsStr.Split(','));
+                Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
+                
+                Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
+            }
 
-            return CreateResponse(request, Response.ResponseStatusCodes.OK);
+            // Return our commands
+            var localCommands = Mother.GetModule<CommandBus>().GetLocalCommandNames();
+            
+            var response = CreateResponse(
+                request,
+                Response.ResponseStatusCodes.OK,
+                new Dictionary<string, object>
+                {
+                    { "Commands", string.Join(",", localCommands) }
+                }
+            );
+            
+            // Ensure response uses the local channel
+            response.Channels.Add(".local");
+            
+            return response;
         }
 
         /// <summary>
@@ -391,6 +425,10 @@ namespace IngameScript
 
             // sort message.Channels so that public is prioritized last
             var orderedChannels = message.Channels.OrderBy(c => c == "*").ToHashSet();
+            
+            // If no channels specified, try .local for local construct messages
+            if (orderedChannels.Count == 0)
+                orderedChannels.Add(".local");
 
             foreach (string channel in orderedChannels)
             {
@@ -601,21 +639,60 @@ namespace IngameScript
         /// </summary>
         public void LocalPing()
         {
-            // send lean message only with entity id and mode=master/extension/both on local channel to conduct local handshake.
-            //string channel = ".local";
+            var localCommands = Mother.GetModule<CommandBus>().GetLocalCommandNames();
 
             Request request = CreateRequest(
                 "sync",
-                null,
                 new Dictionary<string, object>
                 {
-                    //{ "mode", "both" },
-                    //{ "OriginId", $"{Mother.Id}" },
-                    { "OriginName", Mother.Name },
+                    { "Commands", string.Join(",", localCommands) }
+                },
+                new Dictionary<string, object>
+                {
+                    { "OriginName", Mother.Name }
                 }
             );
 
-            SendLocalBroadcastRequest(request, response => OnLocalPingResponse(response));
+            SendLocalBroadcastRequest(request, response => OnSyncResponse(response));
+        }
+
+        /// <summary>
+        /// Handle sync response from other local Mother instances.
+        /// </summary>
+        /// <param name="response"></param>
+        void OnSyncResponse(IntergridMessageObject response)
+        {
+            long originId = response.HLong("OriginId");
+            string commandsStr = response.BString("Commands");
+            string originName = response.HString("OriginName");
+            
+            if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
+            {
+                var commands = new List<string>(commandsStr.Split(','));
+                Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
+                
+                // Display remote commands in terminal
+                Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
+            }
+        }
+
+        /// <summary>
+        /// Send a command to another local Mother instance.
+        /// </summary>
+        /// <param name="targetId">The EntityId of the target script.</param>
+        /// <param name="command">The command to execute.</param>
+        public void SendLocalCommand(long targetId, string command)
+        {
+            Request request = CreateRequest(
+                "localcmd",
+                new Dictionary<string, object>
+                {
+                    { "Command", command }
+                }
+            );
+
+            Mother.IGC.SendUnicastMessage(targetId, ".local", request.Serialize());
+            Mother.Print($"> @local {command}");
         }
 
         /// <summary>
@@ -625,19 +702,8 @@ namespace IngameScript
         /// <param name="onResponse"></param>
         public void SendLocalBroadcastRequest(Request request, Action<IntergridMessageObject> onResponse)
         {
-            // Register the message callback
             activeRequests[request.Id] = onResponse;
-         
             Mother.IGC.SendBroadcastMessage(".local", request.Serialize(), TransmissionDistance.CurrentConstruct);
-
-            //Mother.Print("Sent local broadcast");
-
-            //EventBus.Emit<RequestSentEvent>();
-        }
-
-        void OnLocalPingResponse(IntergridMessageObject response)
-        {
-            //Mother.Print($"Local response received. {response}");
         }
 
         /// <summary>

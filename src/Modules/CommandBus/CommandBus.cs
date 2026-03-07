@@ -54,6 +54,12 @@ namespace IngameScript
         public readonly List<IModuleCommand> ModuleCommands = new List<IModuleCommand>();
 
         /// <summary>
+        /// Registry of commands available on other local Mother instances.
+        /// Maps script EntityId to list of command names.
+        /// </summary>
+        public readonly Dictionary<long, List<string>> RemoteCommands = new Dictionary<long, List<string>>();
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
@@ -73,11 +79,15 @@ namespace IngameScript
             Clock = Mother.GetModule<Clock>();
             Log = Mother.GetModule<Log>();
 
+            // Clear remote commands on boot
+            RemoteCommands.Clear();
+
             // Commands
             RegisterCommand(new HelpCommand(this));
 
             // Routes
-            AddRoute("command", request => HandleIncomingCommandRequest(request));
+            AddRoute("command", request => HandleRemoteCommandRequest(request));
+            AddRoute("localcmd", request => HandleLocalCommandRequest(request));
         }
 
         /// <summary>
@@ -86,17 +96,17 @@ namespace IngameScript
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        Response HandleIncomingCommandRequest(Request request)
+        Response HandleRemoteCommandRequest(Request request)
         {
             string command = request.BString("Command").Trim();
             string originName = request.HString("OriginName");
 
-            Mother.GetModule<Log>().Info($"REQ: {originName}> {command}");
+            Log.Info($"REQ: {originName}> {command}");
             Mother.Print($"REQ: {originName}> {command}", false);
 
             if (command != null)
             {
-                bool success = Mother.GetModule<CommandBus>().RunTerminalCommand(command);
+                bool success = RunTerminalCommand(command);
 
                 Response.ResponseStatusCodes status = success 
                     ? Response.ResponseStatusCodes.COMMAND_EXECUTED 
@@ -106,6 +116,36 @@ namespace IngameScript
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Handles a local command request from another local Mother instance.
+        /// Executes the command and returns the result.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Response HandleLocalCommandRequest(Request request)
+        {
+            string command = request.BString("Command").Trim();
+            string originName = request.HString("OriginName");
+
+            Log.Info($"LREQ: {originName}> {command}");
+            Mother.Print($"LREQ: {originName}> {command}", false);
+
+            var igs = Mother.GetModule<IntergridMessageService>();
+
+            if (!string.IsNullOrEmpty(command))
+            {
+                bool success = RunTerminalCommand(command);
+
+                var status = success 
+                    ? Response.ResponseStatusCodes.COMMAND_EXECUTED 
+                    : Response.ResponseStatusCodes.ERROR;
+
+                return igs.CreateResponse(request, status);
+            }
+
+            return igs.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
         }
 
         /// <summary>
@@ -206,6 +246,50 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Gets the list of local command names for sharing with other scripts.
+        /// </summary>
+        /// <returns></returns>
+        public List<string> GetLocalCommandNames()
+        {
+            var names = new List<string>(ModuleCommands.Count + Mother.ConfigCommands.Count);
+            
+            for (int i = 0; i < ModuleCommands.Count; i++)
+                names.Add(ModuleCommands[i].GetCommandName());
+            
+            foreach (var key in Mother.ConfigCommands.Keys)
+                names.Add(key);
+            
+            return names;
+        }
+
+        /// <summary>
+        /// Registers commands from a remote script.
+        /// </summary>
+        /// <param name="scriptId">The EntityId of the remote script.</param>
+        /// <param name="commands">List of command names available on that script.</param>
+        public void RegisterRemoteCommands(long scriptId, List<string> commands)
+        {
+            if (scriptId == Mother.Id) return;
+            RemoteCommands[scriptId] = commands;
+        }
+
+        /// <summary>
+        /// Finds the script that has a specific command.
+        /// Returns 0 if not found.
+        /// </summary>
+        /// <param name="commandName"></param>
+        /// <returns></returns>
+        public long FindScriptWithCommand(string commandName)
+        {
+            foreach (var entry in RemoteCommands)
+            {
+                if (entry.Value.Contains(commandName))
+                    return entry.Key;
+            }
+            return 0;
+        }
+
+        /// <summary>
         /// Processes and executes a single command.  Commands can only be run 
         /// locally on a grid. Remote commands are considered Routines.
         /// </summary>
@@ -270,6 +354,15 @@ namespace IngameScript
 
                     return true;
                 }
+            }
+
+            // Check if command exists on another local script
+            long remoteScriptId = FindScriptWithCommand(command.Name);
+            if (remoteScriptId != 0)
+            {
+                Mother.GetModule<IntergridMessageService>()
+                    .SendLocalCommand(remoteScriptId, commandString);
+                return true;
             }
 
             Mother.Print(MessageFormatter.Format(Messages.CommandNotFound, command.CommandString), false);
