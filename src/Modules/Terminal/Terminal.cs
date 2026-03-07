@@ -98,7 +98,7 @@ namespace IngameScript
             string systemName = (Mother.SystemName ?? "").PadRight(15).Substring(0, 15);
 
             output +=
-                $" {systemName}   {GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
+                $" {systemName}{GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
                 $" {Mother.Name} *{Mother.ShortId}\n" +
                 $"------------------------------------------------------\n" +
                 "";

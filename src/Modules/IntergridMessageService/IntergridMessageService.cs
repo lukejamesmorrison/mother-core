@@ -147,7 +147,7 @@ namespace IngameScript
                 var commands = new List<string>(commandsStr.Split(','));
                 Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
                 
-                Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
+                //Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
             }
 
             // Return our commands
@@ -672,7 +672,7 @@ namespace IngameScript
                 Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
                 
                 // Display remote commands in terminal
-                Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
+                //Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
             }
         }
 
