@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [0.3.0] - UPCOMING
+## [1.0.1] - UPCOMING
 
 ### BREAKING CHANGES TO IMPLEMENT
 - Rename `nav/set-flight-plan` to `fp/set`
