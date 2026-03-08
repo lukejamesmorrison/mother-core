@@ -44,7 +44,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Debug\Debug.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Display.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\DisplayModule.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\MapDisplay.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\SpriteFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\EventBus\EventBus.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\EventBus\IEvent.cs" />

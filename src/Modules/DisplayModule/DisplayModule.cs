@@ -29,7 +29,7 @@ namespace IngameScript
     /// <summary>
     /// The DisplayModule extension module.
     /// </summary>
-    public class DisplayModule : BaseExtensionModule
+    public class DisplayModule : BaseCoreModule
     {
         /// <summary>
         /// The Clock core module.
@@ -50,11 +50,6 @@ namespace IngameScript
         /// The BlockCatalogue core module.
         /// </summary>
         BlockCatalogue BlockCatalogue;
-
-        /// <summary>
-        /// The FlightPlanningModule extension module.
-        /// </summary>
-        FlightPlanningModule FlightPlanningModule;
 
         /// <summary>
         /// All text surfaces on the grid. This includes LCD Panels, and cockpit displays.
@@ -95,17 +90,6 @@ namespace IngameScript
         readonly List<IMyTextSurface> AlmanacSurfaces = new List<IMyTextSurface>();
 
         /// <summary>
-        /// The selector used to determine which displays should render a map.
-        /// This is defined in the block's name.
-        /// </summary>
-        const string MAP_SELECTOR = "MMAP";
-
-        /// <summary>
-        /// The surfaces to be used to render the map.
-        /// </summary>
-        readonly HashSet<MapDisplay> MapDisplays = new HashSet<MapDisplay>();
-
-        /// <summary>
         /// The default text size for the displays. This is used when 
         /// printing text to screens.
         /// </summary>
@@ -129,14 +113,9 @@ namespace IngameScript
             Log = Mother.GetModule<Log>();
             BlockCatalogue = Mother.GetModule<BlockCatalogue>();
             Almanac = Mother.GetModule<Almanac>();
-            FlightPlanningModule = Mother.GetModule<FlightPlanningModule>();
 
             // Commands
          
-
-            // Monitor block configuration changes so we can
-            // reload displays when applicable.
-            Subscribe<BlockConfigChangedEvent>();
 
             // Load all text surfaces on the grid.
             LoadTextSurfaces();
@@ -144,32 +123,6 @@ namespace IngameScript
             // Schedule a periodic refresh of the displays.
             Clock.Schedule(RenderDisplaySurfaces);
             //Clock.Schedule(RenderDisplaySurfaces, 1);
-        }
-
-        /// <summary>
-        /// Handle events. We specifically listen for block configuration 
-        /// changes so that we can update our displays.
-        /// </summary>
-        /// <param name="e"></param>
-        /// <param name="eventData"></param>
-        public override void HandleEvent(IEvent e, object eventData)
-        {
-            // if the event block is one that can render a display
-            if (
-                e is BlockConfigChangedEvent    
-                && (  eventData is IMyTextPanel
-                   || eventData is IMyTextSurfaceProvider
-                )
-            )
-            {
-                var block = (IMyTerminalBlock) eventData;
-
-                var display = MapDisplays.FirstOrDefault(d => d.Block.EntityId == block.EntityId);
-
-                // Update the display configuration
-                display?.UpdateConfig(BlockCatalogue.GetBlockConfiguration(block));
-                display?.LoadConfiguration();
-            }
         }
 
         /// <summary>
@@ -267,10 +220,7 @@ namespace IngameScript
         {
             TextSurfaces.Add(panel);
 
-            if (panel.CustomName.Contains(MAP_SELECTOR))
-                AddMapDisplay(panel, panel);
-
-            else if (IsLogSurface(panel))
+            if (IsLogSurface(panel))
                 LogSurfaces.Add(panel);
 
             else if (IsDebugSurface(panel))
@@ -313,7 +263,6 @@ namespace IngameScript
         {
             int logSurfaceIndex = GetSurfaceIndex(block.CustomName, LOG_SELECTOR);
             int debugSurfaceIndex = GetSurfaceIndex(block.CustomName, DEBUG_SELECTOR);
-            int mapSurfaceIndex = GetSurfaceIndex(block.CustomName, MAP_SELECTOR);
             int almanacSurfaceIndex = GetSurfaceIndex(block.CustomName, ALMANAC_SELECTOR);
 
             if (block is IMyTextSurfaceProvider)
@@ -332,41 +281,10 @@ namespace IngameScript
                     else if (debugSurfaceIndex == surfaceIndex)
                         DebugSurfaces.Add(surface);
 
-                    else if (mapSurfaceIndex == surfaceIndex)
-                        AddMapDisplay(surface, block);
-
                     else if (almanacSurfaceIndex == surfaceIndex)
                         AlmanacSurfaces.Add(surface);
                 }
             }
-        }
-
-        /// <summary>
-        /// Add a map display. We set the center coordinate based on the configuration. If the 
-        /// center coordinate value is a GPS waypoint string, we will interpret it as a 
-        /// vector3D. Otherwise we  assume it is a grid name and we get record from 
-        /// the Almanac.
-        /// </summary>
-        /// <param name="surface"></param>s
-        /// <param name="block"></param>
-        void AddMapDisplay(IMyTextSurface surface, IMyTerminalBlock block)
-        {
-            MyIni config = BlockCatalogue.GetBlockConfiguration(block);
-
-            string CenterString = $"{config.Get("general", "center")}";
-
-            MapDisplay display = new MapDisplay(surface, block, config);
-
-            // Otherwise look for grid in Almanac by its nickname
-            if (display.MapCenter == null)
-            {
-                AlmanacRecord record = Almanac.GetRecord(CenterString);
-
-                if (record != null)
-                    display.SetCenterCoordinate(record.Position);
-            }
-
-            MapDisplays.Add(display);
         }
 
         /// <summary>
@@ -385,8 +303,6 @@ namespace IngameScript
         /// </summary>
         void ClearSurfacesAndDisplays()
         {
-            MapDisplays.Clear();
-
             TextSurfaces.Clear();
             LogSurfaces.Clear();
             DebugSurfaces.Clear();
@@ -396,14 +312,11 @@ namespace IngameScript
         /// <summary>
         /// Get the index of the surface from the name. This is used to determine
         /// which surface to use for rendering to cockpit displays.
-        /// 
-        /// THIS SHOULD BE GENERALIZED IN A FUTURE REFACTOR. I DON'T THINK 
-        /// DISPLAYS ARE THE ONLY USE CASE.
         /// </summary>
         /// <param name="name"></param>
         /// <param name="type"></param>
         /// <returns></returns>
-        int GetSurfaceIndex(string name, string type)
+        public static int GetSurfaceIndex(string name, string type)
         {
             // Look for the pattern [TYPE:n], where TYPE is either DEBUG or LOG
             int startIndex = name.IndexOf($"[{type}:");
@@ -487,93 +400,7 @@ namespace IngameScript
         {
             RenderDebugSurfaces();
             RenderLogSurfaces();
-            RenderMapSurfaces();
             RenderAlmanacSurfaces();
-        }
-
-        /// <summary>
-        /// Render the map surfaces.
-        /// </summary>
-        void RenderMapSurfaces()
-        {
-            // get objects to plot
-            var almanacPositions = Almanac.Records.Select(r => r.Position).ToList();
-
-            foreach (var display in MapDisplays)
-            {
-                display.DrawFrame();
-                display.DrawBackground();
-
-                // add flight plan waypoints (only if FlightPlanningModule is registered)
-                if (FlightPlanningModule?.CurrentFlightPlan != null)
-                    almanacPositions.AddRange(
-                        FlightPlanningModule
-                            .CurrentFlightPlan
-                            .GetWaypoints()
-                            .Select(w => w.GetVector())
-                    );
-
-                if (almanacPositions.Count > 0)
-                {
-                    var boundingBox = Geometry.CalculateBoundingBox(almanacPositions);
-                    DrawMap(display, boundingBox, Mother.CubeGrid.GetPosition());
-                }
-
-                // Draw Mother
-                display.DrawMotherSprite();
-
-                // draw Debug Text
-                //display.DrawDebug();
-
-                display.Frame.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// Draw the map on the display. This draws the current flight plan, and 
-        /// waypoints and grids stored in the Almanac.
-        /// </summary>
-        /// <param name="display"></param>
-        /// <param name="boundingBox"></param>
-        /// <param name="center"></param>
-        void DrawMap(MapDisplay display, BoundingBoxD boundingBox, Vector3D? center = null)
-        {
-            IMyCubeGrid grid = Mother.CubeGrid;
-
-            Vector3D mapCenter = center ?? display.MapCenter ?? grid.GetPosition();
-
-            MatrixD gridOrientation = MatrixD.CreateFromDir(grid.WorldMatrix.Forward, grid.WorldMatrix.Up);
-
-            if (FlightPlanningModule?.CurrentFlightPlan != null)
-            {
-                var text = FlightPlanningModule.PreviousWaypoint != null
-                    ? $"{FlightPlanningModule.PreviousWaypoint?.GetName()} -> {FlightPlanningModule.NextWaypoint?.GetName()}"
-                    : $"{FlightPlanningModule.NextWaypoint?.GetName()}";
-
-                // REFACTOR!!!! - Way too verbose of a definition
-                display.DrawFlightPlan(FlightPlanningModule.CurrentFlightPlan, boundingBox, grid, text, mapCenter);
-            }
-
-            foreach (var record in Almanac.Records)
-            {
-                var normalizedPosition = display.NormalizePositionForDisplay(mapCenter, record.Position, gridOrientation);
-
-                // print grids that are not part of this grid
-                if (record.EntityType == "grid" && !record.IsLocalEntity())
-                    display.DrawGrid(record, normalizedPosition, Mother.CubeGrid.GetPosition(), Mother.Name);
-
-                // print waypoints in almanac
-                else if (record.EntityType == "waypoint")
-                    display.DrawWaypoint(record, normalizedPosition, Mother.CubeGrid.GetPosition());
-            }
-
-            Vector2 textPosition =
-                display.IsCockpitDisplay
-                ? display.BottomLeft - new Vector2(0, 1.5f * display.FontSize)
-                : display.BottomLeft - new Vector2(0, 2.5f * display.FontSize);
-
-            // Draw info text at the bottom-left corner of the screen
-            display.DrawText($"{display.MapScale}m", textPosition, Color.White, "White");
         }
 
         /// <summary>

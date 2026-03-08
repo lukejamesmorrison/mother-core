@@ -248,6 +248,7 @@ namespace IngameScript
                 new ActivityMonitor(this),
                 new Almanac(this),
                 new IntergridMessageService(this),
+                new DisplayModule(this),
 
                 // FUNCTIONAL
                 new Terminal(this),
