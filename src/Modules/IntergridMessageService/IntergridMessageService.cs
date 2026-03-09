@@ -137,18 +137,7 @@ namespace IngameScript
         /// <returns></returns>
         Response HandleSyncRequest(Request request)
         {
-            // Register the remote script's commands
-            long originId = request.HLong("OriginId");
-            string commandsStr = request.BString("Commands");
-            //string originName = request.HString("OriginName");
-            
-            if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
-            {
-                var commands = new List<string>(commandsStr.Split(','));
-                Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
-                
-                //Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
-            }
+            SyncRemoteCommands(request);
 
             // Return our commands
             var localCommands = Mother.GetModule<CommandBus>().GetLocalCommandNames();
@@ -250,8 +239,7 @@ namespace IngameScript
             string messageData = $"{message.Data}";
             string channel = message.Tag;
 
-            // get channel from available channels
-            string passcode = Channels.ContainsKey(channel) ? Channels[channel] : "";
+            string passcode = GetChannelPasscode(channel);
 
             // Decrypt message if it is encrypted
             if(passcode == "") 
@@ -278,33 +266,42 @@ namespace IngameScript
             // Handle an incoming Request
             if (messageData.StartsWith("REQUEST::"))
             {
-                Request deserializedRequest = Request.Deserialize(messageData);
-
-                if (deserializedRequest != null)
-                {
-                    deserializedRequest.Channels.Add(message.Tag);
-
-                    UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedRequest);
-                    HandleIncomingRequest(deserializedRequest);
-                }
-            
-                else Log.Error(Messages.MessageDeserializationFailed);
+                ProcessIncomingMessage(
+                    Request.Deserialize(messageData),
+                    message.Tag,
+                    msg => HandleIncomingRequest((Request)msg)
+                );
             }
 
             // Or handle an incoming Response
             else if (messageData.StartsWith("RESPONSE::"))
             {
-                Response deserializedResponse = Response.Deserialize(messageData);
+                ProcessIncomingMessage(
+                    Response.Deserialize(messageData),
+                    message.Tag,
+                    msg => HandleIncomingResponse((Response)msg)
+                );
+            }
+        }
 
-                if (deserializedResponse != null)
-                {
-                    deserializedResponse.Channels.Add(message.Tag);
-
-                    UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedResponse);
-                    HandleIncomingResponse(deserializedResponse);
-                }
-
-                else Log.Error(Messages.MessageDeserializationFailed);
+        /// <summary>
+        /// Process a deserialized incoming message by adding the channel tag,
+        /// updating the almanac, and invoking the appropriate handler.
+        /// </summary>
+        /// <param name="deserialized"></param>
+        /// <param name="channelTag"></param>
+        /// <param name="handler"></param>
+        void ProcessIncomingMessage(IntergridMessageObject deserialized, string channelTag, Action<IntergridMessageObject> handler)
+        {
+            if (deserialized != null)
+            {
+                deserialized.Channels.Add(channelTag);
+                UpdateOrCreateAlmanacRecordFromIncomingRequest(deserialized);
+                handler(deserialized);
+            }
+            else
+            {
+                Log.Error(Messages.MessageDeserializationFailed);
             }
         }
 
@@ -432,8 +429,10 @@ namespace IngameScript
 
             foreach (string channel in orderedChannels)
             {
-                string passcode = Channels.ContainsKey(channel) ? Channels[channel] : "";
-                string outgoingMessage = Security.Encrypt(message.Serialize(), passcode);
+                string outgoingMessage = Security.Encrypt(
+                    message.Serialize(),
+                    GetChannelPasscode(channel)
+                );
 
                 success = Mother.IGC.SendUnicastMessage(TargetId, channel, outgoingMessage);
 
@@ -460,8 +459,10 @@ namespace IngameScript
             // sort message.Channels so that public is last
             foreach (var channel in Channels)
             {
-                string passcode = Channels.ContainsKey(channel.Key) ? Channels[channel.Key] : "";
-                string outgoingMessage = Security.Encrypt(request.Serialize(), passcode);
+                string outgoingMessage = Security.Encrypt(
+                    request.Serialize(),
+                    GetChannelPasscode(channel.Key)
+                );
 
                 Mother.IGC.SendBroadcastMessage(channel.Key, outgoingMessage);
             }
@@ -564,15 +565,8 @@ namespace IngameScript
 
             Dictionary<string, object> body = new Dictionary<string, object>();
 
-            // merge headers with defaults
-            if (customHeader != null)
-                foreach (KeyValuePair<string, object> entry in customHeader)
-                    header[entry.Key] = entry.Value;
-
-            // merge customBody with defaults
-            if (customBody != null)
-                foreach (KeyValuePair<string, object> entry in customBody)
-                    body[entry.Key] = entry.Value;
+            MergeDictionary(header, customHeader);
+            MergeDictionary(body, customBody);
 
             return new Request(body, header);
         }
@@ -603,19 +597,9 @@ namespace IngameScript
             };
             Dictionary<string, object> responseBody = new Dictionary<string, object>();
 
-            // merge default headers
-            foreach (KeyValuePair<string, object> entry in standardHeader)
-                responseHeader[entry.Key] = entry.Value;
-
-            // merge customHeader with defaults
-            if (customHeader != null)
-                foreach (KeyValuePair<string, object> entry in customHeader)
-                    responseHeader[entry.Key] = entry.Value;
-
-            // merge customBody with defaults
-            if (customBody != null)
-                foreach (KeyValuePair<string, object> entry in customBody)
-                    responseBody[entry.Key] = entry.Value;
+            MergeDictionary(responseHeader, standardHeader);
+            MergeDictionary(responseHeader, customHeader);
+            MergeDictionary(responseBody, customBody);
 
             return new Response(responseBody, responseHeader);
         }
@@ -662,18 +646,7 @@ namespace IngameScript
         /// <param name="response"></param>
         void OnSyncResponse(IntergridMessageObject response)
         {
-            long originId = response.HLong("OriginId");
-            string commandsStr = response.BString("Commands");
-            //string originName = response.HString("OriginName");
-            
-            if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
-            {
-                var commands = new List<string>(commandsStr.Split(','));
-                Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
-                
-                // Display remote commands in terminal
-                //Mother.Print($"Synced {commands.Count} cmds from {originName}", false);
-            }
+            SyncRemoteCommands(response);
         }
 
         /// <summary>
@@ -704,6 +677,48 @@ namespace IngameScript
         {
             activeRequests[request.Id] = onResponse;
             Mother.IGC.SendBroadcastMessage(".local", request.Serialize(), TransmissionDistance.CurrentConstruct);
+        }
+
+        /// <summary>
+        /// Get the passcode for a given channel name.
+        /// Returns an empty string if the channel is not found.
+        /// </summary>
+        /// <param name="channel"></param>
+        /// <returns></returns>
+        string GetChannelPasscode(string channel)
+        {
+            return Channels.ContainsKey(channel) ? Channels[channel] : "";
+        }
+
+        /// <summary>
+        /// Merge entries from the source dictionary into the target dictionary.
+        /// Existing keys in the target will be overwritten.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="source"></param>
+        void MergeDictionary(Dictionary<string, object> target, Dictionary<string, object> source)
+        {
+            if (source == null) return;
+
+            foreach (KeyValuePair<string, object> entry in source)
+                target[entry.Key] = entry.Value;
+        }
+
+        /// <summary>
+        /// Parse and register remote commands from an incoming sync 
+        /// message (request or response).
+        /// </summary>
+        /// <param name="message"></param>
+        void SyncRemoteCommands(IntergridMessageObject message)
+        {
+            long originId = message.HLong("OriginId");
+            string commandsStr = message.BString("Commands");
+            
+            if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
+            {
+                var commands = new List<string>(commandsStr.Split(','));
+                Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
+            }
         }
 
         /// <summary>
