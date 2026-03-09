@@ -52,5 +52,44 @@ namespace MotherCore.Tests.Tests
 
             Assert.That(commandRun, Is.True);
         }
+
+        [Test]
+        public void It_Substitutes_Variables_In_Terminal_Input()
+        {
+            _mother.ConfigVariables["BLOCK"] = "Light1";
+
+            CommandBus commandBus = new CommandBus(_mother);
+            commandBus.Boot();
+
+            bool commandRun = commandBus.RunTerminalCommand("light/on $BLOCK");
+
+            Assert.That(commandRun, Is.True);
+        }
+
+        [Test]
+        public void It_Substitutes_Multiple_Variables_In_Terminal_Input()
+        {
+            _mother.ConfigVariables["BLOCK"] = "Light1";
+            _mother.ConfigVariables["COLOR"] = "red";
+
+            CommandBus commandBus = new CommandBus(_mother);
+            commandBus.Boot();
+
+            bool commandRun = commandBus.RunTerminalCommand("light/color $BLOCK $COLOR");
+
+            Assert.That(commandRun, Is.True);
+        }
+
+        [Test]
+        public void It_Runs_Terminal_Command_Without_Variables_When_None_Defined()
+        {
+            CommandBus commandBus = new CommandBus(_mother);
+            commandBus.Boot();
+            commandBus.RegisterCommand(new HelpCommand(commandBus));
+
+            bool commandRun = commandBus.RunTerminalCommand("help");
+
+            Assert.That(commandRun, Is.True);
+        }
     }
 }

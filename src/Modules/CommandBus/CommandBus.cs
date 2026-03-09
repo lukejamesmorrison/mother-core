@@ -167,6 +167,9 @@ namespace IngameScript
         {
             if (commandString.Length > 0)
             {
+                // Substitute variables before parsing
+                commandString = Mother.SubstituteVariables(commandString);
+
                 HandleRoutine(new TerminalRoutine(commandString));
                 return true;
             }

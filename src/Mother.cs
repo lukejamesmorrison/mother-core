@@ -647,5 +647,26 @@ namespace IngameScript
 
             return gravity;
         }
+
+        /// <summary>
+        /// Substitute variables into a string. Variables are referenced using the 
+        /// $VARIABLE_NAME syntax and are replaced with their corresponding 
+        /// values from the [variables] section. Variables are replaced 
+        /// longest-first to prevent shorter names from partially 
+        /// matching longer ones.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public string SubstituteVariables(string input)
+        {
+            if (ConfigVariables.Count == 0) return input;
+
+            var sorted = ConfigVariables.OrderByDescending(v => v.Key.Length);
+
+            foreach (var variable in sorted)
+                input = input.Replace("$" + variable.Key, variable.Value);
+
+            return input;
+        }
     }
 }

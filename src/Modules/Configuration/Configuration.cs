@@ -184,25 +184,6 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Substitute variables into a string. Variables are referenced 
-        /// using the $VARIABLE_NAME syntax and are replaced with 
-        /// their corresponding values from the [variables] section.
-        /// Variables are replaced longest-first to prevent shorter 
-        /// names from partially matching longer ones.
-        /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
-        string SubstituteVariables(string input)
-        {
-            var sorted = Mother.ConfigVariables.OrderByDescending(v => v.Key.Length);
-
-            foreach (var variable in sorted)
-                input = input.Replace("$" + variable.Key, variable.Value);
-
-            return input;
-        }
-
-        /// <summary>
         /// Register commands from the programmable block's custom data as configuration 
         /// commands. Commands are defined in the [Commands] section.
         /// </summary>
@@ -222,7 +203,7 @@ namespace IngameScript
                 commandValue = Unquote(commandValue);
 
                 // Substitute variables into the command value
-                commandValue = SubstituteVariables(commandValue);
+                commandValue = Mother.SubstituteVariables(commandValue);
 
                 Mother.ConfigCommands[commandName] = commandValue;
             }
