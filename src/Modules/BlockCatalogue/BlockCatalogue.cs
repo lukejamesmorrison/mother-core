@@ -48,10 +48,10 @@ namespace IngameScript
         EventBus EventBus;
 
         /// <summary>
-        /// Set of local grid IDs. This includes the main grid and any grids connected 
+        /// Set of grid IDs on this construct. This includes the main grid and any grids connected 
         /// via rotors, hinges and pistons to represent a single "construct".
         /// </summary>
-        public HashSet<long> LocalGridIds = new HashSet<long>();
+        public HashSet<long> ConstructGridIds = new HashSet<long>();
 
         /// <summary>
         /// Reference to the primary Remote Control block.
@@ -567,7 +567,7 @@ namespace IngameScript
                     group.GetBlocksOfType(groupBlocks);
 
                     // Include only blocks from valid grids
-                    blocks.AddRange(groupBlocks.Where(block => LocalGridIds.Contains(block.CubeGrid.EntityId)));
+                    blocks.AddRange(groupBlocks.Where(block => ConstructGridIds.Contains(block.CubeGrid.EntityId)));
                 }
             }
 
@@ -578,7 +578,7 @@ namespace IngameScript
                 {
                     BlockTags[name.Substring(1)]?.ToList().ForEach(block =>
                     {
-                        if (block is T && LocalGridIds.Contains(block.CubeGrid.EntityId))
+                        if (block is T && ConstructGridIds.Contains(block.CubeGrid.EntityId))
                             blocks.Add(block as T);
                     });
                 } 
@@ -594,8 +594,8 @@ namespace IngameScript
             {
                 T block = GetBlock(name) as T;
 
-                // Add the block if it exists and is on the local grid
-                if (block != null && LocalGridIds.Contains(block.CubeGrid.EntityId))
+                // Add the block if it exists and is on the construct
+                if (block != null && ConstructGridIds.Contains(block.CubeGrid.EntityId))
                     blocks.Add(block);
             }
 
@@ -706,7 +706,7 @@ namespace IngameScript
             // BFS the construct in batches
             gridBfsQueue.Clear();
             visitedGrids.Clear();
-            LocalGridIds.Clear();
+            ConstructGridIds.Clear();
 
             gridBfsQueue.Enqueue(start);
 
@@ -722,7 +722,7 @@ namespace IngameScript
                     if (visitedGrids.Contains(gid)) { processed++; continue; }
 
                     visitedGrids.Add(gid);
-                    LocalGridIds.Add(gid);
+                    ConstructGridIds.Add(gid);
 
                     List<long> neighbors;
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
@@ -813,7 +813,7 @@ namespace IngameScript
             for (int i = 0; i < all.Count; i++)
             {
                 var tb = all[i];
-                if (LocalGridIds.Contains(tb.CubeGrid.EntityId))
+                if (ConstructGridIds.Contains(tb.CubeGrid.EntityId))
                     TerminalBlocks.Add(tb);
             }
 

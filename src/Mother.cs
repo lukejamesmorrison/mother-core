@@ -474,7 +474,7 @@ namespace IngameScript
 
             //Terminal terminal  = GetModule<Terminal>();
 
-            //terminal.Highlight($"Local Entities: {localRecords.Count}");
+            //terminal.Highlight($"Construct Entities: {localRecords.Count}");
             //terminal.Highlight($"Neutral Entities: {neutralRecords.Count}");
             //terminal.Highlight($"Friendly Entities: {friendlyRecords.Count}");
 

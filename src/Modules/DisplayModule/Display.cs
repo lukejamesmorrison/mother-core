@@ -316,7 +316,7 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Draw a triangle sprite on the display. This is used to draw the local grid sprite.
+        /// Draw a triangle sprite on the display. This is used to draw this grid's sprite.
         /// </summary>
         /// <param name="center"></param>
         /// <param name="size"></param>

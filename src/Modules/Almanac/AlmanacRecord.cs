@@ -48,9 +48,9 @@ namespace IngameScript
         public enum TransponderCode
         {
             /// <summary>
-            /// Local entities are those that are on the same construct as this program.
+            /// Construct entities are those that are on the same construct as this program.
             /// </summary>
-            Local,
+            Construct,
             /// <summary>
             /// Friendly entities are those communicating on non-public channels.
             /// </summary>
@@ -167,10 +167,10 @@ namespace IngameScript
         public bool IsNeutral() => IFFCode == TransponderCode.Neutral;
 
         /// <summary>
-        /// Is the entity local?
+        /// Is the entity on the construct?
         /// </summary>
         /// <returns></returns>
-        public bool IsLocalEntity() => IFFCode == TransponderCode.Local;
+        public bool IsOnConstruct() => IFFCode == TransponderCode.Construct;
 
         /// <summary>
         /// Serialize the AlmanacRecord object to a string. This is used to 
@@ -183,7 +183,6 @@ namespace IngameScript
             {
                 { "Id", $"{Id}" },
                 { "UpdatedAt", $"{UpdatedAt.Ticks}" },
-                //{ "IsLocal", $"{IsLocalEntity()}" },
                 { "pos", $"{Position}" },
                 { "LastKnownSpeed", $"{Speed}" },
                 { "EntityType", EntityTypes[EntityType] },
@@ -217,12 +216,6 @@ namespace IngameScript
                 0
             );
 
-            // is the entity local?
-            //bool isLocal = bool.Parse(dict["IsLocal"].ToString());
-
-            //if (isLocal)
-            //    almanacRecord.IFFCode = AlmanacRecord.TransponderCode.Local;
-
             // add nicknames
             string[] nicknames = $"{dict["Nicknames"]}".Split(',');
             foreach (var nickname in nicknames)
@@ -239,8 +232,6 @@ namespace IngameScript
             {
                 almanacRecord.SafeRadius = safeRadius;
             }
-
-            //almanacRecord.IsLocal = isLocal;
 
             return almanacRecord;
         }

@@ -141,7 +141,7 @@ namespace IngameScript
             string commandQueueIndicator = Mother.GetModule<CommandBus>().WaypointRoutineQueue.WaypointRoutines.Count > 0 ? "Q" : "   ";
             string waitQueueIndicator = Mother.GetModule<Clock>().QueuedTaskCount > 0 ? "W" : "   ";
 
-            int remoteScriptCount = Mother.GetModule<CommandBus>().RemoteCommands.Count;
+            int remoteScriptCount = Mother.GetModule<CommandBus>().ConstructCommands.Count;
             string remoteIndicator = remoteScriptCount > 0 ? $"R{remoteScriptCount}" : "   ";
 
             return String.Join(

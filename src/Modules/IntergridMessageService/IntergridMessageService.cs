@@ -72,6 +72,11 @@ namespace IngameScript
         public Dictionary<string, Action<IntergridMessageObject>> activeRequests = new Dictionary<string, Action<IntergridMessageObject>>();
 
         /// <summary>
+        /// The tag for this construct's channel.
+        /// </summary>
+        const string CONSTRUCT_CHANNEL_TAG = ".construct";
+
+        /// <summary>
         /// The UnicastListener instance for receiving unicast messages.
         /// </summary>
         IMyUnicastListener UnicastListener;
@@ -119,40 +124,40 @@ namespace IngameScript
             Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
             Router.RegisterRoute("sync", request => HandleSyncRequest(request));
 
-            // Ping local scripts to perform handshake after boot completes
-            Clock.QueueForLater(() => LocalPing(), 0.5);
+            // Ping scripts on the construct to perform handshake after boot completes
+            Clock.QueueForLater(() => ConstructPing(), 0.5);
             
-            // Re-sync local scripts periodically to catch late-booting scripts
-            Clock.Schedule(LocalPing, 5);
+            // Re-sync scripts on the construct periodically to catch late-booting scripts
+            Clock.Schedule(ConstructPing, 5);
 
             // Ping remote grids periodically
             Clock.Schedule(Ping, 2);
         }
 
         /// <summary>
-        /// Handles a sync request from another local Mother instance.
-        /// Returns our local commands in the response body.
+        /// Handles a sync request from another Mother Core instance on the construct.
+        /// Returns this instance's commands in the response body.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
         Response HandleSyncRequest(Request request)
         {
-            SyncRemoteCommands(request);
+            SyncConstructCommands(request);
 
             // Return our commands
-            var localCommands = Mother.GetModule<CommandBus>().GetLocalCommandNames();
+            var selfCommands = Mother.GetModule<CommandBus>().GetSelfCommandNames();
             
             var response = CreateResponse(
                 request,
                 Response.ResponseStatusCodes.OK,
                 new Dictionary<string, object>
                 {
-                    { "Commands", string.Join(",", localCommands) }
+                    { "Commands", string.Join(",", selfCommands) }
                 }
             );
             
-            // Ensure response uses the local channel
-            response.Channels.Add(".local");
+            // Ensure response uses the construct channel
+            response.Channels.Add(CONSTRUCT_CHANNEL_TAG);
             
             return response;
         }
@@ -192,10 +197,10 @@ namespace IngameScript
             UnicastListener = Mother.IGC.UnicastListener;
             UnicastListener.SetMessageCallback();
 
-            // register broadcast listener for local channel
-            IMyBroadcastListener LocalBroadcastListener = Mother.IGC.RegisterBroadcastListener(".local");
-            LocalBroadcastListener.SetMessageCallback();
-            BroadcastListeners.Add(LocalBroadcastListener);
+            // register broadcast listener for construct channel
+            IMyBroadcastListener ConstructBroadcastListener = Mother.IGC.RegisterBroadcastListener(CONSTRUCT_CHANNEL_TAG);
+            ConstructBroadcastListener.SetMessageCallback();
+            BroadcastListeners.Add(ConstructBroadcastListener);
 
             // Register a broadcast listener for each external channel
             foreach (var channel in Channels)
@@ -347,8 +352,8 @@ namespace IngameScript
                 );
 
                 // set IFF code
-                if (OriginIsLocal(originId))
-                    record.IFFCode = AlmanacRecord.TransponderCode.Local;
+                if (OriginIsOnConstruct(originId))
+                    record.IFFCode = AlmanacRecord.TransponderCode.Construct;
 
                 // add channel
                 record.Channels = message.Channels;
@@ -423,9 +428,9 @@ namespace IngameScript
             // sort message.Channels so that public is prioritized last
             var orderedChannels = message.Channels.OrderBy(c => c == "*").ToHashSet();
             
-            // If no channels specified, try .local for local construct messages
+            // If no channels specified, try .construct for messages on this construct
             if (orderedChannels.Count == 0)
-                orderedChannels.Add(".local");
+                orderedChannels.Add(CONSTRUCT_CHANNEL_TAG);
 
             foreach (string channel in orderedChannels)
             {
@@ -618,18 +623,18 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Send a ping message to all programmable blocks on the local grid. 
+        /// Send a ping message to all programmable blocks on the construct. 
         /// This is used during boot to identify cooperative scripts.
         /// </summary>
-        public void LocalPing()
+        public void ConstructPing()
         {
-            var localCommands = Mother.GetModule<CommandBus>().GetLocalCommandNames();
+            var constructCommands = Mother.GetModule<CommandBus>().GetSelfCommandNames();
 
             Request request = CreateRequest(
                 "sync",
                 new Dictionary<string, object>
                 {
-                    { "Commands", string.Join(",", localCommands) }
+                    { "Commands", string.Join(",", constructCommands) }
                 },
                 new Dictionary<string, object>
                 {
@@ -637,24 +642,24 @@ namespace IngameScript
                 }
             );
 
-            SendLocalBroadcastRequest(request, response => OnSyncResponse(response));
+            SendConstructBroadcastRequest(request, response => OnSyncResponse(response));
         }
 
         /// <summary>
-        /// Handle sync response from other local Mother instances.
+        /// Handle sync response from other Mother Core instances on this construct.
         /// </summary>
         /// <param name="response"></param>
         void OnSyncResponse(IntergridMessageObject response)
         {
-            SyncRemoteCommands(response);
+            SyncConstructCommands(response);
         }
 
         /// <summary>
-        /// Send a command to another local Mother instance.
+        /// Send a command to another Mother Core instances on this construct.
         /// </summary>
         /// <param name="targetId">The EntityId of the target script.</param>
         /// <param name="command">The command to execute.</param>
-        public void SendLocalCommand(long targetId, string command)
+        public void SendConstructCommand(long targetId, string command)
         {
             Request request = CreateRequest(
                 "localcmd",
@@ -664,19 +669,19 @@ namespace IngameScript
                 }
             );
 
-            Mother.IGC.SendUnicastMessage(targetId, ".local", request.Serialize());
+            Mother.IGC.SendUnicastMessage(targetId, CONSTRUCT_CHANNEL_TAG, request.Serialize());
             Mother.Print($"> @local {command}");
         }
 
         /// <summary>
-        /// Send a broadcast to local programmable blocks.
+        /// Send a broadcast to programmable blocks on this construct.
         /// </summary>
         /// <param name="request"></param>
         /// <param name="onResponse"></param>
-        public void SendLocalBroadcastRequest(Request request, Action<IntergridMessageObject> onResponse)
+        public void SendConstructBroadcastRequest(Request request, Action<IntergridMessageObject> onResponse)
         {
             activeRequests[request.Id] = onResponse;
-            Mother.IGC.SendBroadcastMessage(".local", request.Serialize(), TransmissionDistance.CurrentConstruct);
+            Mother.IGC.SendBroadcastMessage(CONSTRUCT_CHANNEL_TAG, request.Serialize(), TransmissionDistance.CurrentConstruct);
         }
 
         /// <summary>
@@ -709,7 +714,7 @@ namespace IngameScript
         /// message (request or response).
         /// </summary>
         /// <param name="message"></param>
-        void SyncRemoteCommands(IntergridMessageObject message)
+        void SyncConstructCommands(IntergridMessageObject message)
         {
             long originId = message.HLong("OriginId");
             string commandsStr = message.BString("Commands");
@@ -723,11 +728,11 @@ namespace IngameScript
 
         /// <summary>
         /// Check if the origin of a message is a programmable block 
-        /// on the local grid.
+        /// on the construct.
         /// </summary>
         /// <param name="originId"></param>
         /// <returns></returns>
-        bool OriginIsLocal(long originId)
+        bool OriginIsOnConstruct(long originId)
         {
             return Mother.GetModule<BlockCatalogue>()
                 .GetBlocks<IMyProgrammableBlock>()

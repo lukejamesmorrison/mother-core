@@ -54,10 +54,10 @@ namespace IngameScript
         public readonly List<IModuleCommand> ModuleCommands = new List<IModuleCommand>();
 
         /// <summary>
-        /// Registry of commands available on other local Mother instances.
+        /// Registry of commands available on other Mother Core instances on the construct.
         /// Maps script EntityId to list of command names.
         /// </summary>
-        public readonly Dictionary<long, List<string>> RemoteCommands = new Dictionary<long, List<string>>();
+        public readonly Dictionary<long, List<string>> ConstructCommands = new Dictionary<long, List<string>>();
 
         /// <summary>
         /// Constructor.
@@ -80,14 +80,14 @@ namespace IngameScript
             Log = Mother.GetModule<Log>();
 
             // Clear remote commands on boot
-            RemoteCommands.Clear();
+            ConstructCommands.Clear();
 
             // Commands
             RegisterCommand(new HelpCommand(this));
 
             // Routes
             AddRoute("command", request => HandleRemoteCommandRequest(request));
-            AddRoute("localcmd", request => HandleLocalCommandRequest(request));
+            AddRoute("localcmd", request => HandleConstructCommandRequest(request));
         }
 
         /// <summary>
@@ -119,18 +119,18 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Handles a local command request from another local Mother instance.
+        /// Handles a command request from another Mother Core instance on the construct.
         /// Executes the command and returns the result.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        Response HandleLocalCommandRequest(Request request)
+        Response HandleConstructCommandRequest(Request request)
         {
             string command = request.BString("Command").Trim();
             string originName = request.HString("OriginName");
 
-            Log.Info($"LREQ: {originName}> {command}");
-            Mother.Print($"LREQ: {originName}> {command}", false);
+            Log.Info($"CREQ: {originName}> {command}");
+            Mother.Print($"CREQ: {originName}> {command}", false);
 
             var igs = Mother.GetModule<IntergridMessageService>();
 
@@ -249,10 +249,10 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Gets the list of local command names for sharing with other scripts.
+        /// Gets the list of command names from this instance for sharing with other scripts.
         /// </summary>
         /// <returns></returns>
-        public List<string> GetLocalCommandNames()
+        public List<string> GetSelfCommandNames()
         {
             var names = new List<string>(ModuleCommands.Count + Mother.ConfigCommands.Count);
             
@@ -273,7 +273,7 @@ namespace IngameScript
         public void RegisterRemoteCommands(long scriptId, List<string> commands)
         {
             if (scriptId == Mother.Id) return;
-            RemoteCommands[scriptId] = commands;
+            ConstructCommands[scriptId] = commands;
         }
 
         /// <summary>
@@ -282,9 +282,9 @@ namespace IngameScript
         /// </summary>
         /// <param name="commandName"></param>
         /// <returns></returns>
-        public long FindScriptWithCommand(string commandName)
+        public long FindInstanceWithCommand(string commandName)
         {
-            foreach (var entry in RemoteCommands)
+            foreach (var entry in ConstructCommands)
             {
                 if (entry.Value.Contains(commandName))
                     return entry.Key;
@@ -294,7 +294,8 @@ namespace IngameScript
 
         /// <summary>
         /// Processes and executes a single command.  Commands can only be run 
-        /// locally on a grid. Remote commands are considered Routines.
+        /// locally in the Mother Core instance. Remote commands are 
+        /// considered Routines.
         /// </summary>
         /// <param name="command"></param>
         /// <returns></returns>
@@ -359,12 +360,12 @@ namespace IngameScript
                 }
             }
 
-            // Check if command exists on another local script
-            long remoteScriptId = FindScriptWithCommand(command.Name);
+            // Check if command exists on the construct
+            long remoteScriptId = FindInstanceWithCommand(command.Name);
             if (remoteScriptId != 0)
             {
                 Mother.GetModule<IntergridMessageService>()
-                    .SendLocalCommand(remoteScriptId, commandString);
+                    .SendConstructCommand(remoteScriptId, commandString);
                 return true;
             }
 
