@@ -193,6 +193,12 @@ namespace IngameScript
         public Dictionary<string, string> ConfigCommands = new Dictionary<string, string>();
 
         /// <summary>
+        /// The list of variables defined within the programmable block's Custom Data.
+        /// These are used for substitution in config commands.
+        /// </summary>
+        public Dictionary<string, string> ConfigVariables = new Dictionary<string, string>();
+
+        /// <summary>
         /// Constructor. We initialize our system with the Program class 
         /// and register the Core Modules.
         /// </summary>

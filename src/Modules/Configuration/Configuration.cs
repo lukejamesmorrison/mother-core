@@ -54,6 +54,7 @@ namespace IngameScript
         {
             "general",
             "channels",
+            "variables",
             "commands",
             "hooks",
         };
@@ -102,6 +103,9 @@ namespace IngameScript
             // Ensure default configuration is set
             SetDefaultConfiguration();
 
+            // Load variables from custom data
+            LoadVariables();
+
             // Register commands from custom data
             RegisterCommands();
 
@@ -135,6 +139,70 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Strips surrounding double quotes from a string if present.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        string Unquote(string input)
+        {
+            if (input.Length >= 2 && input[0] == '"' && input[input.Length - 1] == '"')
+                return input.Substring(1, input.Length - 2);
+
+            return input;
+        }
+
+        /// <summary>
+        /// Load variables from the programmable block's custom data. Variables are 
+        /// defined in the [variables] section and can be referenced in commands 
+        /// using the $VARIABLE_NAME syntax. Uppercase is recommended but not
+        /// required.
+        /// </summary>
+        void LoadVariables()
+        {
+            Mother.ConfigVariables.Clear();
+            var sectionName = "variables";
+
+            List<MyIniKey> keys = new List<MyIniKey>();
+            Ini.GetKeys(sectionName, keys);
+
+            foreach (var key in keys)
+            {
+                string variableName = key.Name;
+                string variableValue = $"{Ini.Get(sectionName, variableName)}"
+                    .Replace("\r", "")
+                    .Trim();
+
+                // Strip leading '$' from variable name if present
+                if (variableName.StartsWith("$"))
+                    variableName = variableName.Substring(1);
+
+                // Strip surrounding double quotes from value
+                variableValue = Unquote(variableValue);
+                
+                Mother.ConfigVariables[variableName] = variableValue;
+            }
+        }
+
+        /// <summary>
+        /// Substitute variables into a string. Variables are referenced 
+        /// using the $VARIABLE_NAME syntax and are replaced with 
+        /// their corresponding values from the [variables] section.
+        /// Variables are replaced longest-first to prevent shorter 
+        /// names from partially matching longer ones.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        string SubstituteVariables(string input)
+        {
+            var sorted = Mother.ConfigVariables.OrderByDescending(v => v.Key.Length);
+
+            foreach (var variable in sorted)
+                input = input.Replace("$" + variable.Key, variable.Value);
+
+            return input;
+        }
+
+        /// <summary>
         /// Register commands from the programmable block's custom data as configuration 
         /// commands. Commands are defined in the [Commands] section.
         /// </summary>
@@ -149,6 +217,12 @@ namespace IngameScript
                 string commandValue = $"{Ini.Get("Commands", commandName)}"
                     .Replace("\r", "")
                     .Trim();
+
+                // Strip surrounding double quotes from command value
+                commandValue = Unquote(commandValue);
+
+                // Substitute variables into the command value
+                commandValue = SubstituteVariables(commandValue);
 
                 Mother.ConfigCommands[commandName] = commandValue;
             }
