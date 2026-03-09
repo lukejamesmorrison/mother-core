@@ -140,7 +140,7 @@ namespace IngameScript
             // Register the remote script's commands
             long originId = request.HLong("OriginId");
             string commandsStr = request.BString("Commands");
-            string originName = request.HString("OriginName");
+            //string originName = request.HString("OriginName");
             
             if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
             {
@@ -283,6 +283,7 @@ namespace IngameScript
                 if (deserializedRequest != null)
                 {
                     deserializedRequest.Channels.Add(message.Tag);
+
                     UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedRequest);
                     HandleIncomingRequest(deserializedRequest);
                 }
@@ -300,7 +301,6 @@ namespace IngameScript
                     deserializedResponse.Channels.Add(message.Tag);
 
                     UpdateOrCreateAlmanacRecordFromIncomingRequest(deserializedResponse);
-
                     HandleIncomingResponse(deserializedResponse);
                 }
 
@@ -664,7 +664,7 @@ namespace IngameScript
         {
             long originId = response.HLong("OriginId");
             string commandsStr = response.BString("Commands");
-            string originName = response.HString("OriginName");
+            //string originName = response.HString("OriginName");
             
             if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
             {
