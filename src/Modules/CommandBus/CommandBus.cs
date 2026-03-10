@@ -336,12 +336,15 @@ namespace IngameScript
 
                 if (Mother.ConfigCommands.ContainsKey(commandString))
                     Mother.Print($"Executing local command: {commandString}", false);
-                    return RunTerminalCommand(Mother.ConfigCommands[commandString]);
+                    return RunTerminalCommand(
+                        Mother.SubstituteCommandParameters(Mother.ConfigCommands[commandString], command.Options));
             }
 
-            // Execute the command from the config commands
-            if (Mother.ConfigCommands.ContainsKey(commandString))
-                return RunTerminalCommand(Mother.ConfigCommands[commandString]);
+            // Execute the command from the config commands, substituting any
+            // {{param}} placeholders with --option values provided by the caller.
+            if (Mother.ConfigCommands.ContainsKey(command.Name))
+                return RunTerminalCommand(
+                    Mother.SubstituteCommandParameters(Mother.ConfigCommands[command.Name], command.Options));
 
             // or execute a command registered by a module
             foreach (IModuleCommand moduleCommand in ModuleCommands)

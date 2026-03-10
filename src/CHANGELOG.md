@@ -17,7 +17,36 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     PLAYER=Dave
 
     [commands]
-    greeting="Hello, $PLAYER"
+    greeting=screen/print BedroomDisplay "Good morning, $PLAYER"
+    ```
+
+     **Example - Execute in Terminal**
+    ```bash
+    greeting
+    # => Good morning, Dave!
+    ```
+
+- Commands can now accept arguments which allows players to write dynamic rountines for various use cases. We use double curly braces to annotate an overrideable parameter. We also provide a default value.
+
+    **Example - Command Definition in Custom Data**
+    ```ini
+    [commands]
+    greeting=screen/print AirlockScreen {{player:Space Engineer}}
+    ```
+
+    **Example - Execute in Terminal**
+    ```bash
+    # without parameter
+    greeting
+    # => Hello, Space Engineer!
+
+    # with parameter
+    greeting --player=Agentluke
+    # => Hello, Agentluke!
+
+    # with spaces
+    greeting --player="Ellen Ripley"
+    # => Hello, Ellen Ripley!
     ```
 
 - The `DisplayModule` from Mother OS has moved most capability to Core so that scripts can use some of Mother's foundational logic for rendering content to a screen or the terminal window. Map logic has been moved to the [Mother Autopilot System (MAPS)](#) script

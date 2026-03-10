@@ -668,5 +668,76 @@ namespace IngameScript
 
             return input;
         }
+
+        /// <summary>
+        /// Substitutes command parameter placeholders in a command template string.
+        /// Parameters use the {{name}} or {{name:default}} syntax. Provided options
+        /// (from --name=value arguments) override the default values. After parameter
+        /// substitution, any remaining $VARIABLE references are also resolved.
+        /// </summary>
+        /// <param name="template">The raw command template containing {{param}} placeholders.</param>
+        /// <param name="options">The --option key-value pairs provided at invocation time.</param>
+        /// <returns>The fully resolved command string.</returns>
+        public string SubstituteCommandParameters(string template, Dictionary<string, string> options)
+        {
+            StringBuilder result = new StringBuilder();
+            int i = 0;
+
+            while (i < template.Length)
+            {
+                // Look for opening {{
+
+                if (i < template.Length - 1 && template[i] == '{' && template[i + 1] == '{')
+                {
+                    int closeIndex = template.IndexOf("}}", i + 2);
+
+                    if (closeIndex > 0)
+                    {
+                        // Extract the content between {{ and }}
+                        string placeholder = template.Substring(i + 2, closeIndex - i - 2);
+
+                        string paramName;
+                        string defaultValue = "";
+
+                        // Check for a default value separator ':'
+                        int colonIndex = placeholder.IndexOf(':');
+                        if (colonIndex >= 0)
+                        {
+                            paramName = placeholder.Substring(0, colonIndex).Trim();
+                            defaultValue = placeholder.Substring(colonIndex + 1).Trim();
+                        }
+                        else
+                        {
+                            paramName = placeholder.Trim();
+                        }
+
+                        // Use the provided option value, or fall back to the default
+                        string value;
+                        if (options != null && options.ContainsKey(paramName))
+                            value = options[paramName];
+                        else
+                            value = defaultValue;
+
+                        result.Append(value);
+                        i = closeIndex + 2;
+                    }
+                    else
+                    {
+                        // No closing }} found, output literally
+                        result.Append(template[i]);
+                        i++;
+                    }
+                }
+                else
+                {
+                    result.Append(template[i]);
+                    i++;
+                }
+            }
+
+            // After parameter substitution, resolve any $VARIABLE references
+            // (including those that came from default values like {{player:$PLAYER}})
+            return SubstituteVariables(result.ToString());
+        }
     }
 }

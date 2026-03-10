@@ -185,7 +185,9 @@ namespace IngameScript
 
         /// <summary>
         /// Register commands from the programmable block's custom data as configuration 
-        /// commands. Commands are defined in the [Commands] section.
+        /// commands. Commands are defined in the [Commands] section. Command values are 
+        /// stored as raw templates to support runtime parameter substitution using the
+        /// {{param}} and {{param:default}} syntax.
         /// </summary>
         void RegisterCommands()
         {
@@ -202,8 +204,9 @@ namespace IngameScript
                 // Strip surrounding double quotes from command value
                 commandValue = Unquote(commandValue);
 
-                // Substitute variables into the command value
-                commandValue = Mother.SubstituteVariables(commandValue);
+                // Do NOT substitute variables here — defer to runtime so that
+                // {{param:$VAR}} defaults and $VAR references are resolved after
+                // command parameters have been applied.
 
                 Mother.ConfigCommands[commandName] = commandValue;
             }

@@ -4,6 +4,7 @@ using NUnit.Framework;
 using MotherCore.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System;
+using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests
 {
@@ -41,7 +42,13 @@ namespace MotherCore.Tests.Tests
             config.Boot();
 
             Assert.That(_mother.ConfigCommands.ContainsKey("greeting"), Is.True);
-            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, Luke"));
+
+            // ConfigCommands now stores the raw template
+            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, $PLAYER"));
+
+            // Variables are resolved at runtime
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke"));
         }
 
         [Test]
@@ -59,7 +66,8 @@ namespace MotherCore.Tests.Tests
             Configuration config = new Configuration(_mother);
             config.Boot();
 
-            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, Luke aboard Falcon"));
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke aboard Falcon"));
         }
 
         [Test]
@@ -76,7 +84,8 @@ namespace MotherCore.Tests.Tests
             Configuration config = new Configuration(_mother);
             config.Boot();
 
-            Assert.That(_mother.ConfigCommands["echo"], Is.EqualTo("Hello Luke, goodbye Luke"));
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["echo"], null);
+            Assert.That(resolved, Is.EqualTo("Hello Luke, goodbye Luke"));
         }
 
         [Test]
@@ -128,7 +137,8 @@ namespace MotherCore.Tests.Tests
             Configuration config = new Configuration(_mother);
             config.Boot();
 
-            Assert.That(_mother.ConfigCommands["echo"], Is.EqualTo("Launch at 12:00; Begin sequence"));
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["echo"], null);
+            Assert.That(resolved, Is.EqualTo("Launch at 12:00; Begin sequence"));
         }
 
         [Test]
@@ -146,7 +156,9 @@ namespace MotherCore.Tests.Tests
             config.Boot();
 
             Assert.That(_mother.ConfigVariables["PLAYER"], Is.EqualTo("Luke"));
-            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, Luke"));
+
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke"));
         }
 
         [Test]
@@ -164,7 +176,9 @@ namespace MotherCore.Tests.Tests
             config.Boot();
 
             Assert.That(_mother.ConfigVariables["PLAYER"], Is.EqualTo("Luke Morrison"));
-            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, Luke Morrison"));
+
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke Morrison"));
         }
 
         [Test]
@@ -182,7 +196,9 @@ namespace MotherCore.Tests.Tests
             config.Boot();
 
             Assert.That(_mother.ConfigVariables.ContainsKey("PLAYER"), Is.True);
-            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, Luke"));
+
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke"));
         }
 
         [Test]
@@ -199,7 +215,8 @@ namespace MotherCore.Tests.Tests
             Configuration config = new Configuration(_mother);
             config.Boot();
 
-            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, Luke"));
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke"));
         }
 
         [Test]
@@ -218,7 +235,120 @@ namespace MotherCore.Tests.Tests
 
             Assert.That(_mother.ConfigVariables.ContainsKey("PLAYER"), Is.True);
             Assert.That(_mother.ConfigVariables["PLAYER"], Is.EqualTo("Luke Morrison"));
-            Assert.That(_mother.ConfigCommands["greeting"], Is.EqualTo("Hello, Luke Morrison"));
+
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke Morrison"));
+        }
+
+        // ---- Command Parameter Tests ----
+
+        [Test]
+        public void It_Substitutes_Command_Parameters_With_Provided_Options()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "",
+                "[commands]",
+                "greeting=Hello, {{player}}"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            var options = new Dictionary<string, string> { { "player", "Alex" } };
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], options);
+            Assert.That(resolved, Is.EqualTo("Hello, Alex"));
+        }
+
+        [Test]
+        public void It_Uses_Default_Value_When_No_Option_Provided()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "",
+                "[commands]",
+                "greeting=Hello, {{player:World}}"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, World"));
+        }
+
+        [Test]
+        public void It_Uses_Variable_As_Default_For_Command_Parameter()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "PLAYER=Luke",
+                "",
+                "[commands]",
+                "greeting=Hello, {{player:$PLAYER}}"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            // No options provided — uses $PLAYER default which resolves to "Luke"
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Luke"));
+        }
+
+        [Test]
+        public void It_Overrides_Variable_Default_With_Provided_Option()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "PLAYER=Luke",
+                "",
+                "[commands]",
+                "greeting=Hello, {{player:$PLAYER}}"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            // Option provided — overrides the $PLAYER default
+            var options = new Dictionary<string, string> { { "player", "Alex" } };
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], options);
+            Assert.That(resolved, Is.EqualTo("Hello, Alex"));
+        }
+
+        [Test]
+        public void It_Substitutes_Multiple_Command_Parameters()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "",
+                "[commands]",
+                "activateLights=block/on {{block:Lights}}; light/color {{block:Lights}} {{color:red}}"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            var options = new Dictionary<string, string> { { "block", "Cockpit Lights" }, { "color", "blue" } };
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["activateLights"], options);
+            Assert.That(resolved, Is.EqualTo("block/on Cockpit Lights; light/color Cockpit Lights blue"));
+        }
+
+        [Test]
+        public void It_Returns_Empty_String_For_Parameter_Without_Default_Or_Option()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "",
+                "[commands]",
+                "greeting=Hello, {{player}}"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, "));
         }
     }
 }
