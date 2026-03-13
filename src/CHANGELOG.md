@@ -51,6 +51,18 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 
 - The `DisplayModule` from Mother OS has moved most capability to Core so that scripts can use some of Mother's foundational logic for rendering content to a screen or the terminal window. Map logic has been moved to the [Mother Autopilot System (MAPS)](#) script
 
+- Commands and Routines may now be executed in *parallel*.  This is particularly useful when you want to separate multiple processes without depending on each other. We use curly braces `{}` to wrap a parallel routine:
+
+    **Example - Programmable Block Custom Data**
+    ```ini
+    [commands]
+    ; wait, then open AirlockDoor1, then open AirlockDoor2
+    openAirlock=wait 5; door/open AirlockDoor1; door/open AirlockDoor2;
+
+    ; wait, then open both airlock doors at the same time
+    openAirlock=wait 5; {door/open AirlockDoor1} {door/open AirlockDoor2}
+    ```
+
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
 
