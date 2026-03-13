@@ -8,6 +8,10 @@ namespace IngameScript
     /// Represents a routine of terminal commands.
     /// 
     /// @[Target] [Routine[Commands...]]
+    /// 
+    /// Routines may also contain parallel groups enclosed in curly braces:
+    /// { cmd1; cmd2; } { cmd3; cmd4; }
+    /// Each group will be executed in parallel as a separate coroutine.
     /// </summary>
     public class TerminalRoutine
     {
@@ -29,9 +33,22 @@ namespace IngameScript
         public string UnpackedRoutineString = "";
 
         /// <summary>
-        /// The commands that compose the routine.
+        /// The commands that compose the routine. Used for sequential execution
+        /// when no parallel groups are defined.
         /// </summary>
         public List<TerminalCommand> Commands = new List<TerminalCommand>();
+
+        /// <summary>
+        /// The parallel groups of commands. Each inner list represents a group 
+        /// of commands that should be executed sequentially within the group,
+        /// while all groups run in parallel with each other.
+        /// </summary>
+        public List<List<TerminalCommand>> ParallelGroups = new List<List<TerminalCommand>>();
+
+        /// <summary>
+        /// Whether this routine contains parallel groups.
+        /// </summary>
+        public bool HasParallelGroups => ParallelGroups.Count > 0;
 
         /// <summary>
         /// The unpacked commands that compose the routine.
@@ -83,18 +100,130 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Parses the routine string into individual commands.
+        /// Parses the routine string into individual commands, detecting 
+        /// parallel groups enclosed in curly braces.
         /// </summary>
         void ParseRoutineString()
         {
             SetTarget(RoutineString);
 
-            List<string> commandStrings = SplitRoutineCommands(RoutineString);
-
-            foreach (var commandString in commandStrings)
+            // Check if the routine contains parallel groups
+            if (ContainsParallelGroups(RoutineString))
             {
-                if (!string.IsNullOrWhiteSpace(commandString))
-                    Commands.Add(new TerminalCommand(commandString.Trim()));
+                ParseParallelGroups(RoutineString);
+            }
+            else
+            {
+                // Standard sequential parsing
+                List<string> commandStrings = SplitRoutineCommands(RoutineString);
+
+                foreach (var commandString in commandStrings)
+                {
+                    if (!string.IsNullOrWhiteSpace(commandString))
+                        Commands.Add(new TerminalCommand(commandString.Trim()));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Determines if the routine string contains parallel groups 
+        /// denoted by curly braces. Returns true only when all 
+        /// non-whitespace content is inside {} blocks, meaning 
+        /// there is no meaningful content outside the braces.
+        /// </summary>
+        /// <param name="routine"></param>
+        /// <returns></returns>
+        static bool ContainsParallelGroups(string routine)
+        {
+            if (!routine.Contains("{") || !routine.Contains("}"))
+                return false;
+
+            // Check if there is any non-whitespace content outside {} blocks
+            int braceDepth = 0;
+
+            foreach (char c in routine)
+            {
+                if (c == '{')
+                    braceDepth++;
+                else if (c == '}')
+                    braceDepth--;
+                else if (braceDepth == 0 && !char.IsWhiteSpace(c))
+                    return false; // Found content outside braces
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Parses the routine string into parallel groups using a single-pass
+        /// tree BFS approach. Scans the string once, tracking brace depth to
+        /// identify group boundaries and semicolons to split commands within
+        /// each group. Commands are built directly without intermediate string
+        /// extraction.
+        /// </summary>
+        /// <param name="routine"></param>
+        void ParseParallelGroups(string routine)
+        {
+            List<TerminalCommand> currentGroupCommands = null;
+            StringBuilder currentCommand = new StringBuilder();
+            bool insideQuotes = false;
+            int braceDepth = 0;
+
+            for (int i = 0; i < routine.Length; i++)
+            {
+                char c = routine[i];
+
+                if (c == '"')
+                    insideQuotes = !insideQuotes;
+
+                if (!insideQuotes)
+                {
+                    if (c == '{')
+                    {
+                        braceDepth++;
+
+                        if (braceDepth == 1)
+                        {
+                            // Entering a new top-level group
+                            currentGroupCommands = new List<TerminalCommand>();
+                            currentCommand.Clear();
+                            continue;
+                        }
+                    }
+                    else if (c == '}')
+                    {
+                        braceDepth--;
+
+                        if (braceDepth == 0)
+                        {
+                            // Closing a top-level group - flush last command
+                            string cmd = currentCommand.ToString().Trim();
+                            if (!string.IsNullOrWhiteSpace(cmd))
+                                currentGroupCommands.Add(new TerminalCommand(cmd));
+
+                            if (currentGroupCommands.Count > 0)
+                                ParallelGroups.Add(currentGroupCommands);
+
+                            currentGroupCommands = null;
+                            currentCommand.Clear();
+                            continue;
+                        }
+                    }
+                    else if (c == ';' && braceDepth == 1)
+                    {
+                        // Command separator inside a top-level group
+                        string cmd = currentCommand.ToString().Trim();
+                        if (!string.IsNullOrWhiteSpace(cmd))
+                            currentGroupCommands.Add(new TerminalCommand(cmd));
+
+                        currentCommand.Clear();
+                        continue;
+                    }
+                }
+
+                // Accumulate characters inside groups
+                if (braceDepth > 0)
+                    currentCommand.Append(c);
             }
         }
 
@@ -147,13 +276,14 @@ namespace IngameScript
 
         /// <summary>
         /// Splits a routine into individual Commands, but ignores semi-colons 
-        /// inside quoted strings.
+        /// inside quoted strings and inside curly brace blocks.
         /// </summary>
         /// <param name="routine"></param>
         /// <returns></returns>
         List<string> SplitRoutineCommands(string routine)
         {
             bool insideQuotes = false;
+            int braceDepth = 0;
             List<string> commands = new List<string>();
             StringBuilder currentCommand = new StringBuilder();
 
@@ -162,10 +292,18 @@ namespace IngameScript
                 if (c == '"')
                     insideQuotes = !insideQuotes;
 
-                // If outside quotes, treat as a separator
-                if (c == ';' && !insideQuotes)
+                if (!insideQuotes)
                 {
-                    commands.Add($"{currentCommand}".Trim());
+                    if (c == '{')
+                        braceDepth++;
+                    else if (c == '}')
+                        braceDepth--;
+                }
+
+                // If outside quotes and braces, treat as a separator
+                if (c == ';' && !insideQuotes && braceDepth == 0)
+                {
+                    commands.Add(currentCommand.ToString().Trim());
                     currentCommand.Clear();
                 }
                 else
@@ -176,7 +314,7 @@ namespace IngameScript
 
             // Add last command if not empty
             if (currentCommand.Length > 0)
-                commands.Add($"{currentCommand}".Trim());
+                commands.Add(currentCommand.ToString().Trim());
 
             return commands;
         }

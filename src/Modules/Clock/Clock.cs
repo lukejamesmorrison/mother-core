@@ -1,4 +1,5 @@
-﻿using Sandbox.Game.EntityComponents;
+﻿using LitJson;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -58,7 +59,7 @@ namespace IngameScript
         /// <summary>
         /// The tasks queued for future execution.
         /// </summary>
-        readonly Queue<ScheduledTask> QueuedTasks = new Queue<ScheduledTask>();
+        readonly List<ScheduledTask> QueuedTasks = new List<ScheduledTask>();
 
         /// <summary>
         /// A coroutine that can yield execution over multiple game cycles
@@ -137,7 +138,7 @@ namespace IngameScript
         /// <param name="waitTime"></param>
         public void QueueForLater(Action task, double waitTime)
         {
-            QueuedTasks.Enqueue(new ScheduledTask { Task = task, Interval = waitTime, TimeRemaining = waitTime });
+            QueuedTasks.Add(new ScheduledTask { Task = task, Interval = waitTime, TimeRemaining = waitTime });
         }
 
         /// <summary>
@@ -176,8 +177,7 @@ namespace IngameScript
             // Execute queued tasks based on their timers
             for (int i = QueuedTasks.Count - 1; i >= 0; i--)
             {
-                // We access the task by index to avoid dequeuing during iteration
-                var task = QueuedTasks.ElementAt(i);  
+                var task = QueuedTasks[i];
 
                 task.TimeRemaining -= deltaTime;
 
@@ -185,8 +185,8 @@ namespace IngameScript
                 {
                     task.Task.Invoke();
 
-                    // Remove task after execution
-                    QueuedTasks.Dequeue();
+                    // Remove the correct task by index
+                    QueuedTasks.RemoveAt(i);
                 }
             }
 

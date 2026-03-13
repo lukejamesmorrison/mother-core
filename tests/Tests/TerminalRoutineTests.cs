@@ -78,5 +78,71 @@ namespace MotherCore.Tests.Tests
                 )
             );
         }
+
+        [Test]
+        public void It_Can_Parse_Parallel_Groups()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; block/on WarningLight; } { piston/distance LandingGearPiston 2; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(2));
+            Assert.That(routine.Commands.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void It_Parses_Commands_Within_Parallel_Groups()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; block/on WarningLight; } { piston/distance LandingGearPiston 2; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            // First group: 2 commands
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(2));
+            Assert.That(routine.ParallelGroups[0][0].Name, Is.EqualTo("rotor/rotate"));
+            Assert.That(routine.ParallelGroups[0][1].Name, Is.EqualTo("block/on"));
+
+            // Second group: 1 command
+            Assert.That(routine.ParallelGroups[1].Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[1][0].Name, Is.EqualTo("piston/distance"));
+        }
+
+        [Test]
+        public void It_Does_Not_Have_Parallel_Groups_For_Sequential_Routines()
+        {
+            string routineString = "rotor/rotate TurretRotor 45; block/on WarningLight;";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.False);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(0));
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void It_Can_Parse_A_Single_Parallel_Group()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; block/on WarningLight; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void It_Can_Parse_Parallel_Groups_With_Wait_Commands()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; wait 2; block/on WarningLight; } { piston/distance LandingGearPiston 2; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(2));
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(3));
+            Assert.That(routine.ParallelGroups[0][1].Name, Is.EqualTo("wait"));
+        }
     }
 }

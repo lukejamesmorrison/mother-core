@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -86,53 +86,27 @@ namespace IngameScript
             RegisterCommand(new HelpCommand(this));
 
             // Routes
-            AddRoute("command", request => HandleRemoteCommandRequest(request));
-            AddRoute("localcmd", request => HandleConstructCommandRequest(request));
+            AddRoute("command", request => HandleIncomingCommandRequest(request, "REQ"));
+            AddRoute("localcmd", request => HandleIncomingCommandRequest(request, "CREQ"));
         }
 
         /// <summary>
-        /// Handles incoming command requests from other grids. This endpoint 
-        /// is used to receive incoming commands and run them locally.
+        /// Handles an incoming command request from another grid or construct instance.
+        /// Extracts the command, logs it with the given prefix, executes it, 
+        /// and returns an appropriate response.
         /// </summary>
         /// <param name="request"></param>
+        /// <param name="logPrefix">The log prefix to distinguish request origin (e.g. "REQ" or "CREQ").</param>
         /// <returns></returns>
-        Response HandleRemoteCommandRequest(Request request)
+        Response HandleIncomingCommandRequest(Request request, string logPrefix)
         {
             string command = request.BString("Command").Trim();
             string originName = request.HString("OriginName");
 
-            Log.Info($"REQ: {originName}> {command}");
-            Mother.Print($"REQ: {originName}> {command}", false);
+            Log.Info($"{logPrefix}: {originName}> {command}");
+            Mother.Print($"{logPrefix}: {originName}> {command}", false);
 
-            if (command != null)
-            {
-                bool success = RunTerminalCommand(command);
-
-                Response.ResponseStatusCodes status = success 
-                    ? Response.ResponseStatusCodes.COMMAND_EXECUTED 
-                    : Response.ResponseStatusCodes.ERROR;
-
-                return Mother.GetModule<IntergridMessageService>().CreateResponse(request, status);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Handles a command request from another Mother Core instance on the construct.
-        /// Executes the command and returns the result.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        Response HandleConstructCommandRequest(Request request)
-        {
-            string command = request.BString("Command").Trim();
-            string originName = request.HString("OriginName");
-
-            Log.Info($"CREQ: {originName}> {command}");
-            Mother.Print($"CREQ: {originName}> {command}", false);
-
-            var igs = Mother.GetModule<IntergridMessageService>();
+            var ims = Mother.GetModule<IntergridMessageService>();
 
             if (!string.IsNullOrEmpty(command))
             {
@@ -142,10 +116,10 @@ namespace IngameScript
                     ? Response.ResponseStatusCodes.COMMAND_EXECUTED 
                     : Response.ResponseStatusCodes.ERROR;
 
-                return igs.CreateResponse(request, status);
+                return ims.CreateResponse(request, status);
             }
 
-            return igs.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
+            return ims.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
         }
 
         /// <summary>
@@ -179,16 +153,24 @@ namespace IngameScript
 
         /// <summary>
         /// Processes and executes a routine (multiple routines in a sequence).
+        /// If the routine contains parallel groups, each group is launched 
+        /// as a separate coroutine for concurrent execution. If the routine 
+        /// contains multiple commands separated by semicolons, each command 
+        /// is launched as its own coroutine for parallel execution.
         /// </summary>
         /// <param name="terminalRoutine"></param>
         void HandleRoutine(TerminalRoutine terminalRoutine)
         {
             var target = terminalRoutine.Target;
-            var commands = terminalRoutine.Commands;
+
+            // Ensure Clock is available for coroutine execution
+            if (Clock == null)
+                Clock = Mother.GetModule<Clock>();
 
             if (target == "self" || string.IsNullOrEmpty(target))
-                ProcessCommandsSequentially(commands);
-
+            {
+                LaunchRoutineCoroutines(terminalRoutine);
+            }
             else
             {
                 // Remote routine handling
@@ -197,7 +179,6 @@ namespace IngameScript
 
                 if (target == "*")
                     Mother.GetModule<IntergridMessageService>().SendRequestToAllFromRoutine(terminalRoutine);
-
                 else
                     Mother.GetModule<IntergridMessageService>().SendRequestFromRoutine(target, terminalRoutine);
 
@@ -207,45 +188,176 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Processes a list of commands sequentially, with an optional initial delay.
+        /// Launches coroutines for a routine's commands. If the routine has 
+        /// parallel groups, each group runs as a separate coroutine. If it 
+        /// has multiple sequential commands, each is launched as its own 
+        /// coroutine for parallel execution. A single command runs as a 
+        /// coroutine so config command expansion is handled correctly.
+        /// </summary>
+        /// <param name="routine"></param>
+        void LaunchRoutineCoroutines(TerminalRoutine routine)
+        {
+            if (routine.HasParallelGroups)
+            {
+                foreach (var group in routine.ParallelGroups)
+                    Clock.AddCoroutine(ExecuteCommandGroupCoroutine(group));
+            }
+            else if (routine.Commands.Count > 1)
+            {
+                foreach (var command in routine.Commands)
+                    Clock.AddCoroutine(ExecuteCommandGroupCoroutine(
+                        new List<TerminalCommand> { command }));
+            }
+            else
+            {
+                Clock.AddCoroutine(ExecuteCommandGroupCoroutine(routine.Commands));
+            }
+        }
+
+        /// <summary>
+        /// Coroutine that executes a group of commands sequentially. Each command 
+        /// is processed one at a time. If a command resolves to a config command, 
+        /// its expanded steps are inlined into this coroutine so that wait 
+        /// commands properly block subsequent steps. Parallel groups within
+        /// expanded config commands are launched as separate coroutines.
         /// </summary>
         /// <param name="commands"></param>
-        /// <param name="initialDelay"></param>
-        private void ProcessCommandsSequentially(List<TerminalCommand> commands, double initialDelay = 0)
+        /// <returns></returns>
+        IEnumerable<double> ExecuteCommandGroupCoroutine(List<TerminalCommand> commands)
         {
-            if (commands == null || commands.Count == 0) return;
-
-            TerminalCommand currentCommand = commands[0];
-            List<TerminalCommand> remainingCommands = commands.Skip(1).ToList();
-
-            Action executeCurrentCommand = () =>
+            foreach (var command in commands)
             {
-                if (currentCommand.Name.ToLower() == "wait" && currentCommand.Arguments.Count > 0)
+                // Yield through each step produced by the command
+                foreach (double wait in ExecuteCommandCoroutine(command))
+                    yield return wait;
+            }
+        }
+
+        /// <summary>
+        /// Coroutine that executes a single command. If the command is a wait, 
+        /// it yields the wait duration. If the command resolves to a config 
+        /// command, the expanded routine is inlined — its steps are yielded 
+        /// through directly so waits block correctly. If the expanded config 
+        /// command contains parallel groups, each group is launched as a 
+        /// separate coroutine. Module commands and other primitives are 
+        /// executed immediately.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
+        IEnumerable<double> ExecuteCommandCoroutine(TerminalCommand command)
+        {
+            // Handle the "wait" command
+            if (command.Name.ToLower() == "wait" && command.Arguments.Count > 0)
+            {
+                double waitTime;
+
+                if (double.TryParse(command.Arguments[0], out waitTime))
                 {
-                    double waitTime;
+                    Mother.Print($"> wait {waitTime}");
+                    yield return waitTime;
+                }
 
-                    if (double.TryParse(currentCommand.Arguments[0], out waitTime))
-                    {
-                        Mother.Print($"> wait {waitTime}");
-                        Clock.QueueForLater(() => ProcessCommandsSequentially(remainingCommands), waitTime);
-                    }
+                yield break;
+            }
 
-                    else
-                        ProcessCommandsSequentially(remainingCommands); // Skip invalid wait and continue
+            // Resolve config commands — inline their expanded steps
+            string configCommandValue = ResolveConfigCommand(command);
+
+            if (configCommandValue != null)
+            {
+                string expanded = Mother.SubstituteVariables(configCommandValue);
+                var routine = new TerminalRoutine(expanded);
+
+                if (routine.HasParallelGroups)
+                {
+                    // Parallel groups within a config command are launched
+                    // as separate coroutines
+                    foreach (var group in routine.ParallelGroups)
+                        Clock.AddCoroutine(ExecuteCommandGroupCoroutine(group));
                 }
                 else
                 {
-                    HandleCommand(currentCommand); // Execute regular command
-                    ProcessCommandsSequentially(remainingCommands);  // Immediately process next command
+                    // Inline the expanded steps into this coroutine
+                    foreach (double wait in ExecuteCommandGroupCoroutine(routine.Commands))
+                        yield return wait;
                 }
-            };
 
-            // Apply the initial delay if provided
-            if (initialDelay > 0)
-                Clock.QueueForLater(executeCurrentCommand, initialDelay);
+                yield break;
+            }
 
-            else
-                executeCurrentCommand();
+            // Execute module commands and other primitives immediately
+            ExecutePrimitiveCommand(command);
+            yield return 0;
+        }
+
+        /// <summary>
+        /// Resolves a command to its config command value if one exists. 
+        /// Handles underscore-prefixed local commands and standard config 
+        /// commands, applying parameter substitution.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns>The expanded config command string, or null if not a config command.</returns>
+        string ResolveConfigCommand(TerminalCommand command)
+        {
+            string commandString = command.CommandString;
+
+            // Underscore-prefixed local commands
+            if (commandString.StartsWith("_"))
+            {
+                string localName = commandString.Substring(1);
+
+                if (Mother.ConfigCommands.ContainsKey(localName))
+                {
+                    Mother.Print($"Executing local command: {localName}", false);
+                    return Mother.SubstituteCommandParameters(
+                        Mother.ConfigCommands[localName], command.Options);
+                }
+            }
+
+            // Standard config commands
+            if (Mother.ConfigCommands.ContainsKey(command.Name))
+                return Mother.SubstituteCommandParameters(
+                    Mother.ConfigCommands[command.Name], command.Options);
+
+            return null;
+        }
+
+        /// <summary>
+        /// Executes a primitive (non-config, non-wait) command. This includes 
+        /// module commands, construct commands, and unresolved commands.
+        /// </summary>
+        /// <param name="command"></param>
+        void ExecutePrimitiveCommand(TerminalCommand command)
+        {
+            string commandString = command.CommandString;
+
+            // Execute a command registered by a module
+            foreach (IModuleCommand moduleCommand in ModuleCommands)
+            {
+                if (moduleCommand.GetCommandName() == command.Name)
+                {
+                    var printString = "> " + commandString;
+
+                    Mother.Print(printString);
+
+                    string output = moduleCommand.Execute(command);
+
+                    Mother.Print(output, false);
+
+                    return;
+                }
+            }
+
+            // Check if command exists on the construct
+            long remoteScriptId = FindInstanceWithCommand(command.Name);
+            if (remoteScriptId != 0)
+            {
+                Mother.GetModule<IntergridMessageService>()
+                    .SendConstructCommand(remoteScriptId, commandString);
+                return;
+            }
+
+            Mother.Print(MessageFormatter.Format(Messages.CommandNotFound, command.CommandString), false);
         }
 
         /// <summary>
@@ -290,91 +402,6 @@ namespace IngameScript
                     return entry.Key;
             }
             return 0;
-        }
-
-        /// <summary>
-        /// Processes and executes a single command.  Commands can only be run 
-        /// locally in the Mother Core instance. Remote commands are 
-        /// considered Routines.
-        /// </summary>
-        /// <param name="command"></param>
-        /// <returns></returns>
-        bool HandleCommand(TerminalCommand command)
-        {
-            string commandString = command.CommandString;
-
-            // Handle the "wait" command
-            if (command.Name.ToLower() == "wait" && command.Arguments.Count > 0)
-            {
-                double waitTime;
-
-                if (double.TryParse(command.Arguments[0], out waitTime))
-                {
-                    // Queue the next command after the wait time
-                    Clock.QueueForLater(() =>
-                    {
-                        if (command.Arguments.Count > 1)
-                        {
-                            // Combine the rest of the arguments as the command to run after waiting
-                            string delayedCommand = string.Join(" ", command.Arguments.Skip(1).ToArray());
-                            RunTerminalCommand(delayedCommand);
-                        }
-                    }, waitTime);
-
-                    return true;
-                }
-
-                else return false;
-            }
-
-            // If command starts with an underscore, it is a locally defined
-            // command and likely received via a remote command.
-            if (commandString.StartsWith("_"))
-            {
-                // remove leading underscore and assume locally defined command
-                commandString = commandString.Substring(1);
-
-                if (Mother.ConfigCommands.ContainsKey(commandString))
-                    Mother.Print($"Executing local command: {commandString}", false);
-                    return RunTerminalCommand(
-                        Mother.SubstituteCommandParameters(Mother.ConfigCommands[commandString], command.Options));
-            }
-
-            // Execute the command from the config commands, substituting any
-            // {{param}} placeholders with --option values provided by the caller.
-            if (Mother.ConfigCommands.ContainsKey(command.Name))
-                return RunTerminalCommand(
-                    Mother.SubstituteCommandParameters(Mother.ConfigCommands[command.Name], command.Options));
-
-            // or execute a command registered by a module
-            foreach (IModuleCommand moduleCommand in ModuleCommands)
-            {
-                if (moduleCommand.GetCommandName() == command.Name)
-                {
-                    var printString = "> " + commandString;
-
-                    Mother.Print(printString);
-
-                    string output = moduleCommand.Execute(command);
-
-                    Mother.Print(output, false);
-
-                    return true;
-                }
-            }
-
-            // Check if command exists on the construct
-            long remoteScriptId = FindInstanceWithCommand(command.Name);
-            if (remoteScriptId != 0)
-            {
-                Mother.GetModule<IntergridMessageService>()
-                    .SendConstructCommand(remoteScriptId, commandString);
-                return true;
-            }
-
-            Mother.Print(MessageFormatter.Format(Messages.CommandNotFound, command.CommandString), false);
-
-            return false;
         }
 
         /// <summary>

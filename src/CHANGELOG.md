@@ -31,7 +31,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     **Example - Command Definition in Custom Data**
     ```ini
     [commands]
-    greeting=screen/print AirlockScreen {{player:Space Engineer}}
+    greeting=screen/print AirlockScreen "Hello, {{player:Space Engineer}}!"
     ```
 
     **Example - Execute in Terminal**
@@ -50,6 +50,10 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     ```
 
 - The `DisplayModule` from Mother OS has moved most capability to Core so that scripts can use some of Mother's foundational logic for rendering content to a screen or the terminal window. Map logic has been moved to the [Mother Autopilot System (MAPS)](#) script
+
+### Changed
+- Task Queue in `CommandBus` is now a `List`.
+
 
 ### Remove
 - Remove `FlightPlanningModule`, `FlightControlModule`, and `DockingModule`. These modules have been moved to the [Mother Autopilot System (MAPS)](#) script

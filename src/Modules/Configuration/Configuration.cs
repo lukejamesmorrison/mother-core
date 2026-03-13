@@ -199,7 +199,11 @@ namespace IngameScript
                 string commandName = key.Name;
                 string commandValue = $"{Ini.Get("Commands", commandName)}"
                     .Replace("\r", "")
+                    .Replace("\n", " ")
                     .Trim();
+
+                // Collapse multiple spaces into a single space
+                commandValue = System.Text.RegularExpressions.Regex.Replace(commandValue, @"\s+", " ");
 
                 // Strip surrounding double quotes from command value
                 commandValue = Unquote(commandValue);
