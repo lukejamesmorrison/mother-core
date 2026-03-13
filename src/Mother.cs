@@ -552,7 +552,8 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// 
+        /// Get a module that is registered by its type. Returns null if the 
+        /// module is not found or if the type is incorrect.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
