@@ -152,11 +152,12 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Processes and executes a routine (multiple routines in a sequence).
-        /// If the routine contains parallel groups, each group is launched 
-        /// as a separate coroutine for concurrent execution. If the routine 
-        /// contains multiple commands separated by semicolons, each command 
-        /// is launched as its own coroutine for parallel execution.
+        /// Processes and executes a routine. If the routine contains parallel
+        /// groups, each group is launched as a separate coroutine for concurrent
+        /// execution. Otherwise, all commands in the routine are executed
+        /// sequentially within a single coroutine. Individual commands within
+        /// the sequence may themselves expand to parallel groups when resolved
+        /// as config commands.
         /// </summary>
         /// <param name="terminalRoutine"></param>
         void HandleRoutine(TerminalRoutine terminalRoutine)
@@ -188,11 +189,11 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Launches coroutines for a routine's commands. If the routine has 
-        /// parallel groups, each group runs as a separate coroutine. If it 
-        /// has multiple sequential commands, each is launched as its own 
-        /// coroutine for parallel execution. A single command runs as a 
-        /// coroutine so config command expansion is handled correctly.
+        /// Launches coroutines for a routine's commands. If the routine has
+        /// parallel groups, each group runs as a separate coroutine. Otherwise,
+        /// all commands are executed sequentially within a single coroutine.
+        /// Individual commands within the sequence may themselves expand to
+        /// parallel groups when resolved as config commands.
         /// </summary>
         /// <param name="routine"></param>
         void LaunchRoutineCoroutines(TerminalRoutine routine)
@@ -201,12 +202,6 @@ namespace IngameScript
             {
                 foreach (var group in routine.ParallelGroups)
                     Clock.AddCoroutine(ExecuteCommandGroupCoroutine(group));
-            }
-            else if (routine.Commands.Count > 1)
-            {
-                foreach (var command in routine.Commands)
-                    Clock.AddCoroutine(ExecuteCommandGroupCoroutine(
-                        new List<TerminalCommand> { command }));
             }
             else
             {

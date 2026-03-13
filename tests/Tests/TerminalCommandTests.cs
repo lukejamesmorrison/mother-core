@@ -2,17 +2,14 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.TestUtilities;
-using Sandbox.ModAPI.Ingame;
-using System.Net.NetworkInformation;
 using System;
 using System.Collections.Generic;
-
-//using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests
 {
     public class TerminalCommandTests : BaseModuleTests
     {
+        // --- Basic parsing ---
 
         [Test]
         public void It_Can_Be_Instantiated_With_A_Command_String()
@@ -42,6 +39,149 @@ namespace MotherCore.Tests.Tests
             Assert.That(command.GetOption("delay"), Is.EqualTo("0.5"));
             Assert.That(command.GetOption("force"), Is.EqualTo("true"));
             Assert.That(command.GetOption("nonexistent"), Is.EqualTo(""));
+        }
+
+        // --- Quoted argument handling ---
+
+        [Test]
+        public void It_Preserves_Quoted_Arguments_As_Single_Terms()
+        {
+            TerminalCommand command = new TerminalCommand("print \"Hello World\"");
+
+            Assert.That(command.Name, Is.EqualTo("print"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(1));
+            Assert.That(command.Arguments[0], Is.EqualTo("Hello World"));
+        }
+
+        [Test]
+        public void It_Handles_Multiple_Quoted_Arguments()
+        {
+            TerminalCommand command = new TerminalCommand("msg \"Player One\" \"Welcome aboard\"");
+
+            Assert.That(command.Name, Is.EqualTo("msg"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(2));
+            Assert.That(command.Arguments[0], Is.EqualTo("Player One"));
+            Assert.That(command.Arguments[1], Is.EqualTo("Welcome aboard"));
+        }
+
+        [Test]
+        public void It_Handles_Quoted_Arguments_Mixed_With_Options()
+        {
+            TerminalCommand command = new TerminalCommand("light/color \"Warning Light\" red --brightness=100");
+
+            Assert.That(command.Name, Is.EqualTo("light/color"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(2));
+            Assert.That(command.Arguments[0], Is.EqualTo("Warning Light"));
+            Assert.That(command.Arguments[1], Is.EqualTo("red"));
+            Assert.That(command.GetOption("brightness"), Is.EqualTo("100"));
+        }
+
+        // --- Whitespace and formatting ---
+
+        [Test]
+        public void It_Trims_Leading_And_Trailing_Whitespace()
+        {
+            TerminalCommand command = new TerminalCommand("  help  ");
+
+            Assert.That(command.Name, Is.EqualTo("help"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void It_Strips_Carriage_Returns()
+        {
+            TerminalCommand command = new TerminalCommand("help\r");
+
+            Assert.That(command.Name, Is.EqualTo("help"));
+        }
+
+        [Test]
+        public void It_Handles_Multiple_Spaces_Between_Terms()
+        {
+            TerminalCommand command = new TerminalCommand("rotor/rotate   -45   --speed=100");
+
+            Assert.That(command.Name, Is.EqualTo("rotor/rotate"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(1));
+            Assert.That(command.Arguments[0], Is.EqualTo("-45"));
+            Assert.That(command.GetOption("speed"), Is.EqualTo("100"));
+        }
+
+        // --- Command-only (no arguments, no options) ---
+
+        [Test]
+        public void It_Handles_Command_With_No_Arguments_Or_Options()
+        {
+            TerminalCommand command = new TerminalCommand("help");
+
+            Assert.That(command.Name, Is.EqualTo("help"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(0));
+            Assert.That(command.Options.Count, Is.EqualTo(0));
+        }
+
+        // --- GetBoolFromString ---
+
+        [Test]
+        public void GetBoolFromString_Returns_True_For_True_String()
+        {
+            Assert.That(TerminalCommand.GetBoolFromString("true"), Is.True);
+            Assert.That(TerminalCommand.GetBoolFromString("True"), Is.True);
+            Assert.That(TerminalCommand.GetBoolFromString("TRUE"), Is.True);
+        }
+
+        [Test]
+        public void GetBoolFromString_Returns_True_For_One_String()
+        {
+            Assert.That(TerminalCommand.GetBoolFromString("1"), Is.True);
+        }
+
+        [Test]
+        public void GetBoolFromString_Returns_False_For_Other_Strings()
+        {
+            Assert.That(TerminalCommand.GetBoolFromString("false"), Is.False);
+            Assert.That(TerminalCommand.GetBoolFromString("0"), Is.False);
+            Assert.That(TerminalCommand.GetBoolFromString(""), Is.False);
+            Assert.That(TerminalCommand.GetBoolFromString("yes"), Is.False);
+        }
+
+        [Test]
+        public void GetBoolFromString_Handles_Null_Input()
+        {
+            Assert.That(TerminalCommand.GetBoolFromString(null), Is.False);
+        }
+
+        [Test]
+        public void GetBoolFromString_Trims_Whitespace()
+        {
+            Assert.That(TerminalCommand.GetBoolFromString("  true  "), Is.True);
+            Assert.That(TerminalCommand.GetBoolFromString("  1  "), Is.True);
+        }
+
+        // --- Multiple arguments ---
+
+        [Test]
+        public void It_Parses_Multiple_Positional_Arguments()
+        {
+            TerminalCommand command = new TerminalCommand("piston/distance Piston1 1.5 3.0");
+
+            Assert.That(command.Name, Is.EqualTo("piston/distance"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(3));
+            Assert.That(command.Arguments[0], Is.EqualTo("Piston1"));
+            Assert.That(command.Arguments[1], Is.EqualTo("1.5"));
+            Assert.That(command.Arguments[2], Is.EqualTo("3.0"));
+        }
+
+        // --- Option-only commands ---
+
+        [Test]
+        public void It_Parses_Command_With_Only_Options()
+        {
+            TerminalCommand command = new TerminalCommand("debug --verbose --level=3");
+
+            Assert.That(command.Name, Is.EqualTo("debug"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(0));
+            Assert.That(command.Options.Count, Is.EqualTo(2));
+            Assert.That(command.GetOption("verbose"), Is.EqualTo("true"));
+            Assert.That(command.GetOption("level"), Is.EqualTo("3"));
         }
     }
 }

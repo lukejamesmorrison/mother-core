@@ -219,6 +219,14 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Get the count of active coroutines.
+        /// </summary>
+        public int CoroutineCount
+        {
+            get { return Coroutines.Count; }
+        }
+
+        /// <summary>
         /// Update the loader indicator state.
         /// </summary>
         void UpdateLoader() => LoaderLeft = !LoaderLeft;
