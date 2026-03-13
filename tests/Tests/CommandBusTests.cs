@@ -659,6 +659,63 @@ namespace MotherCore.Tests.Tests
                 "All three parallel group coroutines should execute on the first tick.");
         }
 
+        // --- Waypoint routine execution ---
+
+        [Test]
+        public void Waypoint_Routine_Is_Stored_Without_Brace_Wrapping()
+        {
+            CommandBus commandBus = new CommandBus(_mother);
+            IWaypoint waypoint = new GPSWaypoint("GPS:TestWP:1:2:3:#FF75C9F1:");
+
+            string routine = "cmd1; cmd2; cmd3";
+            commandBus.AddRoutineForWaypoint(waypoint, routine);
+
+            string stored = commandBus.WaypointRoutineQueue.GetRoutineForWaypoint("TestWP");
+
+            Assert.That(stored, Is.EqualTo(routine));
+        }
+
+        [Test]
+        public void Waypoint_Routine_Executes_Sequentially_Not_As_Parallel_Group()
+        {
+            var tracker = new ExecutionTracker();
+            CommandBus commandBus = BootedBusWithTracker(tracker);
+            Clock clock = _mother.GetModule<Clock>();
+            IWaypoint waypoint = new GPSWaypoint("GPS:TestWP:1:2:3:#FF75C9F1:");
+
+            commandBus.AddRoutineForWaypoint(waypoint, "track; track; track");
+            commandBus.RunRoutineForWaypoint("TestWP");
+
+            Assert.That(clock.CoroutineCount, Is.EqualTo(1),
+                "Waypoint routine should execute as a single sequential coroutine.");
+
+            clock.Run();
+            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
+                "First tick: only the first command should have executed.");
+
+            clock.Run();
+            Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
+                "Second tick: the second command should have executed.");
+
+            clock.Run();
+            Assert.That(tracker.ExecutionCount, Is.EqualTo(3),
+                "Third tick: the third command should have executed.");
+        }
+
+        [Test]
+        public void Waypoint_Routine_Is_Removed_After_Execution()
+        {
+            var tracker = new ExecutionTracker();
+            CommandBus commandBus = BootedBusWithTracker(tracker);
+            IWaypoint waypoint = new GPSWaypoint("GPS:TestWP:1:2:3:#FF75C9F1:");
+
+            commandBus.AddRoutineForWaypoint(waypoint, "track");
+            commandBus.RunRoutineForWaypoint("TestWP");
+
+            Assert.That(commandBus.WaypointRoutineQueue.IsEmpty(), Is.True,
+                "Waypoint routine should be removed after execution.");
+        }
+
         // =====================================================================
         // Helpers
         // =====================================================================

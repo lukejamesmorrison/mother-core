@@ -307,5 +307,45 @@ namespace MotherCore.Tests.Tests
             Assert.That(routine.Commands.Count, Is.EqualTo(1));
             Assert.That(routine.HasParallelGroups, Is.False);
         }
+
+        // --- Flight plan quoted argument in routine ---
+
+        [Test]
+        public void Quoted_Flight_Plan_In_Routine_Is_Not_Split_By_Internal_Semicolons()
+        {
+            string routineString = "nav/set-flight-plan \"GPS:WP1:1:2:3:#FF75C9F1: { cmd1; cmd2; } R\"; fcs/start";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("nav/set-flight-plan"));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("fcs/start"));
+        }
+
+        [Test]
+        public void Quoted_Flight_Plan_With_Multiple_Routines_Is_Preserved_As_Single_Command()
+        {
+            string flightPlan = "{ wait 2; ArmsIn; } GPS:Exit:1:2:3:#FF75C9F1: { 40p; fcs/start; } GPS:Outpost:4:5:6:#FF75C9F1: { 80p; } R";
+            string routineString = "nav/set-flight-plan \"" + flightPlan + "\"; fcs/start";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("nav/set-flight-plan"));
+            Assert.That(routine.Commands[0].Arguments[0], Is.EqualTo(flightPlan));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("fcs/start"));
+        }
+
+        [Test]
+        public void Quoted_Flight_Plan_Does_Not_Trigger_Parallel_Groups()
+        {
+            string routineString = "nav/set-flight-plan \"{ cmd1; cmd2; } { cmd3; cmd4; }\"";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.False);
+            Assert.That(routine.Commands.Count, Is.EqualTo(1));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("nav/set-flight-plan"));
+        }
     }
 }

@@ -183,5 +183,43 @@ namespace MotherCore.Tests.Tests
             Assert.That(command.GetOption("verbose"), Is.EqualTo("true"));
             Assert.That(command.GetOption("level"), Is.EqualTo("3"));
         }
+
+        // --- Flight plan as quoted argument ---
+
+        [Test]
+        public void It_Preserves_Flight_Plan_With_Routines_As_Single_Quoted_Argument()
+        {
+            string flightPlan = "GPS:WP1:1:2:3:#FF75C9F1: { cmd1; cmd2; } GPS:WP2:4:5:6:#FF75C9F1: R";
+
+            TerminalCommand command = new TerminalCommand("nav/set-flight-plan \"" + flightPlan + "\"");
+
+            Assert.That(command.Name, Is.EqualTo("nav/set-flight-plan"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(1));
+            Assert.That(command.Arguments[0], Is.EqualTo(flightPlan));
+        }
+
+        [Test]
+        public void It_Preserves_Flight_Plan_With_Multiple_Routines_As_Single_Quoted_Argument()
+        {
+            string flightPlan = "{ wait 2; ArmsIn; } GPS:Exit:1:2:3:#FF75C9F1: { 40p; fcs/start; } GPS:Outpost:4:5:6:#FF75C9F1: { 80p; } R";
+
+            TerminalCommand command = new TerminalCommand("nav/set-flight-plan \"" + flightPlan + "\"");
+
+            Assert.That(command.Name, Is.EqualTo("nav/set-flight-plan"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(1));
+            Assert.That(command.Arguments[0], Is.EqualTo(flightPlan));
+        }
+
+        [Test]
+        public void It_Preserves_Flight_Plan_With_Options_And_Quoted_Argument()
+        {
+            string flightPlan = "GPS:WP1:1:2:3:#FF75C9F1: { fcs/start --speed=99; } R";
+
+            TerminalCommand command = new TerminalCommand("nav/set-flight-plan \"" + flightPlan + "\"");
+
+            Assert.That(command.Name, Is.EqualTo("nav/set-flight-plan"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(1));
+            Assert.That(command.Arguments[0], Is.EqualTo(flightPlan));
+        }
     }
 }
