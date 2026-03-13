@@ -152,13 +152,11 @@ namespace IngameScript
             string activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ";
             string almanacCount = $"{Almanac.Records.Count()}";
             string autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ";
-            string commandQueueIndicator = Mother.GetModule<CommandBus>().WaypointRoutineQueue.WaypointRoutines.Count > 0 ? "Q" : "   ";
             string waitQueueIndicator = Clock.QueuedTaskCount > 0 ? "W" : "   ";
 
             return String.Join(
                 "  ",
                 waitQueueIndicator,
-                commandQueueIndicator,
                 autopilotIndication,
                 activeRequests,
                 activityMonitorIndicator,

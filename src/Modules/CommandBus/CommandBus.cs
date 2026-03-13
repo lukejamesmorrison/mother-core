@@ -42,12 +42,6 @@ namespace IngameScript
         Log Log;
 
         /// <summary>
-        /// The WaypointRoutineQueue instance. Used to hold commands 
-        /// queued for execution within a flight plan.
-        /// </summary>
-        public WaypointRoutineQueue WaypointRoutineQueue;
-
-        /// <summary>
         /// List of all registered commands from core modules, extension modules, 
         /// and custom commands defined by the player in CustomData.
         /// </summary>
@@ -65,7 +59,6 @@ namespace IngameScript
         /// <param name="mother"></param>
         public CommandBus(Mother mother) : base(mother)
         {
-            WaypointRoutineQueue = new WaypointRoutineQueue();  
         }
 
         /// <summary>
@@ -397,33 +390,6 @@ namespace IngameScript
                     return entry.Key;
             }
             return 0;
-        }
-
-        /// <summary>
-        /// Add a routine to the queue, for execution at a waypoint in a flight plan.
-        /// </summary>
-        /// <param name="waypoint"></param>
-        /// <param name="routine"></param>
-        public void AddRoutineForWaypoint(IWaypoint waypoint, string routine)
-        {
-            WaypointRoutineQueue.AddRoutineForWaypoint(waypoint, routine);
-        }
-
-        /// <summary>
-        /// Runs all queued routines for a waypoint.
-        /// </summary>
-        /// <param name="waypointName"></param>
-        public void RunRoutineForWaypoint(string waypointName)
-        {
-            string command = WaypointRoutineQueue.GetRoutineForWaypoint(waypointName);
-
-            if (command != "")
-            {
-                RunTerminalCommand(command);
-
-                // Remove routines from the queue after execution
-                WaypointRoutineQueue.RemoveRoutineForWaypoint(waypointName);
-            }
         }
     }
 }

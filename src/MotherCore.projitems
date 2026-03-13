@@ -29,7 +29,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\BlockMessages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\CommandBus.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HelpCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\WaypointRoutineQueue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalRoutine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\VersionManager.cs" />
@@ -89,6 +88,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Commands\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />
   </ItemGroup>
