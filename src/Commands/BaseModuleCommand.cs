@@ -72,5 +72,32 @@ namespace IngameScript
 
             return output;
         }
+
+        /// <summary>
+        /// Calculates the distributed value for cumulative operations across multiple blocks.
+        /// When cumulative mode is enabled, the total value is divided evenly among all blocks.
+        /// </summary>
+        /// <param name="totalValue">The total value to distribute.</param>
+        /// <param name="blockCount">The number of blocks to distribute across.</param>
+        /// <param name="isCumulative">Whether cumulative mode is enabled.</param>
+        /// <returns>The value per block (distributed if cumulative, otherwise the original value).</returns>
+        protected float GetDistributedValue(float totalValue, int blockCount, bool isCumulative)
+        {
+            if (isCumulative && blockCount > 1)
+                return totalValue / blockCount;
+
+            return totalValue;
+        }
+
+        /// <summary>
+        /// Determines if shared mode is enabled based on command options. When enabled,
+        /// values are distributed evenly across all blocks in the group.
+        /// </summary>
+        /// <param name="options">The command options dictionary.</param>
+        /// <returns>True if shared mode is enabled.</returns>
+        protected bool IsSharedMode(Dictionary<string, string> options)
+        {
+            return options.ContainsKey("share");
+        }
     }
 }
