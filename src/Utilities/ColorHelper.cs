@@ -56,6 +56,33 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Get a color from a hex string. The hex string should be in the format #RRGGBB.
+        /// </summary>
+        /// <param name="hexString"></param>
+        /// <returns></returns>
+        public static Color GetColorFromHexString(string hexString)
+        {
+            if (hexString.StartsWith("#"))
+                hexString = hexString.Substring(1);
+
+            int r = HexToInt(hexString.Substring(0, 2));
+            int g = HexToInt(hexString.Substring(2, 2));
+            int b = HexToInt(hexString.Substring(4, 2));
+
+            return new Color(r, g, b);
+        }
+
+        /// <summary>
+        /// Convert a hexadecimal string to an integer.
+        /// </summary>
+        /// <param name="hex"></param>
+        /// <returns></returns>
+        static int HexToInt(string hex)
+        {
+            return int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
+        }
+
+        /// <summary>
         /// Get a color from a color name.  This is done by looking up the color 
         /// name in the COLORS dictionary. In a future version we should 
         /// leverage the built in colors for more variety.
@@ -84,6 +111,9 @@ namespace IngameScript
         {
             if (colorString.Contains(','))
                 return GetColorFromRGBString(colorString);
+
+            else if (colorString.StartsWith("#"))
+                return GetColorFromHexString(colorString);
 
             else
                 return GetColorFromColorName(colorString);

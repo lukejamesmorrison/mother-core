@@ -62,6 +62,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     ; wait, then open both airlock doors at the same time
     openAirlock=wait 5; {door/open AirlockDoor1} {door/open AirlockDoor2}
     ```
+- The `ColorHelper` utility class now support hexidecimal color values.
 
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
