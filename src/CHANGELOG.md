@@ -63,6 +63,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     openAirlock=wait 5; {door/open AirlockDoor1} {door/open AirlockDoor2}
     ```
 - The `ColorHelper` utility class now support hexidecimal color values.
+- `BaseModuleCommand` now includes `IsSharedMode()` and `GetDistributedValue()` helper methods to support distributing values across multiple blocks. This enables commands to implement a `--share` flag for cumulative operations.
 
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
@@ -234,7 +235,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     - Hooks: `onDetect`, `onClear`
 
 ### Updated
-- `rotor/lock` and `rotor/unlock` commands now set upper/lower limits to enable rotation without specific angle defninitions via the `rotor/speed` command.
+- `rotor/lock` and `rotor/unlock` commands now set upper/lower limits to enable rotation without specific angle defnitions via the `rotor/speed` command.
 - `piston/speed`, `rotor/speed` and `hinge/speed` commands now accept increment/decrement options to adjust speed while in motion. ie. `rotor/speed Rotor1 2 --add` will increment the current rotor speed by 2 RPM.
 
 ## [0.2.6] - 2025-03-06
