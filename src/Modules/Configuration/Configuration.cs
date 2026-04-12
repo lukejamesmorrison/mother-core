@@ -98,7 +98,7 @@ namespace IngameScript
             LoadCustomData();
 
             // Update with version manager
-            Mother.ProgrammableBlock.CustomData = new VersionManager(Ini).Run().ToString();
+            Mother.ProgrammableBlock.CustomData = "{new VersionManager(Ini).Run()}";
 
             // Ensure default configuration is set
             SetDefaultConfiguration();
