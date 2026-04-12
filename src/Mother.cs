@@ -261,6 +261,7 @@ namespace IngameScript
 
                 // BLOCK BASED (FOR CONNECTIONS)
                 new ConnectorModule(this),
+                new MechanicalBlockModule(this),
                 new MergeBlockModule(this),
             };
 

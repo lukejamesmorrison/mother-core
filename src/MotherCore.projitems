@@ -64,6 +64,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\Commands\SetCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\LocalStorage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Log\Log.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\MechanicalBlockModule\Events\MechanicalBlockAttachedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\MechanicalBlockModule\Events\MechanicalBlockDetachedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\MechanicalBlockModule\MechanicalBlockModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\Events\MergeBlockLockedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\Events\MergeBlockOffEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\MergeBlockModule.cs" />
@@ -91,6 +94,8 @@
     <Folder Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Commands\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Modules\MotorStatorModule\Events\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Modules\PistonBaseModule\Events\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />
   </ItemGroup>
 </Project>
