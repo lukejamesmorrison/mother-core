@@ -1,4 +1,4 @@
-﻿using Sandbox.Game.EntityComponents;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -120,6 +120,9 @@ namespace IngameScript
             LoadChannels();
             RegisterIGCListeners();
 
+            // Subscribe to system config changes to reload channels
+            EventBus.Subscribe<SystemConfigChangedEvent>(this);
+
             // ROUTES
             Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
             Router.RegisterRoute("sync", request => HandleSyncRequest(request));
@@ -170,6 +173,7 @@ namespace IngameScript
         /// </summary>
         void LoadChannels()
         {
+            Channels.Clear();
             var config = Mother.GetModule<Configuration>();
 
             // channels are keys
@@ -208,6 +212,22 @@ namespace IngameScript
                 IMyBroadcastListener BroadcastListener = Mother.IGC.RegisterBroadcastListener(channel.Key);
                 BroadcastListener.SetMessageCallback();
                 BroadcastListeners.Add(BroadcastListener);
+            }
+        }
+
+
+        /// <summary>
+        /// Handle events. When the system config changes, we reload channels 
+        /// and re-register IGC listeners to pick up new values.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="eventData"></param>
+        public override void HandleEvent(IEvent e, object eventData)
+        {
+            if (e is SystemConfigChangedEvent)
+            {
+                LoadChannels();
+                RegisterIGCListeners();
             }
         }
 

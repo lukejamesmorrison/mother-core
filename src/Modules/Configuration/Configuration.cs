@@ -94,11 +94,34 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
-            // Load programable block custom data
-            LoadCustomData();
+            // Load and process configuration
+            LoadConfiguration();
 
-            // Update with version manager
-            Mother.ProgrammableBlock.CustomData = "{new VersionManager(Ini).Run()}";
+            // Run version manager to migrate old configurations (only on boot)
+            Mother.ProgrammableBlock.CustomData = $"{new VersionManager(Ini).Run()}";
+
+            // Subscribe to system config changed events
+            Mother.GetModule<EventBus>()?.Subscribe<SystemConfigChangedEvent>(this);
+        }
+
+        /// <summary>
+        /// Reload the configuration from the programmable block's custom data.
+        /// This is called when the system config changes during runtime, allowing
+        /// modules to pick up new values without a full system reboot.
+        /// </summary>
+        public void Reload()
+        {
+            LoadConfiguration();
+        }
+
+        /// <summary>
+        /// Load and process configuration from the programmable block's custom data.
+        /// This shared method is used by both Boot() and Reload() to avoid duplication.
+        /// </summary>
+        void LoadConfiguration()
+        {
+            // Load custom data from programmable block
+            LoadCustomData();
 
             // Ensure default configuration is set
             SetDefaultConfiguration();
@@ -109,8 +132,19 @@ namespace IngameScript
             // Register commands from custom data
             RegisterCommands();
 
-            // Set Mother debug mode, if enabled
+            // Update Mother debug mode
             Mother.DebugMode = Get("general.debug").ToLower() == "true";
+        }
+
+        /// <summary>
+        /// Handle events. When the system config changes, we reload the configuration.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="eventData"></param>
+        public override void HandleEvent(IEvent e, object eventData)
+        {
+            if (e is SystemConfigChangedEvent)
+                Reload();
         }
 
         /// <summary>

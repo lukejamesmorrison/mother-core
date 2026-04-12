@@ -165,6 +165,7 @@ namespace IngameScript
             EventBus.Subscribe<ConnectorUnlockedEvent>(this);
             EventBus.Subscribe<MergeBlockLockedEvent>(this);
             EventBus.Subscribe<MergeBlockOffEvent>(this);
+            EventBus.Subscribe<SystemConfigChangedEvent>(this);
         }
 
         /// <summary>
@@ -337,12 +338,16 @@ namespace IngameScript
                     && HasBlockConfigurationChanged(block, blockConfiguration)
                 )
                 {
-                    // if this is the programmable block, we reboot Mother.
+                    // if this is the programmable block, emit a system config changed event
+                    // so that dependent modules can reload their configuration values.
                     if (block is IMyProgrammableBlock && block.EntityId == Mother.Id)
                     {
-                        Mother.Print("Mother configuration changed.\nRebooting...");
-                        Mother.Boot();
-                        return;
+                        BlockConfigs[block] = blockConfiguration;
+
+                        Emit<SystemConfigChangedEvent>(block);
+
+                        Mother.Print("Mother configuration updated.", false);
+                        continue;
                     }
 
                     // update the block config
