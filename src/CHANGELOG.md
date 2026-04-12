@@ -64,11 +64,13 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     ```
 - The `ColorHelper` utility class now support hexidecimal color values.
 - `BaseModuleCommand` now includes `IsSharedMode()` and `GetDistributedValue()` helper methods to support distributing values across multiple blocks. This enables commands to implement a `--share` flag for cumulative operations.
+- The Block Catalogue will now automatically update when merge blocks are merged/unmerged.
+- The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
 
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
 - Changes to the Programmable Block custom data no longer force a system reboot. Instead, modules should listen for the `SystemConfigUpdatedEvent` so that when the system configuration changes, the modules can update their internal configuration without needing to reboot the system.
-- The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
+
 
 
 ### Remove

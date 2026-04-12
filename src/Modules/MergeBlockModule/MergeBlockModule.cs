@@ -26,13 +26,16 @@ namespace IngameScript
 
     /// <summary>
     /// This module handles interactions with merge blocks on the grid.
+    /// When merge blocks lock, two grids become one. When they unlock (turn off),
+    /// the grids separate. This module monitors these state changes and triggers
+    /// a construct refresh in BlockCatalogue to ensure all blocks remain targetable.
     /// </summary>
     public class MergeBlockModule : BaseCoreModule
     {
         /// <summary>
         /// The BlockCatalogue core module.
         /// </summary>
-        //BlockCatalogue BlockCatalogue;
+        BlockCatalogue BlockCatalogue;
 
         /// <summary>
         /// Constructor.
@@ -47,7 +50,7 @@ namespace IngameScript
         public override void Boot()
         {
             // Modules
-            //BlockCatalogue = Mother.GetModule<BlockCatalogue>();
+            BlockCatalogue = Mother.GetModule<BlockCatalogue>();
 
             // Commands
             //RegisterCommand(new LockMergeBlockCommand(this));
@@ -59,15 +62,17 @@ namespace IngameScript
             //Subscribe<MergeBlockUnlockedEvent>();         
             //Subscribe<MergeBlockReadyToLockEvent>();
 
-            // State Monitoring
-            //RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
-            //    mergeBlock => mergeBlock.State,  // State Selector
-            //    (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state)
-            //);
+            // State Monitoring - Monitor State for all merge blocks
+            RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
+                mergeBlock => mergeBlock.State,
+                (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state)
+            );
         }
 
         /// <summary>
         /// Handle state changes for merge blocks. This is called when the state of a merge block changes.
+        /// When blocks lock (merge), grids become one. When blocks turn off (unmerge), grids separate.
+        /// Both scenarios require a full construct refresh since the grid topology changes.
         /// </summary>
         /// <param name="mergeBlock"></param>
         /// <param name="newState"></param>
@@ -75,25 +80,43 @@ namespace IngameScript
         {
             var status = newState as MergeState?;
 
+            var previousState = PreviousStates.ContainsKey(mergeBlock.EntityId)
+                ? PreviousStates[mergeBlock.EntityId] as MergeState?
+                : null;
+
             if (status.HasValue)
             {
                 switch (status)
                 {
-                    // when turning off - unmerged grids
+                    // When turning off - unmerged grids (grid separation)
                     case MergeState.None:
-                        //Mother.Print($"{mergeBlock.CustomName} none.");
-                        Emit<MergeBlockOffEvent>(mergeBlock);
+                        // Only trigger if we were previously locked (actual unmerge)
+                        if (previousState == MergeState.Locked)
+                        {
+                            Emit<MergeBlockOffEvent>(mergeBlock);
+                            BlockCatalogue.RunHook(mergeBlock, "onUnlock");
+
+                            // Trigger full construct refresh - grids have separated
+                            BlockCatalogue.RefreshConstruct();
+                        }
                         break;
 
-                    // when finding each other
+                    // When finding each other (approaching)
                     case MergeState.Constrained:
-                        //Mother.Print($"{mergeBlock.CustomName} constrained.");
+                        // No action needed - blocks are approaching but not yet merged
                         break;
 
-                    // when locking and merging grids
+                    // When locking and merging grids (grid merge)
                     case MergeState.Locked:
-                        //Mother.Print($"{mergeBlock.CustomName} locked.");
-                        Emit<MergeBlockLockedEvent>(mergeBlock);
+                        // Only trigger if we were not previously locked (actual merge)
+                        if (previousState != MergeState.Locked)
+                        {
+                            Emit<MergeBlockLockedEvent>(mergeBlock);
+                            BlockCatalogue.RunHook(mergeBlock, "onLock");
+
+                            // Trigger full construct refresh - grids have merged into one
+                            BlockCatalogue.RefreshConstruct();
+                        }
                         break;
                 }
             }

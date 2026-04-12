@@ -253,6 +253,11 @@ namespace IngameScript
             // Handle mechanical block attach/detach events
             if (e is MechanicalBlockAttachedEvent || e is MechanicalBlockDetachedEvent)
                 LoadBlockGroups();
+
+            // Handle merge block events - when grids merge/unmerge, the grid topology changes
+            // so we need a full construct refresh to update ConstructGridIds and reload blocks
+            if (e is MergeBlockLockedEvent || e is MergeBlockOffEvent)
+                RefreshConstruct();
         }
 
         /// <summary>
