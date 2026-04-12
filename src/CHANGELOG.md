@@ -68,7 +68,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
 - Changes to the Programmable Block custom data no longer force a system reboot. Instead, modules should listen for the `SystemConfigUpdatedEvent` so that when the system configuration changes, the modules can update their internal configuration without needing to reboot the system.
-- The Block Catalogue will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
+- The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
 
 
 ### Remove

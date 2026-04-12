@@ -689,7 +689,7 @@ namespace IngameScript
         /// <summary>
         /// Adjacency map of grids connected via mechanical blocks.
         /// </summary>
-        Dictionary<long, List<long>> gridAdjacencyMap = new Dictionary<long, List<long>>();
+        Dictionary<long, HashSet<long>> gridAdjacencyMap = new Dictionary<long, HashSet<long>>();
 
         /// <summary>
         /// Number of grids to traverse per tick when discovering the construct.
@@ -733,12 +733,11 @@ namespace IngameScript
                     visitedGrids.Add(gid);
                     ConstructGridIds.Add(gid);
 
-                    List<long> neighbors;
+                    HashSet<long> neighbors;
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
-                        for (int i = 0; i < neighbors.Count; i++)
+                        foreach (long nid in neighbors)
                         {
-                            long nid = neighbors[i];
                             var nGrid = TryGetGridFromId(nid);
                             if (nGrid != null && !visitedGrids.Contains(nid))
                                 gridBfsQueue.Enqueue(nGrid);
@@ -775,15 +774,15 @@ namespace IngameScript
 
                 long aid = a.EntityId, bid = b.EntityId;
 
-                List<long> al;
+                HashSet<long> al;
                 if (!gridAdjacencyMap.TryGetValue(aid, out al))
-                    gridAdjacencyMap[aid] = al = new List<long>(4);
-                if (!al.Contains(bid)) al.Add(bid);
+                    gridAdjacencyMap[aid] = al = new HashSet<long>();
+                al.Add(bid);
 
-                List<long> bl;
+                HashSet<long> bl;
                 if (!gridAdjacencyMap.TryGetValue(bid, out bl))
-                    gridAdjacencyMap[bid] = bl = new List<long>(4);
-                if (!bl.Contains(aid)) bl.Add(aid);
+                    gridAdjacencyMap[bid] = bl = new HashSet<long>();
+                bl.Add(aid);
             }
         }
 
@@ -945,12 +944,11 @@ namespace IngameScript
                     if (!ConstructGridIds.Contains(gid))
                         newGridIds.Add(gid);
 
-                    List<long> neighbors;
+                    HashSet<long> neighbors;
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
-                        for (int i = 0; i < neighbors.Count; i++)
+                        foreach (long nid in neighbors)
                         {
-                            long nid = neighbors[i];
                             // Stop crawling at grids already in construct
                             if (ConstructGridIds.Contains(nid)) continue;
 
@@ -1050,12 +1048,11 @@ namespace IngameScript
                     visitedGrids.Add(gid);
                     stillConnectedGrids.Add(gid);
 
-                    List<long> neighbors;
+                    HashSet<long> neighbors;
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
-                        for (int i = 0; i < neighbors.Count; i++)
+                        foreach (long nid in neighbors)
                         {
-                            long nid = neighbors[i];
                             var nGrid = TryGetGridFromId(nid);
                             if (nGrid != null && !visitedGrids.Contains(nid))
                                 gridBfsQueue.Enqueue(nGrid);
@@ -1078,22 +1075,19 @@ namespace IngameScript
             // Remove blocks from pruned grids
             if (removedGrids.Count > 0)
             {
-                var blocksToRemove = TerminalBlocks
-                    .Where(b => removedGrids.Contains(b.CubeGrid.EntityId))
-                    .ToList();
-
-                foreach (var block in blocksToRemove)
+                // Use RemoveAll for O(n) instead of O(n²)
+                TerminalBlocks.RemoveAll(b =>
                 {
-                    TerminalBlocks.Remove(block);
-                    BlockConfigs.Remove(block);
-                    BlocksToMonitor.Remove(block);
-                    BlockStates.Remove(block.EntityId);
-                    BlockHooks.Remove(block);
-
-                    // Remove from tags
+                    if (!removedGrids.Contains(b.CubeGrid.EntityId)) return false;
+                    
+                    BlockConfigs.Remove(b);
+                    BlocksToMonitor.Remove(b);
+                    BlockStates.Remove(b.EntityId);
+                    BlockHooks.Remove(b);
                     foreach (var tagSet in BlockTags.Values)
-                        tagSet.Remove(block);
-                }
+                        tagSet.Remove(b);
+                    return true;
+                });
             }
 
             LoadBlockGroups();
@@ -1133,12 +1127,11 @@ namespace IngameScript
                     visitedGrids.Add(gid);
                     newConstructGridIds.Add(gid);
 
-                    List<long> neighbors;
+                    HashSet<long> neighbors;
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
-                        for (int i = 0; i < neighbors.Count; i++)
+                        foreach (long nid in neighbors)
                         {
-                            long nid = neighbors[i];
                             var nGrid = TryGetGridFromId(nid);
                             if (nGrid != null && !visitedGrids.Contains(nid))
                                 gridBfsQueue.Enqueue(nGrid);
@@ -1164,22 +1157,18 @@ namespace IngameScript
             // Handle removed grids - remove blocks that are no longer part of the construct
             if (removedGrids.Count > 0)
             {
-                var blocksToRemove = TerminalBlocks
-                    .Where(b => removedGrids.Contains(b.CubeGrid.EntityId))
-                    .ToList();
-
-                foreach (var block in blocksToRemove)
+                TerminalBlocks.RemoveAll(b =>
                 {
-                    TerminalBlocks.Remove(block);
-                    BlockConfigs.Remove(block);
-                    BlocksToMonitor.Remove(block);
-                    BlockStates.Remove(block.EntityId);
-                    BlockHooks.Remove(block);
-
-                    // Remove from tags
+                    if (!removedGrids.Contains(b.CubeGrid.EntityId)) return false;
+                    
+                    BlockConfigs.Remove(b);
+                    BlocksToMonitor.Remove(b);
+                    BlockStates.Remove(b.EntityId);
+                    BlockHooks.Remove(b);
                     foreach (var tagSet in BlockTags.Values)
-                        tagSet.Remove(block);
-                }
+                        tagSet.Remove(b);
+                    return true;
+                });
             }
 
             // Handle added grids - add new blocks to the construct
