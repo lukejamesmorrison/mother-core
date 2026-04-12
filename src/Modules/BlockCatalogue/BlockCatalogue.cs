@@ -338,23 +338,16 @@ namespace IngameScript
                     && HasBlockConfigurationChanged(block, blockConfiguration)
                 )
                 {
-                    // if this is the programmable block, emit a system config changed event
-                    // so that dependent modules can reload their configuration values.
-                    if (block is IMyProgrammableBlock && block.EntityId == Mother.Id)
-                    {
-                        BlockConfigs[block] = blockConfiguration;
-
-                        Emit<SystemConfigChangedEvent>(block);
-
-                        Mother.Print("Mother configuration updated.", false);
-                        continue;
-                    }
-
                     // update the block config
                     BlockConfigs[block] = blockConfiguration;
 
                     // Emit event for other modules to use
                     Emit<BlockConfigChangedEvent>(block);
+
+                    // if this is the programmable block, emit a system config changed event
+                    // so that dependent modules can reload their configuration values.
+                    if (block.EntityId == Mother.Id)
+                        Emit<SystemConfigChangedEvent>(block);
 
                     // Notify player of update
                     Mother.Print($"Config changed: {block.CustomName}", false);
