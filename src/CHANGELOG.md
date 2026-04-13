@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Unimplemented
+- Fix issue where alamanac does not update grid name and cannot be targeted when changing the name
+- Fix issue with setting hooks on the programmable block instance for blocks on the grid. `block.hook`
+- Refactor MMAP, MLOG, MDEBUG modes into the [general] section
+
+
 ## [1.1.0] - UPCOMING
 
 Version 1.1 marks a major milestone in the Mother project.  Any script running Mother Core will now share command libraries so that new scripts become plugins to your existing cluster of Mother scripts. It also introduces several quality of life improvements to support advanced command development.
@@ -66,6 +72,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 - `BaseModuleCommand` now includes `IsSharedMode()` and `GetDistributedValue()` helper methods to support distributing values across multiple blocks. This enables commands to implement a `--share` flag for cumulative operations.
 - The Block Catalogue will now automatically update when merge blocks are merged/unmerged.
 - The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
+- Add `MechanicalBlockModule` to handle mechanical block state changes.
 
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
