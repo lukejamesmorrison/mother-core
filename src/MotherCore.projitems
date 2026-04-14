@@ -41,9 +41,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorLockedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorReadyToLockEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorUnlockedEvent.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\Debug\Debug.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Display.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\DisplayModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\DisplayTypeResolver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\SpriteFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\EventBus\EventBus.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\EventBus\IEvent.cs" />
@@ -94,6 +94,7 @@
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Modules\Debug\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Events\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />

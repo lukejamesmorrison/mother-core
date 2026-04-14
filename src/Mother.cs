@@ -248,7 +248,6 @@ namespace IngameScript
                 new EventBus(this),
                 new CommandBus(this),
                 new LocalStorage(this),
-                new Debug(this),
 
                 // CRITICAL
                 new BlockCatalogue(this),

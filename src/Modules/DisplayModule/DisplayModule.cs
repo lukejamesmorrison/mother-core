@@ -57,32 +57,9 @@ namespace IngameScript
         readonly HashSet<IMyTextSurface> TextSurfaces = new HashSet<IMyTextSurface>();
 
         /// <summary>
-        /// The selector used to determine which displays should render a log.
-        /// This is defined in the block's name.
-        /// </summary>
-        const string LOG_SELECTOR = "MLOG";
-
-        /// <summary>
         /// The surfaces to be used to render the log.
         /// </summary>
         readonly List<IMyTextSurface> LogSurfaces = new List<IMyTextSurface>();
-
-        /// <summary>
-        /// The selector used to deteremine which displays should render debug information. 
-        /// This is defined in the block's name.
-        /// </summary>
-        const string DEBUG_SELECTOR = "MDEBUG";
-
-        /// <summary>
-        /// The surfaces to be used to render debug information.
-        /// </summary>
-        readonly List<IMyTextSurface> DebugSurfaces = new List<IMyTextSurface>();
-
-        /// <summary>
-        /// The selector used to determine which displays should render almanac information. 
-        /// This is defined in the block's name.
-        /// </summary>
-        const string ALMANAC_SELECTOR = "MALMANAC";
 
         /// <summary>
         /// The surfaces to be used to render almanac information.
@@ -211,20 +188,20 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Load a single text panel surface.
+        /// Load a single text panel surface. Uses config-based type detection with source
+        /// filtering, falling back to legacy name-based detection for backwards compatibility.
         /// </summary>
         /// <param name="panel"></param>
         void LoadTextPanelSurface(IMyTextPanel panel)
         {
             TextSurfaces.Add(panel);
 
-            if (IsLogSurface(panel))
+            MyIni config = BlockCatalogue.GetBlockConfiguration(panel);
+
+            if (IsLogSurface(panel, config))
                 LogSurfaces.Add(panel);
 
-            else if (IsDebugSurface(panel))
-                DebugSurfaces.Add(panel);
-
-            else if (IsAlmanacSurface(panel))
+            else if (IsAlmanacSurface(panel, config))
                 AlmanacSurfaces.Add(panel);
         }
 
@@ -255,31 +232,39 @@ namespace IngameScript
         /// <summary>
         /// Load text surfaces from a text surface provider block. This is 
         /// necessary as some block with embedded screens contain text 
-        /// surfaces rather than LCD panels.
+        /// surfaces rather than LCD panels. Uses config-based type detection
+        /// with source filtering.
         /// </summary>
         void LoadTextSurfaceProviderSurfaces(IMyTerminalBlock block)
         {
-            int logSurfaceIndex = GetSurfaceIndex(block.CustomName, LOG_SELECTOR);
-            int debugSurfaceIndex = GetSurfaceIndex(block.CustomName, DEBUG_SELECTOR);
-            int almanacSurfaceIndex = GetSurfaceIndex(block.CustomName, ALMANAC_SELECTOR);
+            MyIni config = BlockCatalogue.GetBlockConfiguration(block);
+
+            // Get display type and surface index from config
+            int surfaceIndex = DisplayTypeResolver.GetSurfaceIndex(config);
+            
+            // If no surface index configured, skip this block
+            if (surfaceIndex < 0)
+                return;
+
+            // Check source filtering
+            if (!DisplayTypeResolver.CanWriteToDisplay(config, Mother))
+                return;
 
             if (block is IMyTextSurfaceProvider)
             {
                 IMyTextSurfaceProvider textSurfaceProvider = (IMyTextSurfaceProvider) block;
              
-                for (int surfaceIndex = 0; surfaceIndex < textSurfaceProvider.SurfaceCount; surfaceIndex++)
+                if (surfaceIndex < textSurfaceProvider.SurfaceCount)
                 {
                     IMyTextSurface surface = textSurfaceProvider.GetSurface(surfaceIndex);
-
                     TextSurfaces.Add(surface);
 
-                    if (logSurfaceIndex == surfaceIndex)
+                    string displayType = DisplayTypeResolver.GetDisplayType(config);
+
+                    if (displayType == DisplayTypeResolver.DisplayTypes.Log)
                         LogSurfaces.Add(surface);
 
-                    else if (debugSurfaceIndex == surfaceIndex)
-                        DebugSurfaces.Add(surface);
-
-                    else if (almanacSurfaceIndex == surfaceIndex)
+                    else if (displayType == DisplayTypeResolver.DisplayTypes.Almanac)
                         AlmanacSurfaces.Add(surface);
                 }
             }
@@ -303,92 +288,45 @@ namespace IngameScript
         {
             TextSurfaces.Clear();
             LogSurfaces.Clear();
-            DebugSurfaces.Clear();
             AlmanacSurfaces.Clear();
         }
 
         /// <summary>
-        /// Get the index of the surface from the name. This is used to determine
-        /// which surface to use for rendering to cockpit displays.
+        /// Check if the surface is a log surface. Uses config-based type detection
+        /// with source filtering.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public static int GetSurfaceIndex(string name, string type)
+        /// <param name="panel">The text panel to check.</param>
+        /// <param name="config">The block's configuration.</param>
+        /// <returns>True if this is a log surface that this Mother instance can write to.</returns>
+        bool IsLogSurface(IMyTerminalBlock panel, MyIni config)
         {
-            // Look for the pattern [TYPE:n], where TYPE is either DEBUG or LOG
-            int startIndex = name.IndexOf($"[{type}:");
-            if (startIndex != -1)
-            {
-                int endIndex = name.IndexOf("]", startIndex);
-                if (endIndex != -1)
-                {
-                    // Extract the part between [TYPE: and ]
-                    int surfaceIndex;
-                    string surfaceIndexPart = name.Substring(startIndex + type.Length + 2, endIndex - startIndex - type.Length - 2);
-
-                    if (int.TryParse(surfaceIndexPart, out surfaceIndex))
-                        return surfaceIndex;
-                }
-            }
-
-            // found nothing
-            return -1;
+            return DisplayTypeResolver.IsValidDisplayForType(
+                config, 
+                DisplayTypeResolver.DisplayTypes.Log, 
+                Mother
+            );
         }
 
-        /// <summary>
-        /// Check if the surface is a log surface.
-        /// </summary>
-        /// <param name="panel"></param>
-        /// <returns></returns>
-        bool IsLogSurface(IMyTerminalBlock panel)
-        {
-            bool setInConfig = false;
-            bool setInName = false;
-
-            if (panel.CustomName.Contains("LOG"))
-                setInName = true;
-
-            return setInConfig || setInName;
-        }
 
         /// <summary>
-        /// Check if the surface is a debug surface.
+        /// Check if the surface is an almanac surface. Uses config-based type detection
+        /// with source filtering.
         /// </summary>
-        /// <param name="panel"></param>
-        /// <returns></returns>
-        bool IsDebugSurface(IMyTextPanel panel)
+        /// <param name="panel">The text panel to check.</param>
+        /// <param name="config">The block's configuration.</param>
+        /// <returns>True if this is an almanac surface that this Mother instance can write to.</returns>
+        bool IsAlmanacSurface(IMyTextPanel panel, MyIni config)
         {
-            bool setInConfig = false;
-            bool setInName = false;
+            bool isAlmanac = DisplayTypeResolver.IsValidDisplayForType(
+                config, 
+                DisplayTypeResolver.DisplayTypes.Almanac, 
+                Mother
+            );
 
-            if (panel.CustomName.Contains("DEBUG"))
-            {
-                setInName = true;
+            if (isAlmanac)
                 panel.ContentType = ContentType.TEXT_AND_IMAGE;
-            }
 
-            return setInConfig || setInName;
-        }
-
-
-        /// <summary>
-        /// Check if the surface is a almanac surface.
-        /// </summary>
-        /// <param name="panel"></param>
-        /// <returns></returns>
-        bool IsAlmanacSurface(IMyTextPanel panel)
-        {
-            bool setInConfig = false;
-            bool setInName = false;
-
-            if (panel.CustomName.Contains("ALMANAC"))
-            {
-                setInName = true;
-                panel.ContentType = ContentType.TEXT_AND_IMAGE;
-            }
-
-            return setInConfig || setInName;
+            return isAlmanac;
         }
 
         /// <summary>
@@ -401,25 +339,12 @@ namespace IngameScript
         //}
 
         /// <summary>
-        /// Render the console surfaces (Log and Debug). This is called on every 
+        /// Render the console surfaces (Log). This is called on every 
         /// input cycle to ensure immediate feedback after terminal commands.
         /// </summary>
         public void RenderConsoleSurfaces()
         {
-            RenderDebugSurfaces();
             RenderLogSurfaces();
-        }
-
-        /// <summary>
-        /// Render the debug surfaces. This is used to display debug 
-        /// information on screens.
-        /// </summary>
-        void RenderDebugSurfaces()
-        {
-            string debugString = string.Join("\n", Log.Records);
-            string output = GetHeader("DEBUG") + "\n" + debugString;
-
-            DebugSurfaces.ForEach(surface => surface.WriteText($"{output}", false));
         }
 
         /// <summary>
