@@ -77,6 +77,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
     openAirlock=wait 5; {door/open AirlockDoor1} {door/open AirlockDoor2}
     ```
 - The `ColorHelper` utility class now support hexidecimal color values.
+- Add `NumberHelper` utility class with a generic `Parse<T>` method for converting string values to numeric types.
 - `BaseModuleCommand` now includes `IsSharedMode()` and `GetDistributedValue()` helper methods to support distributing values across multiple blocks. This enables commands to implement a `--share` flag for cumulative operations.
 - The Block Catalogue will now automatically update when merge blocks are merged/unmerged.
 - The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
