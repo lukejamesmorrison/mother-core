@@ -49,17 +49,21 @@ namespace IngameScript
 
         /// <summary>
         /// Registry of commands available on other Mother Core instances on the construct.
-        /// Maps script EntityId to list of command names.
+        /// Maps script EntityId to set of command names.
         /// </summary>
-        public readonly Dictionary<long, List<string>> ConstructCommands = new Dictionary<long, List<string>>();
+        public readonly Dictionary<long, HashSet<string>> ConstructCommands = new Dictionary<long, HashSet<string>>();
+
+        /// <summary>
+        /// Registry of important commands (prefixed with !) from other Mother Core instances.
+        /// Maps script EntityId to set of important command names (without the ! prefix).
+        /// </summary>
+        public readonly Dictionary<long, HashSet<string>> ImportantConstructCommands = new Dictionary<long, HashSet<string>>();
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
-        public CommandBus(Mother mother) : base(mother)
-        {
-        }
+        public CommandBus(Mother mother) : base(mother) { }
 
         /// <summary>
         /// Boot the module. We register a route so that other grids may send 
@@ -74,6 +78,7 @@ namespace IngameScript
 
             // Clear remote commands on boot
             ConstructCommands.Clear();
+            ImportantConstructCommands.Clear();
 
             // Commands
             RegisterCommand(new HelpCommand(this));
@@ -282,6 +287,9 @@ namespace IngameScript
         /// Resolves a command to its config command value if one exists. 
         /// Handles underscore-prefixed local commands and standard config 
         /// commands, applying parameter substitution.
+        /// 
+        /// Important commands (! prefixed) on the construct take priority over
+        /// local config commands, unless the command is force local (!! prefix).
         /// </summary>
         /// <param name="command"></param>
         /// <returns>The expanded config command string, or null if not a config command.</returns>
@@ -302,10 +310,21 @@ namespace IngameScript
                 }
             }
 
-            // Standard config commands
+            // Check if an important command exists on the construct (unless force local)
+            // If so, don't resolve locally - let ExecutePrimitiveCommand delegate to construct
+            if (!command.IsForceLocal && FindInstanceWithImportantCommand(command.Name) != 0)
+                return null;
+
+            // Standard config commands (check both with and without ! prefix)
             if (Mother.ConfigCommands.ContainsKey(command.Name))
                 return Mother.SubstituteCommandParameters(
                     Mother.ConfigCommands[command.Name], command.Options);
+
+            // Check for important command (! prefixed in config) - only reached if not on construct
+            string importantKey = "!" + command.Name;
+            if (Mother.ConfigCommands.ContainsKey(importantKey))
+                return Mother.SubstituteCommandParameters(
+                    Mother.ConfigCommands[importantKey], command.Options);
 
             return null;
         }
@@ -313,11 +332,28 @@ namespace IngameScript
         /// <summary>
         /// Executes a primitive (non-config, non-wait) command. This includes 
         /// module commands, construct commands, and unresolved commands.
+        /// 
+        /// Command priority:
+        /// 1. If command has !! prefix (IsForceLocal), always run locally
+        /// 2. If an important command (! prefix) exists on construct, delegate to that instance
+        /// 3. Otherwise, run locally if available, or delegate to construct
         /// </summary>
         /// <param name="command"></param>
         void ExecutePrimitiveCommand(TerminalCommand command)
         {
             string commandString = command.CommandString;
+
+            // Check for important commands on the construct first (unless force local)
+            if (!command.IsForceLocal)
+            {
+                long importantScriptId = FindInstanceWithImportantCommand(command.Name);
+                if (importantScriptId != 0)
+                {
+                    Mother.GetModule<IntergridMessageService>()
+                        .SendConstructCommand(importantScriptId, commandString);
+                    return;
+                }
+            }
 
             // Execute a command registered by a module
             foreach (IModuleCommand moduleCommand in ModuleCommands)
@@ -336,13 +372,16 @@ namespace IngameScript
                 }
             }
 
-            // Check if command exists on the construct
-            long remoteScriptId = FindInstanceWithCommand(command.Name);
-            if (remoteScriptId != 0)
+            // Check if command exists on the construct (non-important) - skip if force local
+            if (!command.IsForceLocal)
             {
-                Mother.GetModule<IntergridMessageService>()
-                    .SendConstructCommand(remoteScriptId, commandString);
-                return;
+                long remoteScriptId = FindInstanceWithCommand(command.Name);
+                if (remoteScriptId != 0)
+                {
+                    Mother.GetModule<IntergridMessageService>()
+                        .SendConstructCommand(remoteScriptId, commandString);
+                    return;
+                }
             }
 
             Mother.Print(MessageFormatter.Format(Messages.CommandNotFound, command.CommandString), false);
@@ -366,18 +405,33 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Registers commands from a remote script.
+        /// Registers commands from a remote script. Commands prefixed with ! are
+        /// stored separately as important commands and take priority over local commands.
         /// </summary>
         /// <param name="scriptId">The EntityId of the remote script.</param>
         /// <param name="commands">List of command names available on that script.</param>
         public void RegisterRemoteCommands(long scriptId, List<string> commands)
         {
             if (scriptId == Mother.Id) return;
-            ConstructCommands[scriptId] = commands;
+            
+            var normalCommands = new HashSet<string>();
+            var importantCommands = new HashSet<string>();
+
+            commands.ForEach(cmd =>
+            {
+                if (cmd.StartsWith("!"))
+                    // Store without the ! prefix
+                    importantCommands.Add(cmd.Substring(1));
+                else
+                    normalCommands.Add(cmd);
+            });
+            
+            ConstructCommands[scriptId] = normalCommands;
+            ImportantConstructCommands[scriptId] = importantCommands;
         }
 
         /// <summary>
-        /// Finds the script that has a specific command.
+        /// Finds the script that has a specific command (non-important).
         /// Returns 0 if not found.
         /// </summary>
         /// <param name="commandName"></param>
@@ -389,6 +443,21 @@ namespace IngameScript
                 if (entry.Value.Contains(commandName))
                     return entry.Key;
             }
+            return 0;
+        }
+
+        /// <summary>
+        /// Finds the script that has a specific important command (! prefixed).
+        /// Returns 0 if not found.
+        /// </summary>
+        /// <param name="commandName"></param>
+        /// <returns></returns>
+        public long FindInstanceWithImportantCommand(string commandName)
+        {
+            foreach (var entry in ImportantConstructCommands)
+                if (entry.Value.Contains(commandName))
+                    return entry.Key;
+
             return 0;
         }
     }

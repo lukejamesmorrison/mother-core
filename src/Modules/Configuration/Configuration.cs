@@ -236,6 +236,9 @@ namespace IngameScript
         /// </summary>
         void RegisterCommands()
         {
+            // Clear existing commands before reloading
+            Mother.ConfigCommands.Clear();
+            
             List<MyIniKey> keys = new List<MyIniKey>();
             Ini.GetKeys("Commands", keys);
 

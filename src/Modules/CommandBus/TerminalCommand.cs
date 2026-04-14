@@ -64,6 +64,13 @@ namespace IngameScript
         public bool IsDecrement = false;
 
         /// <summary>
+        /// Indicates if the command should be forced to run locally,
+        /// overriding any important commands on the construct.
+        /// Set when the command is prefixed with "!!".
+        /// </summary>
+        public bool IsForceLocal = false;
+
+        /// <summary>
         /// Creates a new terminal command from a command string.
         /// </summary>
         /// <param name="commandString"></param>
@@ -136,6 +143,13 @@ namespace IngameScript
 
             // Remove command name from arguments
             Name = Arguments[0];
+
+            // Check for !! prefix (force local) - must check before ! prefix
+            if (Name.StartsWith("!!"))
+            {
+                IsForceLocal = true;
+                Name = Name.Substring(2);
+            }
 
             Arguments.RemoveAt(0);
         }

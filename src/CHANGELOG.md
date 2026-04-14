@@ -15,6 +15,35 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 ### Added
 - The `IntergridMessageService` and `CommandBus` have been updated to automatically sync with local instances of Mother Core and share command libraries. This means that any Mother-script can call commands of another without any additional effort from the player. Just load the script into a new programmable block and the scripts will handshake during boot.
 
+- **Important Commands** - Commands can now be marked as *important* using the `!` prefix. Important commands take priority over local commands on other Mother Core instances on the same construct. This is useful when multiple instances define the same command but you want one instance to be the authoritative source.
+
+    **Example - Programmable Block Custom Data (Instance A)**
+    ```ini
+    [commands]
+    ; This command will be called by all instances on the construct
+    !dock=connector/lock DockingPort
+    ```
+
+    **Example - Programmable Block Custom Data (Instance B)**
+    ```ini
+    [commands]
+    ; This local command will be ignored in favor of Instance A's important command
+    dock=echo "Local dock command"
+    ```
+
+    When Instance B runs `dock`, it will execute Instance A's important command instead of its own local command.
+
+- **Force Local Commands** - Use the `!!` prefix when running a command to force local execution, bypassing any important commands defined on other instances.
+
+    **Example - Execute in Terminal**
+    ```bash
+    # Run the important command from another instance (default behavior)
+    dock
+
+    # Force run the local command, ignoring important commands
+    !!dock
+    ```
+
 - Players can now override the instance name via configuration. This allows a programmable block to declare its own name rather than deferring to the grid name. This is useful for subgrids with unusual names that should act as the "main grid" from Mother's perspective.
 
     **Example - Programmable Block Custom Data**

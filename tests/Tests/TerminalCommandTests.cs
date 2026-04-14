@@ -221,5 +221,48 @@ namespace MotherCore.Tests.Tests
             Assert.That(command.Arguments.Count, Is.EqualTo(1));
             Assert.That(command.Arguments[0], Is.EqualTo(flightPlan));
         }
+
+        // --- Force local prefix (!!) ---
+
+        [Test]
+        public void It_Parses_Force_Local_Prefix()
+        {
+            TerminalCommand command = new TerminalCommand("!!help");
+
+            Assert.That(command.Name, Is.EqualTo("help"));
+            Assert.That(command.IsForceLocal, Is.True);
+        }
+
+        [Test]
+        public void It_Parses_Force_Local_Prefix_With_Arguments()
+        {
+            TerminalCommand command = new TerminalCommand("!!light/color Light1 red");
+
+            Assert.That(command.Name, Is.EqualTo("light/color"));
+            Assert.That(command.IsForceLocal, Is.True);
+            Assert.That(command.Arguments.Count, Is.EqualTo(2));
+            Assert.That(command.Arguments[0], Is.EqualTo("Light1"));
+            Assert.That(command.Arguments[1], Is.EqualTo("red"));
+        }
+
+        [Test]
+        public void It_Parses_Force_Local_Prefix_With_Options()
+        {
+            TerminalCommand command = new TerminalCommand("!!rotor/rotate -45 --speed=100");
+
+            Assert.That(command.Name, Is.EqualTo("rotor/rotate"));
+            Assert.That(command.IsForceLocal, Is.True);
+            Assert.That(command.Arguments[0], Is.EqualTo("-45"));
+            Assert.That(command.GetOption("speed"), Is.EqualTo("100"));
+        }
+
+        [Test]
+        public void Command_Without_Force_Local_Prefix_Has_IsForceLocal_False()
+        {
+            TerminalCommand command = new TerminalCommand("help");
+
+            Assert.That(command.Name, Is.EqualTo("help"));
+            Assert.That(command.IsForceLocal, Is.False);
+        }
     }
 }

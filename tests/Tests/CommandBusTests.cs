@@ -150,7 +150,7 @@ namespace MotherCore.Tests.Tests
         {
             CommandBus commandBus = new CommandBus(_mother);
 
-            commandBus.ConstructCommands[999] = new List<string> { "stale" };
+            commandBus.ConstructCommands[999] = new HashSet<string> { "stale" };
 
             commandBus.Boot();
 
@@ -250,7 +250,7 @@ namespace MotherCore.Tests.Tests
             commandBus.RegisterRemoteCommands(remoteId, new List<string> { "new" });
 
             Assert.That(commandBus.ConstructCommands[remoteId].Count, Is.EqualTo(1));
-            Assert.That(commandBus.ConstructCommands[remoteId][0], Is.EqualTo("new"));
+            Assert.That(commandBus.ConstructCommands[remoteId].Contains("new"), Is.True);
         }
 
         // --- FindInstanceWithCommand ---
@@ -291,6 +291,75 @@ namespace MotherCore.Tests.Tests
 
             Assert.That(commandBus.FindInstanceWithCommand("dock"), Is.EqualTo(remoteId1));
             Assert.That(commandBus.FindInstanceWithCommand("undock"), Is.EqualTo(remoteId2));
+        }
+
+        // --- Important commands (!prefix) ---
+
+        [Test]
+        public void RegisterRemoteCommands_Separates_Important_Commands()
+        {
+            CommandBus commandBus = new CommandBus(_mother);
+
+            long remoteId = _mother.Id + 1;
+            var commands = new List<string> { "dock", "!undock", "status" };
+
+            commandBus.RegisterRemoteCommands(remoteId, commands);
+
+            Assert.That(commandBus.ConstructCommands[remoteId], Contains.Item("dock"));
+            Assert.That(commandBus.ConstructCommands[remoteId], Contains.Item("status"));
+            Assert.That(commandBus.ConstructCommands[remoteId], Does.Not.Contain("!undock"));
+            Assert.That(commandBus.ConstructCommands[remoteId], Does.Not.Contain("undock"));
+
+            Assert.That(commandBus.ImportantConstructCommands[remoteId], Contains.Item("undock"));
+            Assert.That(commandBus.ImportantConstructCommands[remoteId], Does.Not.Contain("!undock"));
+        }
+
+        [Test]
+        public void FindInstanceWithImportantCommand_Returns_Script_Id_When_Found()
+        {
+            CommandBus commandBus = new CommandBus(_mother);
+
+            long remoteId = _mother.Id + 1;
+            commandBus.RegisterRemoteCommands(remoteId, new List<string> { "!dock", "!undock" });
+
+            long result = commandBus.FindInstanceWithImportantCommand("dock");
+
+            Assert.That(result, Is.EqualTo(remoteId));
+        }
+
+        [Test]
+        public void FindInstanceWithImportantCommand_Returns_Zero_When_Not_Found()
+        {
+            CommandBus commandBus = new CommandBus(_mother);
+
+            long result = commandBus.FindInstanceWithImportantCommand("nonexistent");
+
+            Assert.That(result, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void FindInstanceWithImportantCommand_Does_Not_Find_Normal_Commands()
+        {
+            CommandBus commandBus = new CommandBus(_mother);
+
+            long remoteId = _mother.Id + 1;
+            commandBus.RegisterRemoteCommands(remoteId, new List<string> { "dock" });
+
+            long result = commandBus.FindInstanceWithImportantCommand("dock");
+
+            Assert.That(result, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Boot_Clears_Important_Construct_Commands()
+        {
+            CommandBus commandBus = new CommandBus(_mother);
+
+            commandBus.ImportantConstructCommands[999] = new HashSet<string> { "stale" };
+
+            commandBus.Boot();
+
+            Assert.That(commandBus.ImportantConstructCommands.Count, Is.EqualTo(0));
         }
 
         // --- Config command expansion ---

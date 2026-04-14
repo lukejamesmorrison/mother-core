@@ -218,7 +218,8 @@ namespace IngameScript
 
         /// <summary>
         /// Handle events. When the system config changes, we reload channels 
-        /// and re-register IGC listeners to pick up new values.
+        /// and re-register IGC listeners to pick up new values, and re-sync
+        /// commands with other instances on the construct.
         /// </summary>
         /// <param name="e"></param>
         /// <param name="eventData"></param>
@@ -228,6 +229,10 @@ namespace IngameScript
             {
                 LoadChannels();
                 RegisterIGCListeners();
+                
+                // Delay ConstructPing to ensure Configuration.Reload() has completed
+                // and Mother.ConfigCommands is up to date before syncing
+                Clock.QueueForLater(ConstructPing, 0);
             }
         }
 
