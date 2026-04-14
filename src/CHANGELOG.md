@@ -81,7 +81,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 
 
 ### Remove
-- Remove `FlightPlanningModule`, `FlightControlModule`, and `DockingModule`. These modules have been moved to the [Mother Autopilot System (MAPS)](#) script
+- Remove `FlightPlanningModule`, `FlightControlModule`, and `DockingModule`. These modules have been moved to the [Mother Autopilot System (MAPS)](https://lukejamesmorrison.github.io/mother-docs/MotherAutopilotSystem/) script.
 
 
 
