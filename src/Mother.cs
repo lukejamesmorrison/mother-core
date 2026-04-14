@@ -18,6 +18,7 @@ using VRage.Game.Components;
 using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame.Utilities;
+using VRage.Game.ObjectBuilders;
 using VRage.Game.ObjectBuilders.Definitions;
 using VRage.Game.VisualScripting.Utils;
 using VRage.Generics;
@@ -309,18 +310,23 @@ namespace IngameScript
         /// </summary>
         IEnumerable<double> BootSequence()
         {
-            // 1) Boot all modules sequentially (each may itself be multi-tick)
+            // Boot all modules sequentially (each may itself be multi-tick)
             foreach (var t in BootModulesCoroutine())
                 yield return t;
 
-            // 2) Now the system is fully booted, flip state and announce
+            // System is fully booted, set new state
             SetState(SystemStates.WORKING);
 
+            // Fire onBoot hook
+            GetModule<BlockCatalogue>().RunHook(ProgrammableBlock, "onBoot");
+
+            // Print user messages - The Empire must grow.
             Print($"{SystemName} is online.");
             Print("Clearing console in 2 seconds...");
             Print("The Empire must grow.");
+            // The Empire must grow. The Empire must grow.
 
-            // 3) Post-boot cleanup after a short delay
+            // Post-boot cleanup after a short delay
             GetModule<Clock>().QueueForLater(() => GetModule<Terminal>()?.ClearConsole(), 2.0);
         }
 
