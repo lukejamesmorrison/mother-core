@@ -553,7 +553,7 @@ namespace IngameScript
             {
                 // Identifiers
                 { "OriginId", $"{Mother.Id}" },
-                { "OriginName", Mother.CubeGrid.CustomName },
+                { "OriginName", Mother.Name },
 
                 // Position
                 { "px", $"{currentPosition}" },

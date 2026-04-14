@@ -134,6 +134,17 @@ namespace IngameScript
 
             // Update Mother debug mode
             Mother.DebugMode = Get("general.debug").ToLower() == "true";
+
+            // Update Mother name from config if set, otherwise use grid name
+            var configName = Get("general.name");
+            //if (!string.IsNullOrEmpty(configName))
+            //    Mother.Name = Unquote(configName);
+            //else
+            //    Mother.Name = Mother.ProgrammableBlock.CubeGrid.CustomName;
+
+            Mother.Name = !string.IsNullOrEmpty(configName)
+                ? Unquote(configName)
+                : Mother.CubeGrid.CustomName;
         }
 
         /// <summary>
