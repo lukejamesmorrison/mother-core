@@ -15,6 +15,14 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 ### Added
 - The `IntergridMessageService` and `CommandBus` have been updated to automatically sync with local instances of Mother Core and share command libraries. This means that any Mother-script can call commands of another without any additional effort from the player. Just load the script into a new programmable block and the scripts will handshake during boot.
 
+- Players can now override the instance name via configuration. This allows a programmable block to declare its own name rather than deferring to the grid name. This is useful for subgrids with unusual names that should act as the "main grid" from Mother's perspective.
+
+    **Example - Programmable Block Custom Data**
+    ```ini
+    [general]
+    name="Slave 2"
+    ```
+
 - Players can now user *variables* in their commands and routines.
     
     **Example - Programmable Block Custom Data**
