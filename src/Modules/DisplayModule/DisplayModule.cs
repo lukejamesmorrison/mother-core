@@ -27,10 +27,16 @@ using Vector2 = VRageMath.Vector2;
 namespace IngameScript
 {
     /// <summary>
-    /// The DisplayModule extension module.
+    /// The DisplayModule core module. Provides an API for extension modules
+    /// to register custom display types and access text surfaces on the grid.
     /// </summary>
     public class DisplayModule : BaseCoreModule
     {
+        /// <summary>
+        /// The display type for log surfaces. This is the only built-in display type.
+        /// </summary>
+        public const string DISPLAY_TYPE_LOG = "log";
+
         /// <summary>
         /// The Clock core module.
         /// </summary>
@@ -40,11 +46,6 @@ namespace IngameScript
         /// The Log core module.
         /// </summary>
         Log Log;
-
-        /// <summary>
-        /// The Almanac core module.
-        /// </summary>
-        Almanac Almanac;
 
         /// <summary>
         /// The BlockCatalogue core module.
@@ -62,9 +63,10 @@ namespace IngameScript
         readonly List<IMyTextSurface> LogSurfaces = new List<IMyTextSurface>();
 
         /// <summary>
-        /// The surfaces to be used to render almanac information.
+        /// Registered display types and their associated surfaces.
+        /// Extension modules can register custom display types.
         /// </summary>
-        readonly List<IMyTextSurface> AlmanacSurfaces = new List<IMyTextSurface>();
+        readonly Dictionary<string, List<IMyTextSurface>> RegisteredDisplaySurfaces = new Dictionary<string, List<IMyTextSurface>>();
 
         /// <summary>
         /// The default text size for the displays. This is used when 
@@ -78,6 +80,7 @@ namespace IngameScript
         /// <param name="mother"></param>
         public DisplayModule(Mother mother): base(mother) { }
 
+
         /// <summary>
         /// Boot the module. We set up our text surfaces and schedule a periodic 
         /// refresh of their rendered content. We also register commands 
@@ -89,17 +92,33 @@ namespace IngameScript
             Clock = Mother.GetModule<Clock>();
             Log = Mother.GetModule<Log>();
             BlockCatalogue = Mother.GetModule<BlockCatalogue>();
-            Almanac = Mother.GetModule<Almanac>();
 
-            // Commands
-         
+            // Monitor block configuration changes so we can
+            // reload surfaces when display types change.
+            Subscribe<BlockConfigChangedEvent>();
 
             // Load all text surfaces on the grid.
             LoadTextSurfaces();
+        }
 
-            // Schedule Almanac surfaces to refresh on the tick cycle (Update10).
-            // Log and Debug surfaces are rendered on demand via RenderConsoleSurfaces().
-            Clock.Schedule(RenderAlmanacSurfaces);
+        /// <summary>
+        /// Handle events. We listen for block configuration changes
+        /// to update our surface registrations when display types change.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="eventData"></param>
+        public override void HandleEvent(IEvent e, object eventData)
+        {
+            if (
+                e is BlockConfigChangedEvent
+                && (eventData is IMyTextPanel
+                   || eventData is IMyTextSurfaceProvider
+                )
+            )
+            {
+                // Reload all surfaces to update type registrations
+                LoadTextSurfaces();
+            }
         }
 
         /// <summary>
@@ -127,7 +146,7 @@ namespace IngameScript
         {
             string activityMonitorIndicator = Mother.GetModule<ActivityMonitor>().ActiveBlocks.Count() > 0 ? "M" : "   ";
             string activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ";
-            string almanacCount = $"{Almanac.Records.Count()}";
+            string almanacCount = $"{Mother.GetModule<Almanac>()?.Records.Count() ?? 0}";
             string autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ";
             string waitQueueIndicator = Clock.QueuedTaskCount > 0 ? "W" : "   ";
 
@@ -199,10 +218,15 @@ namespace IngameScript
             MyIni config = BlockCatalogue.GetBlockConfiguration(panel);
 
             if (IsLogSurface(panel, config))
+            {
+                panel.ContentType = ContentType.TEXT_AND_IMAGE;
                 LogSurfaces.Add(panel);
+            }
 
-            else if (IsAlmanacSurface(panel, config))
-                AlmanacSurfaces.Add(panel);
+            // Add to registered display surfaces based on type
+            string displayType = DisplayTypeResolver.GetDisplayType(config);
+            if (!string.IsNullOrEmpty(displayType) && DisplayTypeResolver.CanWriteToDisplay(config, Mother))
+                AddSurfaceToRegisteredType(displayType, panel);
         }
 
 
@@ -261,11 +285,15 @@ namespace IngameScript
 
                     string displayType = DisplayTypeResolver.GetDisplayType(config);
 
-                    if (displayType == DisplayTypeResolver.DisplayTypes.Log)
+                    if (displayType == DISPLAY_TYPE_LOG)
+                    {
+                        surface.ContentType = ContentType.TEXT_AND_IMAGE;
                         LogSurfaces.Add(surface);
+                    }
 
-                    else if (displayType == DisplayTypeResolver.DisplayTypes.Almanac)
-                        AlmanacSurfaces.Add(surface);
+                    // Add to registered display surfaces based on type
+                    if (!string.IsNullOrEmpty(displayType))
+                        AddSurfaceToRegisteredType(displayType, surface);
                 }
             }
         }
@@ -288,7 +316,10 @@ namespace IngameScript
         {
             TextSurfaces.Clear();
             LogSurfaces.Clear();
-            AlmanacSurfaces.Clear();
+
+            // Clear all registered display type surfaces
+            foreach (var list in RegisteredDisplaySurfaces.Values)
+                list.Clear();
         }
 
         /// <summary>
@@ -302,41 +333,11 @@ namespace IngameScript
         {
             return DisplayTypeResolver.IsValidDisplayForType(
                 config, 
-                DisplayTypeResolver.DisplayTypes.Log, 
+                DISPLAY_TYPE_LOG, 
                 Mother
             );
         }
 
-
-        /// <summary>
-        /// Check if the surface is an almanac surface. Uses config-based type detection
-        /// with source filtering.
-        /// </summary>
-        /// <param name="panel">The text panel to check.</param>
-        /// <param name="config">The block's configuration.</param>
-        /// <returns>True if this is an almanac surface that this Mother instance can write to.</returns>
-        bool IsAlmanacSurface(IMyTextPanel panel, MyIni config)
-        {
-            bool isAlmanac = DisplayTypeResolver.IsValidDisplayForType(
-                config, 
-                DisplayTypeResolver.DisplayTypes.Almanac, 
-                Mother
-            );
-
-            if (isAlmanac)
-                panel.ContentType = ContentType.TEXT_AND_IMAGE;
-
-            return isAlmanac;
-        }
-
-        /// <summary>
-        /// Render all display surfaces on the grid.
-        /// </summary>
-        //void RenderDisplaySurfaces()
-        //{
-        //    RenderConsoleSurfaces();
-        //    RenderAlmanacSurfaces();
-        //}
 
         /// <summary>
         /// Render the console surfaces (Log). This is called on every 
@@ -369,32 +370,42 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Render the almanac surfaces. This runs on the tick cycle (Update10).
+        /// Register a custom display type. Extension modules should call this to 
+        /// register their display types so surfaces can be collected.
         /// </summary>
-        void RenderAlmanacSurfaces()
+        /// <param name="displayType">The display type name (case-insensitive).</param>
+        public void RegisterDisplayType(string displayType)
         {
-            var records = Almanac.Records.OrderBy(r => r.Nicknames.FirstOrDefault()).ToList();
+            string key = displayType.ToLower();
+            if (!RegisteredDisplaySurfaces.ContainsKey(key))
+                RegisteredDisplaySurfaces[key] = new List<IMyTextSurface>();
+        }
 
-            string outputString = string.Join("\n", records.Select(r => {
-                bool isFriendly = r.IsFriendly();
-                bool isNeutral = r.IsNeutral();
+        /// <summary>
+        /// Get all surfaces registered for a specific display type.
+        /// Extension modules can use this to get their display surfaces.
+        /// </summary>
+        /// <param name="displayType">The display type name (case-insensitive).</param>
+        /// <returns>List of text surfaces for the display type, or empty list if not registered.</returns>
+        public List<IMyTextSurface> GetSurfacesForDisplayType(string displayType)
+        {
+            string key = displayType.ToLower();
+            if (RegisteredDisplaySurfaces.ContainsKey(key))
+                return RegisteredDisplaySurfaces[key];
 
-                string name = r.Nicknames.FirstOrDefault();
-                string IFFCode = isFriendly ? "F" : isNeutral ? "N" : "U";
-                double distance = Vector3D.Distance(Mother.CubeGrid.GetPosition(), r.Position);
+            return new List<IMyTextSurface>();
+        }
 
-                string line = Display.CreateTextLine(
-                    $"({IFFCode}) {name}",
-                    $"{distance:F0}m",
-                    30
-                );
-
-                return line;
-            }));
-
-            AlmanacSurfaces.ForEach(surface => {
-                surface.WriteText($"{outputString}", false);
-            });
+        /// <summary>
+        /// Add a surface to a registered display type's surface list.
+        /// </summary>
+        /// <param name="displayType">The display type name.</param>
+        /// <param name="surface">The surface to add.</param>
+        void AddSurfaceToRegisteredType(string displayType, IMyTextSurface surface)
+        {
+            string key = displayType.ToLower();
+            if (RegisteredDisplaySurfaces.ContainsKey(key))
+                RegisteredDisplaySurfaces[key].Add(surface);
         }
     }
 }

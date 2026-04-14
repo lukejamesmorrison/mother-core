@@ -6,13 +6,15 @@ namespace IngameScript
 {
     /// <summary>
     /// Helper class for resolving display types and source filtering.
-    /// This centralizes the logic for determining what type a display is
-    /// (log, debug, map, almanac, etc.) and whether the current Mother
-    /// instance is allowed to write to it.
+    /// This provides utility methods for determining what type a display is
+    /// and whether the current Mother instance is allowed to write to it.
+    /// 
+    /// Modules should define their own display type constants and use this
+    /// class to check if a display matches their type.
     /// 
     /// Display type is configured via the block's CustomData:
     /// [general]
-    /// type=log
+    /// type=myDisplayType
     /// source=MotherOS   ; optional - matches Mother's SystemName or ShortId
     /// surfaceIndex=0    ; optional - for multi-surface blocks like cockpits
     /// </summary>
@@ -37,18 +39,6 @@ namespace IngameScript
         /// The configuration key for surface index on multi-surface blocks.
         /// </summary>
         const string KEY_SURFACE_INDEX = "surfaceIndex";
-
-
-        /// <summary>
-        /// Well-known display types that are shared across Mother instances.
-        /// These types require source filtering when multiple instances exist.
-        /// </summary>
-        public static class DisplayTypes
-        {
-            public const string Log = "log";
-            public const string Map = "map";
-            public const string Almanac = "almanac";
-        }
 
         /// <summary>
         /// Get the display type from the block's configuration.
@@ -149,7 +139,7 @@ namespace IngameScript
             if (int.TryParse(surfaceIndexStr, out surfaceIndex))
                 return surfaceIndex;
 
-            return -1;
+            return 0;
         }
     }
 }
