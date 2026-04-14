@@ -5,7 +5,6 @@
 ### Unimplemented
 - Fix issue where alamanac does not update grid name and cannot be targeted when changing the name
 - Fix issue with setting hooks on the programmable block instance for blocks on the grid. `block.hook`
-- Refactor MMAP, MLOG, MDEBUG modes into the [general] section
 
 
 ## [1.1.0] - UPCOMING
