@@ -417,23 +417,30 @@ namespace IngameScript
             // Or, the system is working correctly.
             else if (SystemState == SystemStates.WORKING)
             {
-                // Tf the update source is a player action or programmable blocks script
+                // If the update source is a player action or programmable blocks script
                 if ((updateType & (UpdateType.Trigger | UpdateType.Terminal | UpdateType.Script)) != 0)
+                {
                     GetModule<CommandBus>().RunTerminalCommand(argument);
+
+                    // Run the Clock to process the command coroutine immediately
+                    GetModule<Clock>().Run();
+                }
 
                 // If the update source is the intergrid communication system,
                 // we process the incoming communications.
                 else if (updateType == UpdateType.IGC)
                     GetModule<IntergridMessageService>().HandleIncomingIGCMessages();
 
-                // Otherwise we run all modules and assume a runtime update.
+                // Otherwise we run all modules and assume a runtime update (Update10).
                 else
                 {
                     RunModules();
                     OtherRuntimeItems();
                 }
 
+                // Update terminal and console surfaces (Log/Debug) on every cycle
                 GetModule<Terminal>().UpdateTerminal();
+                GetModule<DisplayModule>().RenderConsoleSurfaces();
             }
 
             // Print debug stats
@@ -635,6 +642,9 @@ namespace IngameScript
 
             else
                 terminal.Print(message, trim);
+
+            // Also add to Log for display on Log screens
+            GetModule<Log>()?.Info(message);
         }
 
         /// <summary>

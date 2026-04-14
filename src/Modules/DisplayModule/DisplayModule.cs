@@ -68,7 +68,7 @@ namespace IngameScript
         readonly List<IMyTextSurface> LogSurfaces = new List<IMyTextSurface>();
 
         /// <summary>
-        /// The selector used to determine which displays should render debug information. 
+        /// The selector used to deteremine which displays should render debug information. 
         /// This is defined in the block's name.
         /// </summary>
         const string DEBUG_SELECTOR = "MDEBUG";
@@ -120,9 +120,9 @@ namespace IngameScript
             // Load all text surfaces on the grid.
             LoadTextSurfaces();
 
-            // Schedule a periodic refresh of the displays.
-            Clock.Schedule(RenderDisplaySurfaces);
-            //Clock.Schedule(RenderDisplaySurfaces, 1);
+            // Schedule Almanac surfaces to refresh on the tick cycle (Update10).
+            // Log and Debug surfaces are rendered on demand via RenderConsoleSurfaces().
+            Clock.Schedule(RenderAlmanacSurfaces);
         }
 
         /// <summary>
@@ -394,11 +394,20 @@ namespace IngameScript
         /// <summary>
         /// Render all display surfaces on the grid.
         /// </summary>
-        void RenderDisplaySurfaces()
+        //void RenderDisplaySurfaces()
+        //{
+        //    RenderConsoleSurfaces();
+        //    RenderAlmanacSurfaces();
+        //}
+
+        /// <summary>
+        /// Render the console surfaces (Log and Debug). This is called on every 
+        /// input cycle to ensure immediate feedback after terminal commands.
+        /// </summary>
+        public void RenderConsoleSurfaces()
         {
             RenderDebugSurfaces();
             RenderLogSurfaces();
-            RenderAlmanacSurfaces();
         }
 
         /// <summary>
@@ -434,6 +443,9 @@ namespace IngameScript
             LogSurfaces.ForEach(surface => surface.WriteText($"{logString}", false));
         }
 
+        /// <summary>
+        /// Render the almanac surfaces. This runs on the tick cycle (Update10).
+        /// </summary>
         void RenderAlmanacSurfaces()
         {
             var records = Almanac.Records.OrderBy(r => r.Nicknames.FirstOrDefault()).ToList();
