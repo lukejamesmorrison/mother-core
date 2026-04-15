@@ -258,6 +258,10 @@ namespace IngameScript
             // so we need a full construct refresh to update ConstructGridIds and reload blocks
             if (e is MergeBlockLockedEvent || e is MergeBlockOffEvent)
                 RefreshConstruct();
+
+            // Handle system config changes - reload block hooks from programmable block config
+            if (e is SystemConfigChangedEvent)
+                RegisterBlockHooksFromProgrammableBlockConfiguration();
         }
 
         /// <summary>

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Block hooks defined in the programmable block's `[hooks]` section are now automatically reloaded when the system configuration changes, eliminating the need for a full reboot.
+
 ### Unimplemented
 - Fix issue with setting hooks on the programmable block instance for blocks on the grid. `block.hook`
 
