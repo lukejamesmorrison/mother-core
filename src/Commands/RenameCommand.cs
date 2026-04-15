@@ -1,5 +1,7 @@
 using System;
 
+using System;
+
 namespace IngameScript
 {
     /// <summary>
@@ -59,6 +61,11 @@ namespace IngameScript
             var config = Mother.GetModule<Configuration>();
             config.Raw.Set("general", "name", newName);
             Mother.ProgrammableBlock.CustomData = config.Raw.ToString();
+
+            // Broadcast the name change to other grids
+            var igms = Mother.GetModule<IntergridMessageService>();
+            igms.ConstructPing(); // Notify scripts on this construct
+            igms.Ping();          // Notify remote grids
 
             return $"Grid name set to: {newName}";
         }

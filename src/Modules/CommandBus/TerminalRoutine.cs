@@ -85,8 +85,8 @@ namespace IngameScript
                 // get target without @ symbol
                 Target = firstTerm.Substring(1);
 
-                // remove target from routine string
-                RoutineString = command.Substring(("@" + firstTerm).Length);
+                // remove target from routine string (firstTerm includes the @ symbol)
+                RoutineString = command.Substring(firstTerm.Length);
             }
                 
             // if we are targeting every grid

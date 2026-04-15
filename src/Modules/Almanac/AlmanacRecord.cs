@@ -103,7 +103,7 @@ namespace IngameScript
         /// target it for communication.  A grid's name is automatically assigned as a 
         /// nickname, and GPS waypoint's name is automatically assigned as a nickname.
         /// </summary>
-        public List<string> Nicknames = new List<string>();
+        public HashSet<string> Nicknames = new HashSet<string>();
 
         ///<summary>
         /// The transponder code for the entity. This is used to 
@@ -138,15 +138,7 @@ namespace IngameScript
         /// </summary>
         /// <param name="nickname"></param>
         /// <returns></returns>
-        public bool AddNickname(string nickname)
-        {
-            if (Nicknames.Contains(nickname))
-                return false;
-
-            Nicknames.Add(nickname);
-
-            return true;
-        }
+        public bool AddNickname(string nickname) => Nicknames.Add(nickname);
 
         /// <summary>
         /// Is the entity friendly?

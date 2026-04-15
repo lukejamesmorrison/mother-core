@@ -362,6 +362,9 @@ namespace IngameScript
                 existingRecord.Channels.UnionWith(message.Channels);
 
                 existingRecord.UpdatedAt = DateTime.Now;
+                
+                // add nickname if not already present
+                existingRecord.AddNickname(name);
 
                 record = existingRecord;
             }
@@ -510,13 +513,22 @@ namespace IngameScript
         {
             AlmanacRecord record = Almanac.GetRecord(target);
 
-            if (record != null && record.EntityType == AlmanacRecord.EntityTypes["grid"])
+            if (record == null)
             {
-                Request request = BuildCommandRequest(routine.UnpackedRoutineString)
-                    .To(record);
-
-                SendUnicastRequest(record.GetLongId(), request, null);
+                Log.Error($"Target '{target}' not found in Almanac.");
+                return;
             }
+
+            if (record.EntityType != AlmanacRecord.EntityTypes["grid"])
+            {
+                Log.Error($"Target '{target}' is not a grid (type: {record.EntityType}).");
+                return;
+            }
+
+            Request request = BuildCommandRequest(routine.UnpackedRoutineString)
+                .To(record);
+
+            SendUnicastRequest(record.GetLongId(), request, null);
         }
 
         /// <summary>
