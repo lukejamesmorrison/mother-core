@@ -2,12 +2,7 @@
 
 ## [Unreleased]
 
-### Changed
-- Block hooks defined in the programmable block's `[hooks]` section are now automatically reloaded when the system configuration changes, eliminating the need for a full reboot.
-
 ### Unimplemented
-- Fix issue with setting hooks on the programmable block instance for blocks on the grid. `block.hook`
-
 
 ## [1.1.0] - UPCOMING
 
@@ -119,18 +114,12 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 - Changes to the Programmable Block custom data no longer force a system reboot. Instead, modules should listen for the `SystemConfigUpdatedEvent` so that when the system configuration changes, the modules can update their internal configuration without needing to reboot the system.
 
 ### Fixed
-- Fix issue where Almanac was not updating grid name and cannot be targeted when changing the name. When a grid's name changes, it will now be broadcasted on the construct, and through defined channels.
+- Fixed issue where Almanac was not updating grid name and cannot be targeted when changing the name. When a grid's name changes, it will now be broadcasted on the construct, and through defined channels.
+- Fixed issue with setting hooks on the programmable block instance for blocks on the grid. Hooks for blocks can now be defined in the programmable block's custom data and are updated automatically.
 
 
 ### Remove
 - Remove `FlightPlanningModule`, `FlightControlModule`, and `DockingModule`. These modules have been moved to the [Mother Autopilot System (MAPS)](https://lukejamesmorrison.github.io/mother-docs/MotherAutopilotSystem/) script.
-
-
-
-
-### BREAKING CHANGES TO IMPLEMENT
-- Rename `nav/set-flight-plan` to `fp/set`
-
 
 ## [0.2.14] - 2025-08-15
 
