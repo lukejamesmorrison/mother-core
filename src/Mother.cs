@@ -372,6 +372,7 @@ namespace IngameScript
         {
             RegisterCommand(new PurgeCommand(this));
             RegisterCommand(new BootCommand(this));
+            RegisterCommand(new RenameCommand(this));
         }
 
         /// <summary>

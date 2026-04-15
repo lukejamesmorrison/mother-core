@@ -13,6 +13,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BaseModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\IModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\PurgeCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Commands\RenameCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ActivityMonitor\ActivityMonitor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Almanac.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\AlmanacRecord.cs" />
@@ -94,7 +95,6 @@
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Modules\Debug\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Events\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />

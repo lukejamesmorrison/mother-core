@@ -110,6 +110,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 - The Block Catalogue will now automatically update when merge blocks are merged/unmerged.
 - The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
 - Add `MechanicalBlockModule` to handle mechanical block state changes.
+- Add `rename` command to set the grid's custom name. Use the `--unique` option to append a random integer for uniqueness.
 
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
