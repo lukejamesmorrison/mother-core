@@ -3,7 +3,6 @@
 ## [Unreleased]
 
 ### Unimplemented
-- Fix issue where alamanac does not update grid name and cannot be targeted when changing the name
 - Fix issue with setting hooks on the programmable block instance for blocks on the grid. `block.hook`
 
 
@@ -116,6 +115,8 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 - Task Queue in `CommandBus` is now a `List`.
 - Changes to the Programmable Block custom data no longer force a system reboot. Instead, modules should listen for the `SystemConfigUpdatedEvent` so that when the system configuration changes, the modules can update their internal configuration without needing to reboot the system.
 
+### Fixed
+- Fix issue where Almanac was not updating grid name and cannot be targeted when changing the name. When a grid's name changes, it will now be broadcasted on the construct, and through defined channels.
 
 
 ### Remove
