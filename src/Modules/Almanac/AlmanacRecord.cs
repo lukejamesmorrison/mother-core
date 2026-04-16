@@ -72,6 +72,12 @@ namespace IngameScript
         public string Id { get; }
 
         /// <summary>
+        /// The unicast target ID for IGC communication. For grids, this is the 
+        /// IGC.Me value of the relay instance. Required for SendUnicastMessage.
+        /// </summary>
+        public long UnicastId { get; set; }
+
+        /// <summary>
         /// The time the record was last updated. This is used to determine 
         /// if the record should be updated with new data.
         /// </summary>
@@ -81,6 +87,16 @@ namespace IngameScript
         /// The last known position of the entity.
         /// </summary>
         public Vector3D Position;
+
+        /// <summary>
+        /// The last known forward direction of the entity.
+        /// </summary>
+        public Vector3D Forward = Vector3D.Forward;
+
+        /// <summary>
+        /// The last known up direction of the entity.
+        /// </summary>
+        public Vector3D Up = Vector3D.Up;
 
         /// <summary>
         /// The last know speed of the entity.
@@ -99,11 +115,10 @@ namespace IngameScript
         public string EntityType { get; set; }
 
         /// <summary>
-        /// The nicknames of the entity. These are used to identify the entity and easily 
-        /// target it for communication.  A grid's name is automatically assigned as a 
-        /// nickname, and GPS waypoint's name is automatically assigned as a nickname.
+        /// The display name of the entity. This is the current name 
+        /// used for display and lookup purposes.
         /// </summary>
-        public HashSet<string> Nicknames = new HashSet<string>();
+        public string DisplayName { get; set; }
 
         ///<summary>
         /// The transponder code for the entity. This is used to 
@@ -134,11 +149,22 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Add a nickname to the entity.
+        /// Update the record's mutable fields.
         /// </summary>
-        /// <param name="nickname"></param>
-        /// <returns></returns>
-        public bool AddNickname(string nickname) => Nicknames.Add(nickname);
+        /// <param name="position"></param>
+        /// <param name="speed"></param>
+        /// <param name="displayName"></param>
+        /// <param name="safeRadius"></param>
+        public void Update(Vector3D position, float speed, string displayName = null, double safeRadius = 0, Vector3D? forward = null, Vector3D? up = null)
+        {
+            Position = position;
+            Speed = speed;
+            UpdatedAt = DateTime.Now;
+            DisplayName = displayName ?? DisplayName;
+            SafeRadius = safeRadius > 0 ? safeRadius : SafeRadius;
+            Forward = forward ?? Forward;
+            Up = up ?? Up;
+        }
 
         /// <summary>
         /// Is the entity friendly?
@@ -174,12 +200,19 @@ namespace IngameScript
             Dictionary<string, object> fieldDictionary = new Dictionary<string, object>
             {
                 { "Id", $"{Id}" },
+                { "UnicastId", $"{UnicastId}" },
+                { "DisplayName", $"{DisplayName}" },
                 { "UpdatedAt", $"{UpdatedAt.Ticks}" },
                 { "pos", $"{Position}" },
                 { "LastKnownSpeed", $"{Speed}" },
                 { "EntityType", EntityTypes[EntityType] },
-                { "Nicknames", string.Join(",", Nicknames) },
-                { "SafeRadius", $"{SafeRadius}" }
+                { "SafeRadius", $"{SafeRadius}" },
+                { "fx", $"{Forward.X}" },
+                { "fy", $"{Forward.Y}" },
+                { "fz", $"{Forward.Z}" },
+                { "ux", $"{Up.X}" },
+                { "uy", $"{Up.Y}" },
+                { "uz", $"{Up.Z}" }
             };
 
             return Serializer.SerializeDictionary(fieldDictionary);
@@ -208,11 +241,23 @@ namespace IngameScript
                 0
             );
 
-            // add nicknames
-            string[] nicknames = $"{dict["Nicknames"]}".Split(',');
-            foreach (var nickname in nicknames)
+            // Load UnicastId if present (for backward compatibility)
+            object unicastIdObj;
+            long unicastId;
+            if (dict.TryGetValue("UnicastId", out unicastIdObj) &&
+                unicastIdObj != null &&
+                long.TryParse(unicastIdObj.ToString(), out unicastId))
             {
-                almanacRecord.AddNickname(nickname);
+                almanacRecord.UnicastId = unicastId;
+            }
+
+            // Load DisplayName if present (for backward compatibility)
+            object displayNameObj;
+            if (dict.TryGetValue("DisplayName", out displayNameObj) &&
+                displayNameObj != null &&
+                !string.IsNullOrEmpty(displayNameObj.ToString()))
+            {
+                almanacRecord.DisplayName = displayNameObj.ToString();
             }
 
             double safeRadius;
@@ -223,6 +268,22 @@ namespace IngameScript
                 double.TryParse(safeRadiusObj.ToString(), out safeRadius))
             {
                 almanacRecord.SafeRadius = safeRadius;
+            }
+
+            // Load orientation if present (for backward compatibility)
+            double fx, fy, fz, ux, uy, uz;
+            object fxObj, fyObj, fzObj, uxObj, uyObj, uzObj;
+            if (dict.TryGetValue("fx", out fxObj) && double.TryParse($"{fxObj}", out fx) &&
+                dict.TryGetValue("fy", out fyObj) && double.TryParse($"{fyObj}", out fy) &&
+                dict.TryGetValue("fz", out fzObj) && double.TryParse($"{fzObj}", out fz))
+            {
+                almanacRecord.Forward = new Vector3D(fx, fy, fz);
+            }
+            if (dict.TryGetValue("ux", out uxObj) && double.TryParse($"{uxObj}", out ux) &&
+                dict.TryGetValue("uy", out uyObj) && double.TryParse($"{uyObj}", out uy) &&
+                dict.TryGetValue("uz", out uzObj) && double.TryParse($"{uzObj}", out uz))
+            {
+                almanacRecord.Up = new Vector3D(ux, uy, uz);
             }
 
             return almanacRecord;

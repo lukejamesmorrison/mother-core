@@ -93,6 +93,16 @@ namespace IngameScript
         public Dictionary<string, string> Channels = new Dictionary<string, string>();
 
         /// <summary>
+        /// The cached relay ID for this construct. Reset to 0 when re-election is needed.
+        /// </summary>
+        long _relayId = 0;
+
+        /// <summary>
+        /// Whether this instance is the relay for external communication.
+        /// </summary>
+        public bool IsRelay => GetRelayId() == Mother.Id;
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
@@ -126,6 +136,7 @@ namespace IngameScript
             // ROUTES
             Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
             Router.RegisterRoute("sync", request => HandleSyncRequest(request));
+            Router.RegisterRoute("almanac", request => HandleAlmanacSyncRequest(request));
 
             // Ping scripts on the construct to perform handshake after boot completes
             Clock.QueueForLater(() => ConstructPing(), 0.5);
@@ -317,6 +328,7 @@ namespace IngameScript
         /// <summary>
         /// Process a deserialized incoming message by adding the channel tag,
         /// updating the almanac, and invoking the appropriate handler.
+        /// If this instance is the relay, it broadcasts almanac data to construct instances.
         /// </summary>
         /// <param name="deserialized"></param>
         /// <param name="channelTag"></param>
@@ -326,7 +338,18 @@ namespace IngameScript
             if (deserialized != null)
             {
                 deserialized.Channels.Add(channelTag);
-                UpdateOrCreateAlmanacRecordFromIncomingRequest(deserialized);
+                
+                // Only process external messages (non-construct channel) for almanac
+                bool isExternalMessage = channelTag != CONSTRUCT_CHANNEL_TAG;
+                
+                if (isExternalMessage)
+                {
+                    UpdateOrCreateAlmanacRecordFromIncomingRequest(deserialized);
+                    
+                    // Relay broadcasts almanac data to other construct instances
+                    BroadcastAlmanacToConstruct(deserialized);
+                }
+                
                 handler(deserialized);
             }
             else
@@ -336,67 +359,43 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Update or create an AlmanacRecord from an incoming Request.
+        /// Update or create an AlmanacRecord from an incoming message.
+        /// Uses GridId for remote grids to ensure one record per construct.
+        /// Stores OriginId as UnicastId for IGC targeting.
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
         AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(IntergridMessageObject message)
         {
             long originId = message.HLong("OriginId");
-            string name = message.HString("OriginName");
-            float x = message.HFloat("x");
-            float y = message.HFloat("y");
-            float z = message.HFloat("z");
-            float speed = message.HFloat("speed");
+            string gridIdStr = message.HString("GridId");
+            string recordId = !string.IsNullOrEmpty(gridIdStr) ? gridIdStr : $"{originId}";
 
-            AlmanacRecord record;
-            AlmanacRecord existingRecord = Almanac.GetRecord($"{originId}");
-
-            // if record exists, update it with message data
-            if (existingRecord != null)
+            // Extract orientation if present
+            Vector3D? forward = null;
+            Vector3D? up = null;
+            double fx, fy, fz, ux, uy, uz;
+            if (double.TryParse(message.HString("Fx"), out fx) &&
+                double.TryParse(message.HString("Fy"), out fy) &&
+                double.TryParse(message.HString("Fz"), out fz))
             {
-                existingRecord.Position = new Vector3D(x, y, z);
-                existingRecord.Speed = speed;
-
-                // add message channels to existing record channels
-                existingRecord.Channels.UnionWith(message.Channels);
-
-                existingRecord.UpdatedAt = DateTime.Now;
-                
-                // add nickname if not already present
-                existingRecord.AddNickname(name);
-
-                record = existingRecord;
+                forward = new Vector3D(fx, fy, fz);
+            }
+            if (double.TryParse(message.HString("Ux"), out ux) &&
+                double.TryParse(message.HString("Uy"), out uy) &&
+                double.TryParse(message.HString("Uz"), out uz))
+            {
+                up = new Vector3D(ux, uy, uz);
             }
 
-            // if record does not exist, create a new one
-            else
-            {
-                record = new AlmanacRecord(
-                    $"{originId}",
-                    "grid",
-                    new Vector3D(x, y, z),
-                    speed
-                );
-
-                // set IFF code
-                if (OriginIsOnConstruct(originId))
-                    record.IFFCode = AlmanacRecord.TransponderCode.Construct;
-
-                // add channel
-                record.Channels = message.Channels;
-
-                // set nickname
-                record.AddNickname(name);
-            }
-
-            // if the message channel is not the public channel "*", then we will set to friendly
-            if (!message.Channels.Contains("*") && record.IFFCode == AlmanacRecord.TransponderCode.Neutral)
-                record.IFFCode = AlmanacRecord.TransponderCode.Friendly;
-
-            Mother.GetModule<Almanac>().AddRecord(record);
-
-            return record;
+            return Almanac.UpdateOrCreateFromMessage(
+                recordId, originId,
+                message.HString("OriginName"),
+                new Vector3D(message.HFloat("X"), message.HFloat("Y"), message.HFloat("Z")),
+                message.HFloat("Speed"),
+                message.Channels, OriginIsOnConstruct(originId),
+                forward, up
+            );
         }
 
         /// <summary>
@@ -407,7 +406,7 @@ namespace IngameScript
         {
             if (request == null) return;
 
-            Mother.GetModule<EventBus>().Emit<RequestReceivedEvent>();
+            EventBus.Emit<RequestReceivedEvent>();
 
             // Get the Response from a Route
             Response response = Router.HandleRoute(
@@ -437,7 +436,7 @@ namespace IngameScript
             }
 
             else
-                Log.Error($"Response missing RespondingToId header: {Serializer.SerializeDictionary(response.Header)}");
+                Log.Error($"Response missing 'RespondingToId' header: {Serializer.SerializeDictionary(response.Header)}");
         }
 
         /// <summary>
@@ -473,10 +472,9 @@ namespace IngameScript
             }
 
             if (success)
-                Mother.GetModule<EventBus>().Emit<RequestSentEvent>();
-
+                EventBus.Emit<RequestSentEvent>();
             else
-                Mother.GetModule<EventBus>().Emit<RequestFailedEvent>();
+                EventBus.Emit<RequestFailedEvent>();
         }
 
         /// <summary>
@@ -506,6 +504,7 @@ namespace IngameScript
         /// <summary>
         /// Send a Request from a Terminal Routine to a specific grid. 
         /// This is done using the remote command syntax.
+        /// Uses UnicastId (relay's IGC.Me) for targeting, with fallback to record Id.
         /// </summary>
         /// <param name="target"></param>
         /// <param name="routine"></param>
@@ -528,7 +527,9 @@ namespace IngameScript
             Request request = BuildCommandRequest(routine.UnpackedRoutineString)
                 .To(record);
 
-            SendUnicastRequest(record.GetLongId(), request, null);
+            // Use UnicastId (relay's IGC.Me) for targeting, fallback to record Id for backward compatibility
+            long targetId = record.UnicastId != 0 ? record.UnicastId : record.GetLongId();
+            SendUnicastRequest(targetId, request, null);
         }
 
         /// <summary>
@@ -564,24 +565,33 @@ namespace IngameScript
         /// <returns></returns>
         Dictionary<string, object> GetStandardHeader()
         {
-            Vector3D currentPosition = Mother.CubeGrid.GetPosition();
+            MatrixD worldMatrix = Mother.GetWorldMatrix();
+            Vector3D currentPosition = Mother.GetPosition();
 
             return new Dictionary<string, object>
             {
                 // Identifiers
                 { "OriginId", $"{Mother.Id}" },
+                { "GridId", $"{Mother.GridId}" },
                 { "OriginName", Mother.Name },
 
                 // Position
-                { "px", $"{currentPosition}" },
-                { "x", $"{currentPosition.X}" },
-                { "y", $"{currentPosition.Y}" },
-                { "z", $"{currentPosition.Z}" },
+                { "X", $"{currentPosition.X}" },
+                { "Y", $"{currentPosition.Y}" },
+                { "Z", $"{currentPosition.Z}" },
 
                 // Environment
                 { "SafeRadius", $"{Mother.SafeZone.Radius}" },
-                { "gravity", $"{Mother?.GetGravity() ?? Vector3D.Zero}"   },
-                { "speed", $"{Mother?.RemoteControl?.GetShipSpeed()}" }
+                { "Gravity", $"{Mother?.GetGravity() ?? Vector3D.Zero}"   },
+                { "Speed", $"{Mother?.RemoteControl?.GetShipSpeed()}" },
+
+                // Orientation
+                { "Fx", $"{worldMatrix.Forward.X}" },
+                { "Fy", $"{worldMatrix.Forward.Y}" },
+                { "Fz", $"{worldMatrix.Forward.Z}" },
+                { "Ux", $"{worldMatrix.Up.X}" },
+                { "Uy", $"{worldMatrix.Up.Y}" },
+                { "Uz", $"{worldMatrix.Up.Z}" }
             };
         }
 
@@ -600,8 +610,6 @@ namespace IngameScript
             Dictionary<string, object> customHeader = null
         )
         {
-            Vector3D currentPosition = Mother.CubeGrid.GetPosition();
-
             Dictionary<string, object> header = GetStandardHeader();
             header["Path"] = path; // add the path to the customHeader
 
@@ -632,7 +640,7 @@ namespace IngameScript
             Dictionary<string, object> standardHeader = GetStandardHeader();
             Dictionary<string, object> responseHeader = new Dictionary<string, object>()
             {
-                { "status", $"{Response.GetResponseCodeValue(code)}" },
+                { "Status", $"{Response.GetResponseCodeValue(code)}" },
                 { "TargetId", request.Header["OriginId"] },
                 { "TargetName", request.Header["OriginName"] },
                 { "RespondingToId", request.Header["Id"] },
@@ -648,9 +656,13 @@ namespace IngameScript
 
         /// <summary>
         /// Send a ping message to all grids running Mother.
+        /// Only the relay instance sends external pings to reduce network traffic.
         /// </summary>
         public void Ping()
         {
+            // Only relay handles external communication
+            if (!IsRelay) return;
+            
             var channels = Channels.Keys.ToList();
 
             Request request = CreateRequest("ping");
@@ -684,11 +696,13 @@ namespace IngameScript
 
         /// <summary>
         /// Handle sync response from other Mother Core instances on this construct.
+        /// Resets relay election to account for newly discovered instances.
         /// </summary>
         /// <param name="response"></param>
         void OnSyncResponse(IntergridMessageObject response)
         {
             SyncConstructCommands(response);
+            _relayId = 0; // Reset for re-election with new construct members
         }
 
         /// <summary>
@@ -761,6 +775,73 @@ namespace IngameScript
                 var commands = new List<string>(commandsStr.Split(','));
                 Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
             }
+        }
+
+        /// <summary>
+        /// Get the relay ID for this construct. Uses deterministic election
+        /// based on lowest Mother.Id among known construct instances.
+        /// Does not cache result until construct members are discovered.
+        /// </summary>
+        /// <returns>The Mother.Id of the relay instance.</returns>
+        long GetRelayId()
+        {
+            // Return cached value if valid
+            if (_relayId != 0) return _relayId;
+            
+            // Start with self as candidate
+            long candidate = Mother.Id;
+            var constructCommands = Mother.GetModule<CommandBus>().ConstructCommands;
+            
+            // Find lowest ID among known construct instances
+            foreach (var scriptId in constructCommands.Keys)
+                if (scriptId < candidate)
+                    candidate = scriptId;
+            
+            // Only cache if we've discovered other instances (or after first sync cycle)
+            // This prevents premature caching before ConstructPing completes
+            if (constructCommands.Count > 0)
+                _relayId = candidate;
+            
+            return candidate;
+        }
+
+        /// <summary>
+        /// Handle almanac sync request from relay. Updates local almanac with
+        /// remote grid data received by the relay.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Response HandleAlmanacSyncRequest(Request request)
+        {
+            // Non-relays update their almanac from relay-forwarded data
+            if (!IsRelay)
+                UpdateOrCreateAlmanacRecordFromIncomingRequest(request);
+            
+            return null; // No response needed for almanac sync
+        }
+
+        /// <summary>
+        /// Header keys forwarded when relaying almanac data to construct instances.
+        /// </summary>
+        static readonly string[] AlmanacRelayHeaders = { "OriginId", "GridId", "OriginName", "X", "Y", "Z", "Speed", "SafeRadius" };
+
+        /// <summary>
+        /// Broadcast almanac data to all construct instances so they can 
+        /// update their local almanacs with remote grid information.
+        /// </summary>
+        /// <param name="message">The incoming message from a remote grid.</param>
+        void BroadcastAlmanacToConstruct(IntergridMessageObject message)
+        {
+            if (!IsRelay) return;
+
+            // Build header from the relay keys
+            var header = new Dictionary<string, object>();
+
+            foreach (string key in AlmanacRelayHeaders)
+                header[key] = message.HString(key);
+
+            Request request = CreateRequest("almanac", null, header);
+            Mother.IGC.SendBroadcastMessage(CONSTRUCT_CHANNEL_TAG, request.Serialize(), TransmissionDistance.CurrentConstruct);
         }
 
         /// <summary>

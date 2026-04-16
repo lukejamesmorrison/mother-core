@@ -42,6 +42,11 @@ namespace IngameScript
         Log Log;
 
         /// <summary>
+        /// The IntergridMessageService core module.
+        /// </summary>
+        IntergridMessageService IMS;
+
+        /// <summary>
         /// List of all registered commands from core modules, extension modules, 
         /// and custom commands defined by the player in CustomData.
         /// </summary>
@@ -75,6 +80,7 @@ namespace IngameScript
             // Modules
             Clock = Mother.GetModule<Clock>();
             Log = Mother.GetModule<Log>();
+            IMS = Mother.GetModule<IntergridMessageService>();
 
             // Clear remote commands on boot
             ConstructCommands.Clear();
@@ -84,40 +90,89 @@ namespace IngameScript
             RegisterCommand(new HelpCommand(this));
 
             // Routes
-            AddRoute("command", request => HandleIncomingCommandRequest(request, "REQ"));
-            AddRoute("localcmd", request => HandleIncomingCommandRequest(request, "CREQ"));
+            // External commands from remote grids - relay handles routing
+            AddRoute("command", request => HandleExternalCommandRequest(request));
+            // Internal commands from construct instances - execute directly
+            AddRoute("localcmd", request => HandleIncomingCommandRequest(request));
         }
 
         /// <summary>
-        /// Handles an incoming command request from another grid or construct instance.
-        /// Extracts the command, logs it with the given prefix, executes it, 
-        /// and returns an appropriate response.
+        /// Handles an incoming command request from a remote grid.
+        /// Only the relay processes these - it either executes locally or forwards
+        /// to the correct construct instance via localcmd.
         /// </summary>
         /// <param name="request"></param>
-        /// <param name="logPrefix">The log prefix to distinguish request origin (e.g. "REQ" or "CREQ").</param>
         /// <returns></returns>
-        Response HandleIncomingCommandRequest(Request request, string logPrefix)
+        Response HandleExternalCommandRequest(Request request)
+        {
+            // Only relay handles external commands
+            if (!IMS.IsRelay)
+                return null;
+            
+            string commandStr = request.BString("Command").Trim();
+            
+            if (string.IsNullOrEmpty(commandStr))
+                return IMS.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
+            
+            LogCommand("REQ", request.HString("OriginName"), commandStr);
+            
+            // Check if another construct instance owns this command (important commands first)
+            var terminalCommand = new TerminalCommand(commandStr);
+            long targetScriptId = FindInstanceWithImportantCommand(terminalCommand.Name);
+
+            if (targetScriptId == 0)
+                targetScriptId = FindInstanceWithCommand(terminalCommand.Name);
+            
+            if (targetScriptId != 0)
+            {
+                IMS.SendConstructCommand(targetScriptId, commandStr);
+                return IMS.CreateResponse(request, Response.ResponseStatusCodes.COMMAND_EXECUTED);
+            }
+            
+            // Relay owns the command - execute locally
+            return ExecuteAndRespond(request, commandStr);
+        }
+
+        /// <summary>
+        /// Handles an incoming command request from another construct instance.
+        /// Extracts the command, logs it, executes it, and returns a response.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Response HandleIncomingCommandRequest(Request request)
         {
             string command = request.BString("Command").Trim();
-            string originName = request.HString("OriginName");
 
-            Log.Info($"{logPrefix}: {originName}> {command}");
-            Mother.Print($"{logPrefix}: {originName}> {command}", false);
+            if (string.IsNullOrEmpty(command))
+                return IMS.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
 
-            var ims = Mother.GetModule<IntergridMessageService>();
+            LogCommand("CREQ", request.HString("OriginName"), command);
 
-            if (!string.IsNullOrEmpty(command))
-            {
-                bool success = RunTerminalCommand(command);
+            return ExecuteAndRespond(request, command);
+        }
 
-                var status = success 
-                    ? Response.ResponseStatusCodes.COMMAND_EXECUTED 
-                    : Response.ResponseStatusCodes.ERROR;
+        /// <summary>
+        /// Executes a command and returns the appropriate response.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="command"></param>
+        /// <returns></returns>
+        Response ExecuteAndRespond(Request request, string command)
+        {
+            bool success = RunTerminalCommand(command);
+            var status = success 
+                ? Response.ResponseStatusCodes.COMMAND_EXECUTED 
+                : Response.ResponseStatusCodes.ERROR;
+            return IMS.CreateResponse(request, status);
+        }
 
-                return ims.CreateResponse(request, status);
-            }
-
-            return ims.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
+        /// <summary>
+        /// Logs a command with a prefix and origin name.
+        /// </summary>
+        void LogCommand(string prefix, string originName, string command)
+        {
+            Log.Info($"{prefix}: {originName}> {command}");
+            Mother.Print($"{prefix}: {originName}> {command}", false);
         }
 
         /// <summary>
@@ -177,9 +232,9 @@ namespace IngameScript
                 var printString = $"> @{target} {terminalRoutine.UnpackedRoutineString}";
 
                 if (target == "*")
-                    Mother.GetModule<IntergridMessageService>().SendRequestToAllFromRoutine(terminalRoutine);
+                    IMS.SendRequestToAllFromRoutine(terminalRoutine);
                 else
-                    Mother.GetModule<IntergridMessageService>().SendRequestFromRoutine(target, terminalRoutine);
+                    IMS.SendRequestFromRoutine(target, terminalRoutine);
 
                 Log.Info(printString);
                 Mother.Print(printString);
@@ -349,8 +404,7 @@ namespace IngameScript
                 long importantScriptId = FindInstanceWithImportantCommand(command.Name);
                 if (importantScriptId != 0)
                 {
-                    Mother.GetModule<IntergridMessageService>()
-                        .SendConstructCommand(importantScriptId, commandString);
+                    IMS.SendConstructCommand(importantScriptId, commandString);
                     return;
                 }
             }
@@ -378,8 +432,7 @@ namespace IngameScript
                 long remoteScriptId = FindInstanceWithCommand(command.Name);
                 if (remoteScriptId != 0)
                 {
-                    Mother.GetModule<IntergridMessageService>()
-                        .SendConstructCommand(remoteScriptId, commandString);
+                    IMS.SendConstructCommand(remoteScriptId, commandString);
                     return;
                 }
             }

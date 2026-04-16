@@ -648,6 +648,22 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Get the world matrix of the ship. Uses the RemoteControl block
+        /// if available, otherwise returns the identity matrix.
+        /// </summary>
+        /// <returns></returns>
+        public MatrixD GetWorldMatrix()
+        {
+            return RemoteControl?.WorldMatrix ?? MatrixD.Identity;
+        }
+
+        /// <summary>
+        /// Get the current position of the ship from the world matrix.
+        /// </summary>
+        /// <returns></returns>
+        public Vector3D GetPosition() => GetWorldMatrix().Translation;
+
+        /// <summary>
         /// Get the gravity vector of the ship from artificial gravity 
         /// or natural gravity.
         /// </summary>

@@ -52,7 +52,7 @@ namespace IngameScript
         public Request To(AlmanacRecord record)
         {
             Header["TargetId"] = $"{record.Id}";
-            Header["TargetName"] = record.Nicknames.FirstOrDefault() ?? record.Id;
+            Header["TargetName"] = record.DisplayName ?? record.Id;
 
             // set the channels to be used to by the request
             Channels = record.Channels;

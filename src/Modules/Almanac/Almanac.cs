@@ -31,6 +31,12 @@ namespace IngameScript
     public class Almanac : BaseCoreModule
     {
         /// <summary>
+        /// Maximum age in seconds for grid records before they are considered stale.
+        /// Grids that haven't pinged within this time will be removed.
+        /// </summary>
+        const double GRID_RECORD_MAX_AGE_SECONDS = 300; // 5 minutes
+
+        /// <summary>
         /// The list of records in the Almanac.
         /// </summary>
         public List<AlmanacRecord> Records = new List<AlmanacRecord>();
@@ -52,9 +58,14 @@ namespace IngameScript
         {
             // Load existing records from local storage
             LoadFromLocalStorage();
+            
+            var Clock = Mother.GetModule<Clock>();
 
             // Update our current position in the Almanac every second
-            Mother.GetModule<Clock>().Schedule(UpdateCurrentPosition, 1);
+            Clock.Schedule(UpdateCurrentPosition, 1);
+            
+            // Clean up stale records periodically (every 30 seconds)
+            Clock.Schedule(RemoveStaleRecords, 30);
         }
 
         /// <summary>
@@ -63,63 +74,133 @@ namespace IngameScript
         public void UpdateCurrentPosition()
         {
             AlmanacRecord record = GetRecord($"{Mother.Id}");
-            Vector3D Position = Mother.CubeGrid.GetPosition();
+            MatrixD worldMatrix = Mother.GetWorldMatrix();
+            Vector3D position = worldMatrix.Translation;
 
             if (record == null)
             {
-                // CreateShape a new record if it does not exist
                 record = new AlmanacRecord(
                     $"{Mother.Id}",
                     "grid",
-                    Position,
+                    position,
                     Mother.CubeGrid.Speed
-                )
-                {
-                    SafeRadius = Mother.SafeZone.Radius
-                };
+                );
             }
 
-            else
-            {
-                // Update the existing record
-                record.Position = Position;
-                record.Speed = Mother.CubeGrid.Speed;
-                record.SafeRadius = Mother.SafeZone.Radius;
-            }
+            Vector3D? forward = (Vector3D?)worldMatrix.Forward;
+            Vector3D? up = (Vector3D?)worldMatrix.Up;
 
-            record.UpdatedAt = DateTime.Now;
-            record.AddNickname(Mother.Name);
-
+            record.Update(position, Mother.CubeGrid.Speed, Mother.Name, Mother.SafeZone.Radius, forward, up);
             AddRecord(record);
         }
 
         /// <summary>
         /// Load records from local storage. This is called on boot and uses the 
         /// Programmable Blocks storage property to save data across recompiles.
+        /// Validates records and skips invalid/stale ones.
         /// </summary>
         void LoadFromLocalStorage()
         {
             string serializedAlmanac = Mother.GetModule<LocalStorage>().Get("almanac") ?? "";
 
-            if (serializedAlmanac != "")
+            if (serializedAlmanac == "")
+                return;
+                
+            Dictionary<string, object> recordDict;
+            
+            try
             {
-                Dictionary<string, object> recordDict = Serializer.DeserializeDictionary(serializedAlmanac);
+                recordDict = Serializer.DeserializeDictionary(serializedAlmanac);
+            }
+            catch
+            {
+                // If deserialization fails, start fresh
+                return;
+            }
 
-                foreach (var record in recordDict)
+            foreach (var record in recordDict)
+            {
+                try
                 {
-                    Dictionary<string, object> recordData = (Dictionary<string, object>) record.Value;
-                    AddRecord(AlmanacRecord.CreateFromDict(recordData));
+                    Dictionary<string, object> recordData = (Dictionary<string, object>)record.Value;
+                    AlmanacRecord loadedRecord = AlmanacRecord.CreateFromDict(recordData);
+                    
+                    // Validate record before adding
+                    if (IsValidRecord(loadedRecord))
+                        Records.Add(loadedRecord);
+                }
+                catch
+                {
+                    // Skip invalid records
                 }
             }
         }
 
         /// <summary>
-        /// GetSaveData the Almanac to local storage. This uses the Programmable Block's 
+        /// Validate a record to ensure it has required fields and isn't stale.
+        /// </summary>
+        /// <param name="record"></param>
+        /// <returns></returns>
+        bool IsValidRecord(AlmanacRecord record)
+        {
+            if (record == null || string.IsNullOrEmpty(record.Id))
+                return false;
+                
+            // Waypoints are always valid (they don't expire)
+            if (record.EntityType == "waypoint")
+                return true;
+                
+            // Grid records need UnicastId for communication
+            if (record.EntityType == "grid" && record.UnicastId == 0)
+                return false;
+                
+            // Check if record is too old
+            if (IsRecordStale(record))
+                return false;
+                
+            return true;
+        }
+
+        /// <summary>
+        /// Check if a record is stale based on its age.
+        /// </summary>
+        /// <param name="record"></param>
+        /// <returns></returns>
+        bool IsRecordStale(AlmanacRecord record)
+        {
+            // Waypoints don't expire
+            if (record.EntityType == "waypoint")
+                return false;
+                
+            // Check age for grid records
+            double ageSeconds = (DateTime.Now - record.UpdatedAt).TotalSeconds;
+            return ageSeconds > GRID_RECORD_MAX_AGE_SECONDS;
+        }
+
+        /// <summary>
+        /// Remove stale records from the Almanac. This is called periodically
+        /// to clean up records that haven't been updated recently.
+        /// </summary>
+        void RemoveStaleRecords()
+        {
+            int removedCount = Records.RemoveAll(record => 
+                record.Id != $"{Mother.Id}" && IsRecordStale(record)
+            );
+            
+            if (removedCount > 0)
+                Save();
+        }
+
+        /// <summary>
+        /// Save the Almanac to local storage. This uses the Programmable Block's 
         /// Storage property to save the almanac records across recompiles.
         /// </summary>
         void Save()
         {
-            var recordDict = Records.ToDictionary(record => record.Id, record => (object) record);
+            var recordDict = new Dictionary<string, object>();
+
+            foreach (var record in Records)
+                recordDict[record.Id] = record;
 
             Mother.GetModule<LocalStorage>().Set("almanac", Serializer.SerializeDictionary(recordDict));
         }
@@ -134,18 +215,72 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Get a record from the Almanac by its identifier. You may us either a string 
-        /// of the EntityId, or a nickname.  By default, grid names are used as 
-        /// the first nickname. The grid name can be found in the Info tab.
+        /// Update or create an AlmanacRecord from incoming intergrid message data.
+        /// This centralizes the logic for creating records from remote grid data.
+        /// </summary>
+        /// <param name="recordId">The record identifier (GridId or OriginId).</param>
+        /// <param name="originId">The IGC.Me of the origin (used as UnicastId).</param>
+        /// <param name="name">The display name of the origin.</param>
+        /// <param name="position">The position of the origin.</param>
+        /// <param name="speed">The speed of the origin.</param>
+        /// <param name="channels">The channels from the message.</param>
+        /// <param name="isOnConstruct">Whether the origin is on this construct.</param>
+        /// <returns></returns>
+        public AlmanacRecord UpdateOrCreateFromMessage(
+            string recordId, long originId, string name,
+            Vector3D position, float speed,
+            HashSet<string> channels, bool isOnConstruct,
+            Vector3D? forward = null, Vector3D? up = null)
+        {
+            AlmanacRecord record;
+            AlmanacRecord existingRecord = GetRecord(recordId);
+
+            if (existingRecord != null)
+            {
+                existingRecord.Update(position, speed, name, 0, forward, up);
+                existingRecord.UnicastId = originId;
+                existingRecord.Channels.UnionWith(channels);
+                record = existingRecord;
+            }
+            else
+            {
+                record = new AlmanacRecord(recordId, "grid", position, speed)
+                {
+                    UnicastId = originId,
+                    DisplayName = name,
+                    Channels = channels
+                };
+
+                if (forward.HasValue)
+                    record.Forward = forward.Value;
+
+                if (up.HasValue)
+                    record.Up = up.Value;
+
+                if (isOnConstruct)
+                    record.IFFCode = AlmanacRecord.TransponderCode.Construct;
+            }
+
+            // Non-public channels indicate friendly
+            if (!channels.Contains("*") && record.IFFCode == AlmanacRecord.TransponderCode.Neutral)
+                record.IFFCode = AlmanacRecord.TransponderCode.Friendly;
+
+            AddRecord(record);
+
+            return record;
+        }
+
+        /// <summary>
+        /// Get a record from the Almanac by its identifier. You may use either 
+        /// the EntityId or the DisplayName.
         /// </summary>
         /// <param name="identifier"></param>
         /// <returns></returns>
         public AlmanacRecord GetRecord(string identifier)
         {
-            // identifier matches Id, or nickname if the record is a GridTerminalSystem
             return Records.Find(record =>
                 record.Id == identifier
-                || (record.Nicknames.Contains(identifier))
+                || record.DisplayName == identifier
             );
         }
 

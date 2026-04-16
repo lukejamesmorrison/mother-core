@@ -108,6 +108,14 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 - The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
 - Add `MechanicalBlockModule` to handle mechanical block state changes.
 - Add `rename` command to set the grid's custom name. Use the `--unique` option to append a random integer for uniqueness.
+- `Almanac` now tracks grid orientation (`Forward` and `Up` vectors) for improved navigation and docking operations.
+- `Almanac` now validates records on load and periodically removes stale grid records that haven't pinged within 5 minutes.
+- `AlmanacRecord` now includes `SafeRadius`, `UnicastId`, and orientation data (`Forward`, `Up`) for enhanced grid tracking.
+- `IntergridMessageService` now elects a relay instance per construct for external communication and syncs commands across construct instances.
+- `IntergridMessageService` now supports Almanac synchronization via the `almanac` route to share grid position data across instances.
+- `CommandBus` now maintains registries for `ConstructCommands` and `ImportantConstructCommands` to track commands available on other Mother Core instances.
+- `CommandBus` now handles external command requests via relay and internal construct commands directly via `localcmd` route.
+- `Mother` now includes a `SafeZone` bounding sphere for collision avoidance during flight planning.
 
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
