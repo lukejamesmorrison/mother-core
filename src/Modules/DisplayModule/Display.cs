@@ -47,22 +47,22 @@ namespace IngameScript
         /// <summary>
         /// The padding around the display.
         /// </summary>
-        readonly float LCDDisplayPadding = 4f;
+        protected float LCDDisplayPadding = 4f;
 
         /// <summary>
         /// The padding around the display.
         /// </summary>
-        readonly float CockpitDisplayPadding = 0;
+        protected float CockpitDisplayPadding = 0;
 
         /// <summary>
         /// The default font size for the display.
         /// </summary>
-        const float BASE_FONT_SIZE = 16f;
+        protected const float BASE_FONT_SIZE = 16f;
 
         /// <summary>
         /// The default scale for the display.
         /// </summary>
-        const float DEFAULT_SCALE = 1f;
+        protected const float DEFAULT_SCALE = 1f;
 
         /// <summary>
         /// The scale of the display.
@@ -72,7 +72,7 @@ namespace IngameScript
         /// <summary>
         /// The default text scale for the display.
         /// </summary>
-        const float DEFAULT_TEXT_SCALE = 1f;
+        protected const float DEFAULT_TEXT_SCALE = 1f;
 
         /// <summary>
         /// The font size of the display.
@@ -130,7 +130,7 @@ namespace IngameScript
         /// Update the configuration for the display.
         /// </summary>
         /// <param name="config"></param>
-        public void UpdateConfig(MyIni config)
+        public virtual void UpdateConfig(MyIni config)
         {
             Configuration = config;
 
@@ -141,7 +141,7 @@ namespace IngameScript
         /// Set the rendering details for the display. This includes calculating the 
         /// viewport size, scale and font size.
         /// </summary>
-        void SetRenderingDetails()
+        protected virtual void SetRenderingDetails()
         {
             Viewport = CalculateViewport(Surface, LCDDisplayPadding);
 
@@ -165,7 +165,7 @@ namespace IngameScript
         /// Set the configuration for the display. This uses the configuration 
         /// defined in the block's custom data.
         /// </summary>
-        void SetBaseConfiguration()
+        protected virtual void SetBaseConfiguration()
         {
             //if (Configuration.ContainsSection("general"))
             //{
@@ -177,7 +177,7 @@ namespace IngameScript
         /// <summary>
         /// Draw the frame for the display. This is where we can draw sprites and text.
         /// </summary>
-        public void DrawFrame() => Frame = Surface.DrawFrame();
+        public virtual void DrawFrame() => Frame = Surface.DrawFrame();
 
         /// <summary>
         /// Calculate the viewport size and position based on SurfaceSize (not 
@@ -187,7 +187,7 @@ namespace IngameScript
         /// <param name="surface"></param>
         /// <param name="padding"></param>
         /// <returns></returns>
-        RectangleF CalculateViewport(IMyTextSurface surface, float padding)
+        protected RectangleF CalculateViewport(IMyTextSurface surface, float padding)
         {
             var surfaceSize = surface.SurfaceSize;
 
@@ -222,7 +222,7 @@ namespace IngameScript
         /// bound font size based.
         /// </summary>
         /// <returns></returns>
-        public float CalculateFontSize()
+        public virtual float CalculateFontSize()
         {
             // 1024px is a reference base for normal scaling
             float displayFactor = Viewport.Width / 1024f; 
