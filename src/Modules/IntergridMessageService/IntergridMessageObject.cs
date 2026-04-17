@@ -87,14 +87,24 @@ namespace IngameScript
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public float BFloat(string key) => float.Parse(BString(key));
+        public float BFloat(string key)
+        {
+            float value;
+            float.TryParse(BString(key), out value);
+            return value;
+        }
 
         /// <summary>
         /// Get the double value of a field in the Body of the message object.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public double BDouble(string key) => double.Parse(BString(key));
+        public double BDouble(string key)
+        {
+            double value;
+            double.TryParse(BString(key), out value);
+            return value;
+        }
 
         /// <summary>
         /// Get the value of a field in the Header of the message object.
@@ -120,7 +130,12 @@ namespace IngameScript
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public float HFloat(string key) => float.Parse(HString(key));
+        public float HFloat(string key)
+        {
+            float value;
+            float.TryParse(HString(key), out value);
+            return value;
+        }
 
         /// <summary>
         /// Get the double value of a field in the Header of the message object.
