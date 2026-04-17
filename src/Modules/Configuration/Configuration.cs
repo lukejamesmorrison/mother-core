@@ -78,14 +78,65 @@ namespace IngameScript
 
         /// <summary>
         /// Load the custom data from the programmable block into the MyIni object.
+        /// Sections with non-INI-compliant content (e.g. [menu:*]) are stripped
+        /// before parsing so that MyIni does not choke on custom syntax.
+        /// The raw CustomData is still available via Mother.ProgrammableBlock.CustomData.
         /// </summary>
         /// <exception cref="Exception"></exception>
         void LoadCustomData()
         {
+            string sanitized = StripRawSections(Mother.ProgrammableBlock.CustomData);
+
             MyIniParseResult result;
 
-            if (!Ini.TryParse(Mother.ProgrammableBlock.CustomData, out result))
+            if (!Ini.TryParse(sanitized, out result))
                 throw new Exception($"{result}");
+        }
+
+        /// <summary>
+        /// Prefixes for INI sections that contain non-standard syntax and must
+        /// be stripped before MyIni parsing. Other modules read these sections
+        /// directly from the raw CustomData string.
+        /// </summary>
+        static readonly string[] RawSectionPrefixes = new string[] { "menu:" };
+
+        /// <summary>
+        /// Remove sections whose headers match any of the raw section prefixes.
+        /// Everything from the matching [header] to the next [header] (or EOF)
+        /// is excluded from the returned string.
+        /// </summary>
+        static string StripRawSections(string customData)
+        {
+            if (string.IsNullOrEmpty(customData)) return customData;
+
+            var sb = new StringBuilder();
+            string[] lines = customData.Split('\n');
+            bool skipping = false;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string trimmed = lines[i].TrimStart();
+
+                if (trimmed.StartsWith("[") && trimmed.Contains("]"))
+                {
+                    string header = trimmed.Substring(1, trimmed.IndexOf(']') - 1).Trim();
+                    skipping = false;
+
+                    for (int p = 0; p < RawSectionPrefixes.Length; p++)
+                    {
+                        if (header.StartsWith(RawSectionPrefixes[p]))
+                        {
+                            skipping = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!skipping)
+                    sb.Append(lines[i]).Append('\n');
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>
