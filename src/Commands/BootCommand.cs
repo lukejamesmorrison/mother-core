@@ -31,7 +31,11 @@
         /// <returns></returns>
         public override string Execute(TerminalCommand command)
         {
-            Mother.Boot();
+            // Set a pending boot flag rather than calling Boot() directly.
+            // Calling Boot() from inside a coroutine shifts BootSequence to a
+            // lower Coroutines index, causing it to execute in the same Clock.Run()
+            // tick while the system is still in WORKING state (crash).
+            Mother.PendingBoot = true;
 
             return "Rebooting...";
         }

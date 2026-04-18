@@ -200,6 +200,13 @@ namespace IngameScript
         public Dictionary<string, string> ConfigVariables = new Dictionary<string, string>();
 
         /// <summary>
+        /// When true, Boot() will be called at the start of the next Run() cycle.
+        /// Use this instead of calling Boot() directly from within a coroutine to
+        /// avoid BootSequence being picked up by the still-executing Clock.Run() loop.
+        /// </summary>
+        public bool PendingBoot = false;
+
+        /// <summary>
         /// Constructor. We initialize our system with the Program class 
         /// and register the Core Modules.
         /// </summary>
@@ -398,6 +405,15 @@ namespace IngameScript
             //        state = "Working";
             //        break;
             //}
+
+            // If a reboot was requested (e.g. from a menu command coroutine), handle it
+            // here at the top of the cycle before any state-dependent code runs.
+            if (PendingBoot)
+            {
+                PendingBoot = false;
+                Boot();
+                return;
+            }
 
             // If the system is uninitialized, we initialize it.
             if (SystemState == SystemStates.UNINITIALIZED)
