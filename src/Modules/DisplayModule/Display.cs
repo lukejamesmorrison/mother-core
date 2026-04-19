@@ -242,7 +242,24 @@ namespace IngameScript
         /// the render size of text and sprites. We Bound it between 0 and 1.
         /// </summary>
         /// <returns></returns>
-        public float GetScalingFactor() => Math.Min(1f, FontSize / BASE_FONT_SIZE); 
+        public float GetScalingFactor() => Math.Min(1f, FontSize / BASE_FONT_SIZE);
+
+        /// <summary>
+        /// Returns true when the display aspect ratio exceeds 16:9 (wider than ~1.8).
+        /// Used to enable split-screen rendering.
+        /// </summary>
+        public bool IsWidescreen => Viewport.Width / Viewport.Height > 1.8f;
+
+        /// <summary>
+        /// Temporarily replace the active viewport, returning the previous value so
+        /// the caller can restore it after rendering a split-screen region.
+        /// </summary>
+        public RectangleF OverrideViewport(RectangleF viewport)
+        {
+            RectangleF original = Viewport;
+            Viewport = viewport;
+            return original;
+        }
 
         /// <summary>
         /// Draw a square sprite on the display.
