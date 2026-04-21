@@ -350,5 +350,112 @@ namespace MotherCore.Tests.Tests
             string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
             Assert.That(resolved, Is.EqualTo("Hello, "));
         }
+
+        // ---- var/set Command Tests ----
+
+        [Test]
+        public void VarSet_Updates_Variable_In_Memory()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "PLAYER=Luke",
+                "",
+                "[commands]",
+                "greeting=Hello, $PLAYER"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            var command = new TerminalCommand("var/set PLAYER Alex");
+            var setCmd = new SetVariableCommand(config);
+            setCmd.Execute(command);
+
+            Assert.That(_mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"));
+
+            string resolved = _mother.SubstituteCommandParameters(_mother.ConfigCommands["greeting"], null);
+            Assert.That(resolved, Is.EqualTo("Hello, Alex"));
+        }
+
+        [Test]
+        public void VarSet_Does_Not_Persist_To_CustomData_Without_Save_Flag()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "PLAYER=Luke",
+                "",
+                "[commands]"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            string originalCustomData = _mother.ProgrammableBlock.CustomData;
+
+            var command = new TerminalCommand("var/set PLAYER Alex");
+            new SetVariableCommand(config).Execute(command);
+
+            Assert.That(_mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"));
+            Assert.That(_mother.ProgrammableBlock.CustomData, Is.EqualTo(originalCustomData));
+        }
+
+        [Test]
+        public void VarSet_Persists_To_CustomData_With_Save_Flag()
+        {
+            _mother.ProgrammableBlock.CustomData = string.Join("\n",
+                "[variables]",
+                "PLAYER=Luke",
+                "",
+                "[commands]"
+            );
+
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            var command = new TerminalCommand("var/set PLAYER Alex --save");
+            new SetVariableCommand(config).Execute(command);
+
+            Assert.That(_mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"));
+
+            // Reload config from CustomData to verify persistence
+            Configuration reloaded = new Configuration(_mother);
+            reloaded.Boot();
+
+            Assert.That(_mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"));
+        }
+
+        [Test]
+        public void VarSet_Returns_Error_When_No_Arguments_Provided()
+        {
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            var command = new TerminalCommand("var/set");
+            string result = new SetVariableCommand(config).Execute(command);
+
+            Assert.That(result, Is.EqualTo(CommandBus.Messages.NoArgumentsProvided));
+        }
+
+        [Test]
+        public void VarSet_Returns_Error_When_Only_Name_Provided()
+        {
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            var command = new TerminalCommand("var/set PLAYER");
+            string result = new SetVariableCommand(config).Execute(command);
+
+            Assert.That(result, Is.EqualTo(CommandBus.Messages.NoArgumentsProvided));
+        }
+
+        [Test]
+        public void VarSet_Is_Registered_As_Module_Command()
+        {
+            Configuration config = new Configuration(_mother);
+            config.Boot();
+
+            var commands = config.GetCommands();
+            Assert.That(commands.Exists(c => c.GetCommandName() == "var/set"), Is.True);
+        }
     }
 }

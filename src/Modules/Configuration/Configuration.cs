@@ -102,6 +102,9 @@ namespace IngameScript
 
             // Subscribe to system config changed events
             Mother.GetModule<EventBus>()?.Subscribe<SystemConfigChangedEvent>(this);
+
+            // Commands
+            RegisterCommand(new SetVariableCommand(this));
         }
 
         /// <summary>
@@ -261,6 +264,27 @@ namespace IngameScript
                 // command parameters have been applied.
 
                 Mother.ConfigCommands[commandName] = commandValue;
+            }
+        }
+
+        /// <summary>
+        /// Sets a variable value in memory. If save is true, also persists it to
+        /// the programmable block's custom data so the value survives a reboot.
+        /// Because ConfigCommands stores raw templates and variables are substituted
+        /// at runtime, updating ConfigVariables is sufficient to affect all
+        /// subsequent command executions.
+        /// </summary>
+        /// <param name="name">Variable name (without the $ prefix).</param>
+        /// <param name="value">New value for the variable.</param>
+        /// <param name="save">When true, persists the change to CustomData.</param>
+        public void SetVariable(string name, string value, bool save = false)
+        {
+            Mother.ConfigVariables[name] = value;
+
+            if (save)
+            {
+                Ini.Set("variables", name, value);
+                Mother.ProgrammableBlock.CustomData = $"{Ini}";
             }
         }
 
