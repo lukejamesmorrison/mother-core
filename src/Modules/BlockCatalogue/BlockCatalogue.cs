@@ -743,6 +743,7 @@ namespace IngameScript
                     ConstructGridIds.Add(gid);
 
                     HashSet<long> neighbors;
+
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
                         foreach (long nid in neighbors)
@@ -779,6 +780,7 @@ namespace IngameScript
                 var m = mechanicalBlocksCache[i];
                 var a = m.CubeGrid;
                 var b = m.TopGrid;
+
                 if (a == null || b == null) continue;
 
                 long aid = a.EntityId, bid = b.EntityId;
@@ -786,11 +788,13 @@ namespace IngameScript
                 HashSet<long> al;
                 if (!gridAdjacencyMap.TryGetValue(aid, out al))
                     gridAdjacencyMap[aid] = al = new HashSet<long>();
+
                 al.Add(bid);
 
                 HashSet<long> bl;
                 if (!gridAdjacencyMap.TryGetValue(bid, out bl))
                     gridAdjacencyMap[bid] = bl = new HashSet<long>();
+
                 bl.Add(aid);
             }
         }
@@ -805,9 +809,11 @@ namespace IngameScript
             for (int i = 0; i < mechanicalBlocksCache.Count; i++)
             {
                 var b = mechanicalBlocksCache[i];
+
                 if (b.CubeGrid != null && b.CubeGrid.EntityId == id) return b.CubeGrid;
                 if (b.TopGrid != null && b.TopGrid.EntityId == id) return b.TopGrid;
             }
+
             return null;
         }
 
@@ -824,12 +830,14 @@ namespace IngameScript
             TerminalBlocks.Clear();
 
             var all = new List<IMyTerminalBlock>();
+
             Mother.GridTerminalSystem.GetBlocks(all);
 
             // keep only blocks in the construct
             for (int i = 0; i < all.Count; i++)
             {
                 var tb = all[i];
+
                 if (ConstructGridIds.Contains(tb.CubeGrid.EntityId))
                     TerminalBlocks.Add(tb);
             }
@@ -954,6 +962,7 @@ namespace IngameScript
                         newGridIds.Add(gid);
 
                     HashSet<long> neighbors;
+
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
                         foreach (long nid in neighbors)
@@ -1058,11 +1067,13 @@ namespace IngameScript
                     stillConnectedGrids.Add(gid);
 
                     HashSet<long> neighbors;
+
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
                         foreach (long nid in neighbors)
                         {
                             var nGrid = TryGetGridFromId(nid);
+
                             if (nGrid != null && !visitedGrids.Contains(nid))
                                 gridBfsQueue.Enqueue(nGrid);
                         }
@@ -1093,8 +1104,10 @@ namespace IngameScript
                     BlocksToMonitor.Remove(b);
                     BlockStates.Remove(b.EntityId);
                     BlockHooks.Remove(b);
+
                     foreach (var tagSet in BlockTags.Values)
                         tagSet.Remove(b);
+
                     return true;
                 });
             }
@@ -1137,6 +1150,7 @@ namespace IngameScript
                     newConstructGridIds.Add(gid);
 
                     HashSet<long> neighbors;
+
                     if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
                     {
                         foreach (long nid in neighbors)
@@ -1174,8 +1188,10 @@ namespace IngameScript
                     BlocksToMonitor.Remove(b);
                     BlockStates.Remove(b.EntityId);
                     BlockHooks.Remove(b);
+
                     foreach (var tagSet in BlockTags.Values)
                         tagSet.Remove(b);
+
                     return true;
                 });
             }
