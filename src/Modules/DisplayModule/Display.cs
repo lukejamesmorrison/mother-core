@@ -362,14 +362,15 @@ namespace IngameScript
         /// <param name="position"></param>
         /// <param name="color"></param>
         /// <param name="fontId"></param>
-        public void DrawText(string text, Vector2 position, Color color, string fontId)
+        /// <param name="scale"></param>
+        public void DrawText(string text, Vector2 position, Color color, string fontId, float scale = 1f)
         {
             Frame.Add(new MySprite
             {
                 Type = SpriteType.TEXT,
                 Data = text,
                 Position = position,
-                RotationOrScale = GetScalingFactor(),
+                RotationOrScale = GetScalingFactor() * scale,
                 Color = color,
                 Alignment = TextAlignment.LEFT,
                 FontId = fontId
