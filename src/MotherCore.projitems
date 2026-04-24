@@ -33,6 +33,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalRoutine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Commands\SetVariableCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Events\SystemBootedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Events\SystemConfigChangedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\VersionManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Configuration.cs" />

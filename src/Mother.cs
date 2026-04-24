@@ -326,6 +326,9 @@ namespace IngameScript
             // Fire onBoot hook
             GetModule<BlockCatalogue>().RunHook(ProgrammableBlock, "onBoot");
 
+            // Notify modules that system has booted.
+            GetModule<EventBus>().Emit<SystemBootedEvent>();
+
             // Print user messages - The Empire must grow.
             Print($"{SystemName} is online.");
             Print("Clearing console in 2 seconds...");
