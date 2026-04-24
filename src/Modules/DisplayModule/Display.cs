@@ -354,15 +354,8 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Draw text on the display. This is used for annotations on the map display.
-        /// 
-        /// WE SHOULD MOVE THIS INTO THE SPRITE FACTORY.
+        /// Draw text on the display using an explicit colour and font.
         /// </summary>
-        /// <param name="text"></param>
-        /// <param name="position"></param>
-        /// <param name="color"></param>
-        /// <param name="fontId"></param>
-        /// <param name="scale"></param>
         public void DrawText(string text, Vector2 position, Color color, string fontId, float scale = 1f)
         {
             Frame.Add(new MySprite
@@ -376,6 +369,20 @@ namespace IngameScript
                 FontId = fontId
             });
         }
+
+        /// <summary>
+        /// Draw text on the display using an explicit colour and the default theme font
+        /// (Monospace — matches <c>MotherTheme.Fonts.Mono</c>).
+        /// </summary>
+        public void DrawText(string text, Vector2 position, Color color, float scale = 1f)
+            => DrawText(text, position, color, "Monospace", scale);
+
+        /// <summary>
+        /// Draw text on the display using the default theme colour (white — matches
+        /// <c>MotherTheme.Colors.ValueText</c>) and font (<c>MotherTheme.Fonts.Mono</c>).
+        /// </summary>
+        public void DrawText(string text, Vector2 position, float scale = 1f)
+            => DrawText(text, position, Color.White, "Monospace", scale);
 
         /// <summary>
         /// Draw the Mother sprite on the display. This is a red circle inside an octagon.
