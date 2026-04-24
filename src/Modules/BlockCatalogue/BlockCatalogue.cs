@@ -718,47 +718,11 @@ namespace IngameScript
         /// <returns></returns>
         IEnumerable<double> DiscoverConstructAndLoadBlocksCoroutine(IMyCubeGrid start)
         {
-            // Build adjacency from mechanical blocks
             BuildMechanicalAdjacency();
-
-            // BFS the construct in batches
-            gridBfsQueue.Clear();
-            visitedGrids.Clear();
             ConstructGridIds.Clear();
 
-            gridBfsQueue.Enqueue(start);
-
-            while (gridBfsQueue.Count > 0)
-            {
-                int processed = 0;
-
-                while (gridBfsQueue.Count > 0 && processed < GRIDS_PER_TICK)
-                {
-                    var g = gridBfsQueue.Dequeue();
-                    long gid = g.EntityId;
-
-                    if (visitedGrids.Contains(gid)) { processed++; continue; }
-
-                    visitedGrids.Add(gid);
-                    ConstructGridIds.Add(gid);
-
-                    HashSet<long> neighbors;
-
-                    if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
-                    {
-                        foreach (long nid in neighbors)
-                        {
-                            var nGrid = TryGetGridFromId(nid);
-                            if (nGrid != null && !visitedGrids.Contains(nid))
-                                gridBfsQueue.Enqueue(nGrid);
-                        }
-                    }
-
-                    processed++;
-                }
-
-                yield return 0;
-            }
+            foreach (var t in BfsConstructCoroutine(start, ConstructGridIds))
+                yield return t;
 
             foreach (var t in LoadBlocksCoroutine())
                 yield return t;
@@ -786,12 +750,14 @@ namespace IngameScript
                 long aid = a.EntityId, bid = b.EntityId;
 
                 HashSet<long> al;
+
                 if (!gridAdjacencyMap.TryGetValue(aid, out al))
                     gridAdjacencyMap[aid] = al = new HashSet<long>();
 
                 al.Add(bid);
 
                 HashSet<long> bl;
+
                 if (!gridAdjacencyMap.TryGetValue(bid, out bl))
                     gridAdjacencyMap[bid] = bl = new HashSet<long>();
 
@@ -815,6 +781,140 @@ namespace IngameScript
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Parse a block's custom data and register its configuration, tags, and hooks.
+        /// </summary>
+        /// <param name="block"></param>
+        void ParseAndRegisterBlock(IMyTerminalBlock block)
+        {
+            var ini = new MyIni();
+            MyIniParseResult res;
+
+            if (!ini.TryParse(block.CustomData, out res)) 
+                return;
+
+            BlockConfigs[block] = ini;
+
+            if (ini.ToString().Length == 0)
+                SetDefaultConfiguration(block, ini);
+
+            if (ini.ContainsSection(SECTION_GENERAL))
+                LoadBlockTags(block, ini);
+
+            if (ini.ContainsSection(SECTION_HOOKS))
+                LoadBlockHooks(block, ini);
+        }
+
+        /// <summary>
+        /// Coroutine to fetch all blocks belonging to the given grid IDs, add them to 
+        /// TerminalBlocks, and parse their configurations in batches.
+        /// </summary>
+        /// <param name="gridIds"></param>
+        /// <returns></returns>
+        IEnumerable<double> AddBlocksFromGridsCoroutine(HashSet<long> gridIds)
+        {
+            var allBlocks = new List<IMyTerminalBlock>();
+
+            Mother.GridTerminalSystem.GetBlocks(allBlocks);
+
+            var newBlocks = allBlocks
+                .Where(b => gridIds.Contains(b.CubeGrid.EntityId))
+                .ToList();
+
+            int index = 0;
+
+            while (index < newBlocks.Count)
+            {
+                int take = Math.Min(BLOCKS_PER_TICK_LOAD, newBlocks.Count - index);
+
+                for (int i = 0; i < take; i++)
+                {
+                    var block = newBlocks[index + i];
+                    TerminalBlocks.Add(block);
+                    ParseAndRegisterBlock(block);
+                }
+
+                index += take;
+
+                yield return 0;
+            }
+        }
+
+        /// <summary>
+        /// Remove all blocks belonging to the given grid IDs from TerminalBlocks and 
+        /// all supporting dictionaries.
+        /// </summary>
+        /// <param name="gridIds"></param>
+        void RemoveBlocksFromGrids(HashSet<long> gridIds)
+        {
+            TerminalBlocks.RemoveAll(b =>
+            {
+                if (!gridIds.Contains(b.CubeGrid.EntityId)) return false;
+
+                BlockConfigs.Remove(b);
+                BlocksToMonitor.Remove(b);
+                BlockStates.Remove(b.EntityId);
+                BlockHooks.Remove(b);
+
+                foreach (var tagSet in BlockTags.Values)
+                    tagSet.Remove(b);
+
+                return true;
+            });
+        }
+
+        /// <summary>
+        /// Coroutine that performs a batched BFS from <paramref name="start"/> over the 
+        /// mechanical adjacency map and collects all reachable grid IDs into 
+        /// <paramref name="result"/>.
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        IEnumerable<double> BfsConstructCoroutine(IMyCubeGrid start, HashSet<long> result)
+        {
+            gridBfsQueue.Clear();
+            visitedGrids.Clear();
+            gridBfsQueue.Enqueue(start);
+
+            while (gridBfsQueue.Count > 0)
+            {
+                int processed = 0;
+
+                while (gridBfsQueue.Count > 0 && processed < GRIDS_PER_TICK)
+                {
+                    var g = gridBfsQueue.Dequeue();
+                    long gid = g.EntityId;
+
+                    if (visitedGrids.Contains(gid))
+                    { 
+                        processed++; 
+                        continue; 
+                    }
+
+                    visitedGrids.Add(gid);
+                    result.Add(gid);
+
+                    HashSet<long> neighbors;
+
+                    if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
+                    {
+                        foreach (long nid in neighbors)
+                        {
+                            var nGrid = TryGetGridFromId(nid);
+
+                            if (nGrid != null && !visitedGrids.Contains(nid))
+                                gridBfsQueue.Enqueue(nGrid);
+                        }
+                    }
+
+                    processed++;
+                }
+
+                yield return 0;
+            }
         }
 
         /// <summary>
@@ -851,27 +951,7 @@ namespace IngameScript
                 int take = Math.Min(BLOCKS_PER_TICK_LOAD, TerminalBlocks.Count - index);
 
                 for (int i = 0; i < take; i++)
-                {
-                    var block = TerminalBlocks[index + i];
-
-                    var ini = new MyIni();
-
-                    MyIniParseResult res;
-
-                    if (ini.TryParse(block.CustomData, out res))
-                    {
-                        BlockConfigs[block] = ini;
-
-                        if (ini.ToString().Length == 0)
-                            SetDefaultConfiguration(block, ini);
-
-                        if (ini.ContainsSection(SECTION_GENERAL))
-                            LoadBlockTags(block, ini);
-
-                        if (ini.ContainsSection(SECTION_HOOKS))
-                            LoadBlockHooks(block, ini);
-                    }
-                }
+                    ParseAndRegisterBlock(TerminalBlocks[index + i]);
 
                 index += take;
                 yield return 0;
@@ -982,51 +1062,13 @@ namespace IngameScript
                 yield return 0;
             }
 
-            // Add new grid IDs to the construct
-            foreach (var gid in newGridIds)
-                ConstructGridIds.Add(gid);
-
-            // Load blocks from new grids
             if (newGridIds.Count > 0)
             {
-                var allBlocks = new List<IMyTerminalBlock>();
-                Mother.GridTerminalSystem.GetBlocks(allBlocks);
+                foreach (var gid in newGridIds)
+                    ConstructGridIds.Add(gid);
 
-                var newBlocks = allBlocks
-                    .Where(b => newGridIds.Contains(b.CubeGrid.EntityId))
-                    .ToList();
-
-                int index = 0;
-                while (index < newBlocks.Count)
-                {
-                    int take = Math.Min(BLOCKS_PER_TICK_LOAD, newBlocks.Count - index);
-
-                    for (int i = 0; i < take; i++)
-                    {
-                        var block = newBlocks[index + i];
-                        TerminalBlocks.Add(block);
-
-                        var ini = new MyIni();
-                        MyIniParseResult res;
-
-                        if (ini.TryParse(block.CustomData, out res))
-                        {
-                            BlockConfigs[block] = ini;
-
-                            if (ini.ToString().Length == 0)
-                                SetDefaultConfiguration(block, ini);
-
-                            if (ini.ContainsSection(SECTION_GENERAL))
-                                LoadBlockTags(block, ini);
-
-                            if (ini.ContainsSection(SECTION_HOOKS))
-                                LoadBlockHooks(block, ini);
-                        }
-                    }
-
-                    index += take;
-                    yield return 0;
-                }
+                foreach (var t in AddBlocksFromGridsCoroutine(newGridIds))
+                    yield return t;
             }
 
             LoadBlockGroups();
@@ -1042,75 +1084,20 @@ namespace IngameScript
         /// <returns></returns>
         IEnumerable<double> DetachGridsCoroutine()
         {
-            // Rebuild adjacency without the now-broken connection
             BuildMechanicalAdjacency();
 
-            // BFS from Mother's grid to find all grids still connected
-            gridBfsQueue.Clear();
-            visitedGrids.Clear();
-
             var stillConnectedGrids = new HashSet<long>();
-            gridBfsQueue.Enqueue(Mother.CubeGrid);
 
-            while (gridBfsQueue.Count > 0)
-            {
-                int processed = 0;
+            foreach (var t in BfsConstructCoroutine(Mother.CubeGrid, stillConnectedGrids))
+                yield return t;
 
-                while (gridBfsQueue.Count > 0 && processed < GRIDS_PER_TICK)
-                {
-                    var g = gridBfsQueue.Dequeue();
-                    long gid = g.EntityId;
-
-                    if (visitedGrids.Contains(gid)) { processed++; continue; }
-
-                    visitedGrids.Add(gid);
-                    stillConnectedGrids.Add(gid);
-
-                    HashSet<long> neighbors;
-
-                    if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
-                    {
-                        foreach (long nid in neighbors)
-                        {
-                            var nGrid = TryGetGridFromId(nid);
-
-                            if (nGrid != null && !visitedGrids.Contains(nid))
-                                gridBfsQueue.Enqueue(nGrid);
-                        }
-                    }
-
-                    processed++;
-                }
-
-                yield return 0;
-            }
-
-            // Determine which grids were removed (in old construct but not in new)
             var removedGrids = new HashSet<long>(ConstructGridIds);
             removedGrids.ExceptWith(stillConnectedGrids);
 
-            // Update construct grid IDs
             ConstructGridIds = stillConnectedGrids;
 
-            // Remove blocks from pruned grids
             if (removedGrids.Count > 0)
-            {
-                // Use RemoveAll for O(n) instead of O(n²)
-                TerminalBlocks.RemoveAll(b =>
-                {
-                    if (!removedGrids.Contains(b.CubeGrid.EntityId)) return false;
-                    
-                    BlockConfigs.Remove(b);
-                    BlocksToMonitor.Remove(b);
-                    BlockStates.Remove(b.EntityId);
-                    BlockHooks.Remove(b);
-
-                    foreach (var tagSet in BlockTags.Values)
-                        tagSet.Remove(b);
-
-                    return true;
-                });
-            }
+                RemoveBlocksFromGrids(removedGrids);
 
             LoadBlockGroups();
             _constructRefreshPending = false;
@@ -1125,124 +1112,31 @@ namespace IngameScript
         /// <returns></returns>
         IEnumerable<double> RefreshConstructCoroutine()
         {
-            // Build adjacency from mechanical blocks
             BuildMechanicalAdjacency();
 
-            // BFS the construct in batches
-            gridBfsQueue.Clear();
-            visitedGrids.Clear();
-
             var newConstructGridIds = new HashSet<long>();
-            gridBfsQueue.Enqueue(Mother.CubeGrid);
 
-            while (gridBfsQueue.Count > 0)
-            {
-                int processed = 0;
+            foreach (var t in BfsConstructCoroutine(Mother.CubeGrid, newConstructGridIds))
+                yield return t;
 
-                while (gridBfsQueue.Count > 0 && processed < GRIDS_PER_TICK)
-                {
-                    var g = gridBfsQueue.Dequeue();
-                    long gid = g.EntityId;
-
-                    if (visitedGrids.Contains(gid)) { processed++; continue; }
-
-                    visitedGrids.Add(gid);
-                    newConstructGridIds.Add(gid);
-
-                    HashSet<long> neighbors;
-
-                    if (gridAdjacencyMap.TryGetValue(gid, out neighbors))
-                    {
-                        foreach (long nid in neighbors)
-                        {
-                            var nGrid = TryGetGridFromId(nid);
-                            if (nGrid != null && !visitedGrids.Contains(nid))
-                                gridBfsQueue.Enqueue(nGrid);
-                        }
-                    }
-
-                    processed++;
-                }
-
-                yield return 0;
-            }
-
-            // Determine added and removed grids
             var addedGrids = new HashSet<long>(newConstructGridIds);
             addedGrids.ExceptWith(ConstructGridIds);
 
             var removedGrids = new HashSet<long>(ConstructGridIds);
             removedGrids.ExceptWith(newConstructGridIds);
 
-            // Update the construct grid IDs
             ConstructGridIds = newConstructGridIds;
 
-            // Handle removed grids - remove blocks that are no longer part of the construct
             if (removedGrids.Count > 0)
-            {
-                TerminalBlocks.RemoveAll(b =>
-                {
-                    if (!removedGrids.Contains(b.CubeGrid.EntityId)) return false;
-                    
-                    BlockConfigs.Remove(b);
-                    BlocksToMonitor.Remove(b);
-                    BlockStates.Remove(b.EntityId);
-                    BlockHooks.Remove(b);
+                RemoveBlocksFromGrids(removedGrids);
 
-                    foreach (var tagSet in BlockTags.Values)
-                        tagSet.Remove(b);
-
-                    return true;
-                });
-            }
-
-            // Handle added grids - add new blocks to the construct
             if (addedGrids.Count > 0)
             {
-                var allBlocks = new List<IMyTerminalBlock>();
-                Mother.GridTerminalSystem.GetBlocks(allBlocks);
-
-                var newBlocks = allBlocks
-                    .Where(b => addedGrids.Contains(b.CubeGrid.EntityId))
-                    .ToList();
-
-                // Add new blocks and parse their configurations
-                int index = 0;
-                while (index < newBlocks.Count)
-                {
-                    int take = Math.Min(BLOCKS_PER_TICK_LOAD, newBlocks.Count - index);
-
-                    for (int i = 0; i < take; i++)
-                    {
-                        var block = newBlocks[index + i];
-                        TerminalBlocks.Add(block);
-
-                        var ini = new MyIni();
-                        MyIniParseResult res;
-
-                        if (ini.TryParse(block.CustomData, out res))
-                        {
-                            BlockConfigs[block] = ini;
-
-                            if (ini.ToString().Length == 0)
-                                SetDefaultConfiguration(block, ini);
-
-                            if (ini.ContainsSection(SECTION_GENERAL))
-                                LoadBlockTags(block, ini);
-
-                            if (ini.ContainsSection(SECTION_HOOKS))
-                                LoadBlockHooks(block, ini);
-                        }
-                    }
-
-                    index += take;
-                    yield return 0;
-                }
+                foreach (var t in AddBlocksFromGridsCoroutine(addedGrids))
+                    yield return t;
             }
 
-            // Reload block groups
             LoadBlockGroups();
-
             _constructRefreshPending = false;
 
             yield return 0;
