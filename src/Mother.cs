@@ -468,25 +468,6 @@ namespace IngameScript
                 GetModule<Terminal>().Highlight("Complexity:  " + Program.Runtime.CurrentInstructionCount.ToString() + "/50000");
             }
 
-            // DEBUG PRINTS
-
-            //GetModule<Terminal>().Highlight("Complexity:  " + Program.Runtime.CurrentInstructionCount.ToString());
-
-            //var blockTags = GetModule<BlockCatalogue>().BlockTags;
-
-            //var blockTagsDisplays = blockTags.ContainsKey("cockpit-displays") ? blockTags["cockpit-displays"].ToList() : new List<IMyTerminalBlock>();
-
-            //var count = blockTagsDisplays.Count;
-
-            //GetModule<Terminal>().Highlight("blocks/tag:  " + count.ToString());
-
-            //var almanac = GetModule<Almanac>();
-
-            //var records = almanac.Records;
-
-            //var countRecs = records.Count;
-
-            //GetModule<Terminal>().Highlight("almanac recs:  " + GetModule<Almanac>().Records.Count.ToString());
         }
 
         /// <summary>
@@ -500,34 +481,7 @@ namespace IngameScript
         /// </summary>
         void OtherRuntimeItems()
         {
-            // get list of local almanac records if local
-            //var localRecords = GetModule<Almanac>().Records.FindAll(record => record.IsLocalEntity());
-            //var neutralRecords = GetModule<Almanac>().Records.FindAll(record => record.IsNeutral());
-            //var friendlyRecords = GetModule<Almanac>().Records.FindAll(record => record.IsFriendly());
-
-            //Terminal terminal  = GetModule<Terminal>();
-
-            //terminal.Highlight($"Construct Entities: {localRecords.Count}");
-            //terminal.Highlight($"Neutral Entities: {neutralRecords.Count}");
-            //terminal.Highlight($"Friendly Entities: {friendlyRecords.Count}");
-
-
-            //// flatten the list of AlmanacRecord.Channels and count occurances of each isntance
-            //var channelCounts = new Dictionary<string, int>();
-            //foreach (var record in GetModule<Almanac>().Records)
-            //{
-            //    foreach (var channel in record.Channels)
-            //    {
-            //        if (channelCounts.ContainsKey(channel))
-            //            channelCounts[channel]++;
-            //        else
-            //            channelCounts[channel] = 1;
-            //    }
-            //}
-
-            //// Print the channel counts
-            //string channelCountDetails = string.Join("\n", channelCounts.Select(c => $"{c.Key}: {c.Value}"));
-            //terminal.Highlight($"Channel Counts:\n{channelCountDetails}");
+           //
         }
 
         /// <summary>
