@@ -445,6 +445,7 @@ namespace IngameScript
                 string hookValue = $"{blockConfiguration.Get(SECTION_HOOKS, hookName.Name)}";
                 string simplifiedValue = ReplaceThisKeywordWithBlockName(block, hookValue);
 
+                //Mother.Print($"SIMP: {simplifiedValue}", false);
                 hooks[hookName.Name] = simplifiedValue;
             }
 
@@ -474,8 +475,8 @@ namespace IngameScript
                     break;
                 }
 
-                // Check if "this" is preceded by a space and followed by a space or semicolon
-                if (index > 0 && hookValue[index - 1] == ' ' &&
+                // Check if "this" is preceded by a space or '=' and followed by a space, semicolon, or end of string
+                if (index > 0 && (hookValue[index - 1] == ' ' || hookValue[index - 1] == '=') &&
                     (index + 4 == hookValue.Length || hookValue[index + 4] == ' ' || hookValue[index + 4] == ';'))
                 {
                     // Append text before "this" and the replacement
