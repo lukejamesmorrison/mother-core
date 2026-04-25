@@ -77,10 +77,12 @@ namespace IngameScript
         public IMyProgrammableBlock ProgrammableBlock;
 
         /// <summary>
-        /// The Remote Control block for the current grid. This is used to access 
-        /// positional data and manage autopilot.
+        /// The primary ship controller for this grid. Set to the Remote Control block 
+        /// if one is present, otherwise falls back to the first available cockpit.
+        /// Used as the canonical source for velocity, gravity, mass, and orientation.
+        /// Autopilot-specific features require casting this to <see cref="IMyRemoteControl"/>.
         /// </summary>
-        public IMyRemoteControl RemoteControl;
+        public IMyShipController ShipController;
 
         /// <summary>
         /// The Runtime Info for the Program.
@@ -621,39 +623,47 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Get the world matrix of the ship. Uses the RemoteControl block
-        /// if available, otherwise returns the identity matrix.
+        /// Get the world matrix of the ship. Uses the ShipController if available,
+        /// otherwise falls back to the CubeGrid world matrix.
         /// </summary>
         /// <returns></returns>
         public MatrixD GetWorldMatrix()
         {
-            return RemoteControl?.WorldMatrix ?? MatrixD.Identity;
+            return ShipController?.WorldMatrix ?? CubeGrid.WorldMatrix;
         }
 
         /// <summary>
-        /// Get the current position of the ship from the world matrix.
+        /// Get the current position of the ship. Uses the ShipController if available,
+        /// otherwise falls back to the CubeGrid position.
         /// </summary>
         /// <returns></returns>
-        public Vector3D GetPosition() => GetWorldMatrix().Translation;
+        public Vector3D GetPosition() => CubeGrid.GetPosition();
 
         /// <summary>
-        /// Get the gravity vector of the ship from artificial gravity 
-        /// or natural gravity.
+        /// Get the gravity vector of the ship from artificial gravity or natural gravity.
+        /// Uses the ShipController if available, otherwise returns Vector3D.Zero.
         /// </summary>
         /// <returns></returns>
         public Vector3D GetGravity()
         {
-            if( RemoteControl == null)
+            if (ShipController == null)
                 return Vector3D.Zero;
 
-            Vector3D gravity = RemoteControl.GetArtificialGravity();
+            Vector3D gravity = ShipController.GetArtificialGravity();
 
             // No artificial gravity detected
             if (gravity.LengthSquared() == 0)
-                gravity = RemoteControl.GetNaturalGravity();
+                gravity = ShipController.GetNaturalGravity();
 
             return gravity;
         }
+
+        /// <summary>
+        /// Get the current speed of the ship in m/s.
+        /// Uses the ShipController if available, otherwise returns null.
+        /// </summary>
+        /// <returns></returns>
+        public double? GetShipSpeed() => ShipController?.GetShipSpeed();
 
         /// <summary>
         /// Substitute variables into a string. Variables are referenced using the 
@@ -744,7 +754,7 @@ namespace IngameScript
 
             // After parameter substitution, resolve any $VARIABLE references
             // (including those that came from default values like {{player:$PLAYER}})
-            return SubstituteVariables(result.ToString());
+            return SubstituteVariables($"{result}");
         }
     }
 }

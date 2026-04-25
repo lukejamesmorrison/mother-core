@@ -54,11 +54,6 @@ namespace IngameScript
         public HashSet<long> ConstructGridIds = new HashSet<long>();
 
         /// <summary>
-        /// Reference to the primary Remote Control block.
-        /// </summary>
-        public IMyRemoteControl PrimaryRemoteControlBlock;
-
-        /// <summary>
         /// List of block groups on the current grid.
         /// </summary>
         readonly List<IMyBlockGroup> BlockGroups = new List<IMyBlockGroup>();
@@ -653,32 +648,34 @@ namespace IngameScript
         IMyTerminalBlock GetBlock(string name) => TerminalBlocks.FirstOrDefault(x => x.DisplayNameText == name);
 
         /// <summary>
-        /// Load the primary remote control block. We select a primary for 
-        /// use with autopilot and navigation.
+        /// Discover and assign the primary ship controller for this grid.
+        /// Prefers a Remote Control block; falls back to the first available cockpit
+        /// so that grids without an RC block can still provide velocity, gravity,
+        /// and orientation data. Autopilot-specific reset logic (waypoints, enabled
+        /// state) is intentionally excluded here and is the responsibility of the
+        /// script that owns autopilot (e.g. MotherAutopilotSystem).
         /// </summary>
-        void LoadRemoteControlBlock()
+    void LoadShipController()
         {
 
-            List<IMyRemoteControl> blocks = TerminalBlocks
-                .OfType<IMyRemoteControl>()
-                .ToList();
+            Mother.ShipController = TerminalBlocks.OfType<IMyShipController>()
+                .OrderByDescending(c => c.IsMainCockpit)
+                .FirstOrDefault();
 
-            if (blocks.Count == 0)
-                throw new Exception("\n\nNo remote control block found. Add one and 'Recompile'.\n");
+            //IMyShipController controller =
+            //    TerminalBlocks.OfType<IMyRemoteControl>().FirstOrDefault()
+            //    ?? (IMyShipController)TerminalBlocks.OfType<IMyCockpit>().FirstOrDefault(c => c.IsMainCockpit)
+            //    ?? (IMyShipController)TerminalBlocks.OfType<IMyCockpit>().FirstOrDefault();
 
-            PrimaryRemoteControlBlock = blocks[0];
+            //Mother.ShipController = controller;
 
-            // reset params
-            PrimaryRemoteControlBlock.ClearWaypoints();
-            PrimaryRemoteControlBlock.SetAutoPilotEnabled(false);
+            //if (controller is IMyRemoteControl)
+            //    return;
 
-            // Hoist to Mother
-            //
-            // We should refactor this someday.  Ideally, Mother is setting this, or making it more widely
-            // available to modules. It could be logically grouped with other position and motion
-            // getters.  This class should not change a value on Mother directly.
-            // Use Mother method as last resort.
-            Mother.RemoteControl = PrimaryRemoteControlBlock;
+            //if (controller is IMyCockpit)
+            //    Mother.Print("No Remote Control found. Using cockpit for telemetry. Autopilot unavailable.");
+            //else
+            //    Mother.Print("No ship controller found. Velocity, gravity and orientation unavailable.");
         }
 
         /// <summary>
@@ -943,7 +940,7 @@ namespace IngameScript
                     TerminalBlocks.Add(tb);
             }
 
-            LoadRemoteControlBlock();
+            LoadShipController();
 
             // parse configs/tags/hooks
             int index = 0;

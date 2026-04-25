@@ -582,8 +582,8 @@ namespace IngameScript
 
                 // Environment
                 { "SafeRadius", $"{Mother.SafeZone.Radius}" },
-                { "Gravity", $"{Mother?.GetGravity() ?? Vector3D.Zero}"   },
-                { "Speed", $"{Mother?.RemoteControl?.GetShipSpeed()}" },
+                { "Gravity", $"{Mother?.GetGravity()}"   },
+                { "Speed", $"{Mother?.GetShipSpeed()}" },
 
                 // Orientation
                 { "Fx", $"{worldMatrix.Forward.X}" },
