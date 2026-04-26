@@ -120,6 +120,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
 - Changes to the Programmable Block custom data no longer force a system reboot. Instead, modules should listen for the `SystemConfigUpdatedEvent` so that when the system configuration changes, the modules can update their internal configuration without needing to reboot the system.
+- Remove Mother Core dependency on a Remote Control block. Remote control specific logic has been migrated to MAPS. Ship speed, gravity and mass are now determined from the first available `IMyShipController`, if found.
 
 ### Fixed
 - Fixed issue where Almanac was not updating grid name and cannot be targeted when changing the name. When a grid's name changes, it will now be broadcasted on the construct, and through defined channels.
