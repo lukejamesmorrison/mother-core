@@ -33,9 +33,9 @@ namespace IngameScript
     public class DisplayModule : BaseCoreModule
     {
         /// <summary>
-        /// The display type for log surfaces. This is the only built-in display type.
+        /// The view name used in <c>[surfaces]</c> entries to designate a log surface.
         /// </summary>
-        public const string DISPLAY_TYPE_LOG = "log";
+        public const string VIEW_NAME_LOG = "LogView";
 
         /// <summary>
         /// The Clock core module.
@@ -207,26 +207,30 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Load a single text panel surface. Uses config-based type detection with source
-        /// filtering, falling back to legacy name-based detection for backwards compatibility.
+        /// Load a single text panel surface. Text panels are single-surface blocks, so we look
+        /// for a <c>[surfaces]</c> entry with index <c>0</c>.
         /// </summary>
-        /// <param name="panel"></param>
         void LoadTextPanelSurface(IMyTextPanel panel)
         {
-            TextSurfaces.Add(panel);
-
             MyIni config = BlockCatalogue.GetBlockConfiguration(panel);
 
-            if (IsLogSurface(panel, config))
+            foreach (SurfaceEntry entry in DisplayTypeResolver.GetSurfaceEntries(config))
             {
-                panel.ContentType = ContentType.TEXT_AND_IMAGE;
-                LogSurfaces.Add(panel);
-            }
+                if (entry.Index != 0)
+                    continue;
 
-            // Add to registered display surfaces based on type
-            string displayType = DisplayTypeResolver.GetDisplayType(config);
-            if (!string.IsNullOrEmpty(displayType) && DisplayTypeResolver.CanWriteToDisplay(config, Mother))
-                AddSurfaceToRegisteredType(displayType, panel);
+                TextSurfaces.Add(panel);
+
+                if (string.Equals(entry.ViewName, VIEW_NAME_LOG, StringComparison.OrdinalIgnoreCase)
+                    && DisplayTypeResolver.CanWriteToDisplay(entry.Parameter, Mother))
+                {
+                    panel.ContentType = ContentType.TEXT_AND_IMAGE;
+                    LogSurfaces.Add(panel);
+                }
+
+                AddSurfaceToRegisteredType(entry.ViewName, panel);
+                break;
+            }
         }
 
 
@@ -254,47 +258,34 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Load text surfaces from a text surface provider block. This is 
-        /// necessary as some block with embedded screens contain text 
-        /// surfaces rather than LCD panels. Uses config-based type detection
-        /// with source filtering.
+        /// Load text surfaces from a text surface provider block. Each entry in the
+        /// <c>[surfaces]</c> section maps a surface index to a view name, optionally
+        /// followed by a source filter.
         /// </summary>
         void LoadTextSurfaceProviderSurfaces(IMyTerminalBlock block)
         {
+            IMyTextSurfaceProvider provider = block as IMyTextSurfaceProvider;
+            if (provider == null)
+                return;
+
             MyIni config = BlockCatalogue.GetBlockConfiguration(block);
 
-            // Get display type and surface index from config
-            int surfaceIndex = DisplayTypeResolver.GetSurfaceIndex(config);
-            
-            // If no surface index configured, skip this block
-            if (surfaceIndex < 0)
-                return;
-
-            // Check source filtering
-            if (!DisplayTypeResolver.CanWriteToDisplay(config, Mother))
-                return;
-
-            if (block is IMyTextSurfaceProvider)
+            foreach (SurfaceEntry entry in DisplayTypeResolver.GetSurfaceEntries(config))
             {
-                IMyTextSurfaceProvider textSurfaceProvider = (IMyTextSurfaceProvider) block;
-             
-                if (surfaceIndex < textSurfaceProvider.SurfaceCount)
+                if (entry.Index >= provider.SurfaceCount)
+                    continue;
+
+                IMyTextSurface surface = provider.GetSurface(entry.Index);
+                TextSurfaces.Add(surface);
+
+                if (string.Equals(entry.ViewName, VIEW_NAME_LOG, StringComparison.OrdinalIgnoreCase)
+                    && DisplayTypeResolver.CanWriteToDisplay(entry.Parameter, Mother))
                 {
-                    IMyTextSurface surface = textSurfaceProvider.GetSurface(surfaceIndex);
-                    TextSurfaces.Add(surface);
-
-                    string displayType = DisplayTypeResolver.GetDisplayType(config);
-
-                    if (displayType == DISPLAY_TYPE_LOG)
-                    {
-                        surface.ContentType = ContentType.TEXT_AND_IMAGE;
-                        LogSurfaces.Add(surface);
-                    }
-
-                    // Add to registered display surfaces based on type
-                    if (!string.IsNullOrEmpty(displayType))
-                        AddSurfaceToRegisteredType(displayType, surface);
+                    surface.ContentType = ContentType.TEXT_AND_IMAGE;
+                    LogSurfaces.Add(surface);
                 }
+
+                AddSurfaceToRegisteredType(entry.ViewName, surface);
             }
         }
 
@@ -321,23 +312,6 @@ namespace IngameScript
             foreach (var list in RegisteredDisplaySurfaces.Values)
                 list.Clear();
         }
-
-        /// <summary>
-        /// Check if the surface is a log surface. Uses config-based type detection
-        /// with source filtering.
-        /// </summary>
-        /// <param name="panel">The text panel to check.</param>
-        /// <param name="config">The block's configuration.</param>
-        /// <returns>True if this is a log surface that this Mother instance can write to.</returns>
-        bool IsLogSurface(IMyTerminalBlock panel, MyIni config)
-        {
-            return DisplayTypeResolver.IsValidDisplayForType(
-                config, 
-                DISPLAY_TYPE_LOG, 
-                Mother
-            );
-        }
-
 
         /// <summary>
         /// Render the console surfaces (Log). This is called on every 
@@ -374,22 +348,17 @@ namespace IngameScript
         /// register their display types so surfaces can be collected.
         /// </summary>
         /// <param name="displayType">The display type name (case-insensitive).</param>
-        public void RegisterDisplayType(string displayType)
-        {
-            string key = displayType.ToLower();
-            if (!RegisteredDisplaySurfaces.ContainsKey(key))
-                RegisteredDisplaySurfaces[key] = new List<IMyTextSurface>();
-        }
-
         /// <summary>
-        /// Get all surfaces registered for a specific display type.
-        /// Extension modules can use this to get their display surfaces.
+        /// Get all surfaces registered for a specific view name.
+        /// Extension modules use this to retrieve surfaces claimed for them via
+        /// a <c>[surfaces]</c> entry (e.g. <c>1=MapView</c>).
         /// </summary>
-        /// <param name="displayType">The display type name (case-insensitive).</param>
-        /// <returns>List of text surfaces for the display type, or empty list if not registered.</returns>
-        public List<IMyTextSurface> GetSurfacesForDisplayType(string displayType)
+        /// <param name="viewName">The view name (case-insensitive).</param>
+        /// <returns>List of text surfaces for the view, or empty list if none registered.</returns>
+        public List<IMyTextSurface> GetSurfacesForDisplayType(string viewName)
         {
-            string key = displayType.ToLower();
+            string key = viewName.ToLower();
+
             if (RegisteredDisplaySurfaces.ContainsKey(key))
                 return RegisteredDisplaySurfaces[key];
 
@@ -397,15 +366,16 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Add a surface to a registered display type's surface list.
+        /// Add a surface to the view name's surface list, creating the list if needed.
         /// </summary>
-        /// <param name="displayType">The display type name.</param>
-        /// <param name="surface">The surface to add.</param>
-        void AddSurfaceToRegisteredType(string displayType, IMyTextSurface surface)
+        void AddSurfaceToRegisteredType(string viewName, IMyTextSurface surface)
         {
-            string key = displayType.ToLower();
-            if (RegisteredDisplaySurfaces.ContainsKey(key))
-                RegisteredDisplaySurfaces[key].Add(surface);
+            string key = viewName.ToLower();
+
+            if (!RegisteredDisplaySurfaces.ContainsKey(key))
+                RegisteredDisplaySurfaces[key] = new List<IMyTextSurface>();
+
+            RegisteredDisplaySurfaces[key].Add(surface);
         }
     }
 }
