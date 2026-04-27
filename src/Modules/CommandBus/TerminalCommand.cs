@@ -156,10 +156,12 @@ namespace IngameScript
 
         /// <summary>
         /// Splits an input string into terms while preserving quoted sections.
+        /// Quoted sections are treated as a single term with the surrounding
+        /// quotes stripped.
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        List<string> SplitInputIntoTerms(string input)
+        public static List<string> SplitInputIntoTerms(string input)
         {
             List<string> terms = new List<string>();
             bool insideQuotes = false;

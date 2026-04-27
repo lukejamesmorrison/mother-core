@@ -73,19 +73,12 @@ namespace IngameScript
                 if (string.IsNullOrEmpty(raw))
                     continue;
 
-                string viewName;
-                string parameter = null;
+                // Reuse TerminalCommand's quote-aware tokeniser: first token is
+                // the view name, second (optional) token is the parameter.
+                List<string> terms = TerminalCommand.SplitInputIntoTerms(raw);
 
-                int spaceIdx = raw.IndexOf(' ');
-                if (spaceIdx > 0)
-                {
-                    viewName  = raw.Substring(0, spaceIdx).Trim();
-                    parameter = Unquote(raw.Substring(spaceIdx + 1).Trim());
-                }
-                else
-                {
-                    viewName = raw;
-                }
+                string viewName  = terms[0];
+                string parameter = terms.Count > 1 ? terms[1] : null;
 
                 entries.Add(new SurfaceEntry { Index = index, ViewName = viewName, Parameter = parameter });
             }
@@ -112,17 +105,6 @@ namespace IngameScript
 
             return string.Equals(source, mother.SystemName, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(source, mother.ShortId, StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
-        /// Strips surrounding double quotes from a string if present.
-        /// </summary>
-        static string Unquote(string input)
-        {
-            if (input.Length >= 2 && input[0] == '"' && input[input.Length - 1] == '"')
-                return input.Substring(1, input.Length - 2);
-
-            return input;
         }
     }
 }
