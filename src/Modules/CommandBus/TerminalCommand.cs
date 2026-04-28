@@ -163,44 +163,35 @@ namespace IngameScript
         /// <returns></returns>
         public static List<string> SplitInputIntoTerms(string input)
         {
-            List<string> terms = new List<string>();
-            bool insideQuotes = false;
-            var currentTerm = new StringBuilder();
+            var terms = new List<string>();
+            int i = 0;
 
-            for (int i = 0; i < input.Length; i++)
+            while (i < input.Length)
             {
-                char currentChar = input[i];
-
-                // If start of a quoted term
-                if (currentChar == '"' && !insideQuotes)
-                    insideQuotes = true;
-
-                // Or end of a quoted term
-                else if (currentChar == '"' && insideQuotes)
+                // Skip whitespace
+                if (input[i] == ' ')
                 {
-                    insideQuotes = false;
-                    terms.Add(currentTerm.ToString());
-                    currentTerm.Clear();
+                    i++;
+                    continue;
                 }
 
-                // Or if not inside quotes, split by a space
-                else if (currentChar == ' ' && !insideQuotes)
+                if (input[i] == '"')
                 {
-                    if (currentTerm.Length > 0)
-                    {
-                        terms.Add(currentTerm.ToString());
-                        currentTerm.Clear();
-                    }
+                    // Find closing quote - IndexOf is a single native call regardless of string length
+                    int end = input.IndexOf('"', i + 1);
+                    if (end == -1) end = input.Length;
+                    terms.Add(input.Substring(i + 1, end - i - 1));
+                    i = end + 1;
                 }
-
-                // Otherwise continue building the current term
                 else
-                    currentTerm.Append(currentChar);
+                {
+                    // Find next space - IndexOf is a single native call regardless of string length
+                    int end = input.IndexOf(' ', i);
+                    if (end == -1) end = input.Length;
+                    terms.Add(input.Substring(i, end - i));
+                    i = end + 1;
+                }
             }
-
-            // Add the last term if there is any
-            if (currentTerm.Length > 0)
-                terms.Add(currentTerm.ToString());
 
             return terms;
         }
