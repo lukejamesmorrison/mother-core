@@ -385,6 +385,25 @@ namespace IngameScript
             => DrawText(text, position, Color.White, "Monospace", scale);
 
         /// <summary>
+        /// Draw horizontally-centred text at <paramref name="position"/>.
+        /// The X coordinate of <paramref name="position"/> is treated as the
+        /// horizontal centre; Y is the top of the text line.
+        /// </summary>
+        public void DrawTextCentered(string text, Vector2 position, Color color, float scale = 1f)
+        {
+            Frame.Add(new MySprite
+            {
+                Type             = SpriteType.TEXT,
+                Data             = text,
+                Position         = position,
+                RotationOrScale  = GetScalingFactor() * scale,
+                Color            = color,
+                Alignment        = TextAlignment.CENTER,
+                FontId           = "Monospace"
+            });
+        }
+
+        /// <summary>
         /// Draw the Mother sprite on the display. This is a red circle inside an octagon.
         /// </summary>
         public void DrawMotherSprite()
