@@ -697,64 +697,69 @@ namespace IngameScript
         /// <returns>The fully resolved command string.</returns>
         public string SubstituteCommandParameters(string template, Dictionary<string, string> options)
         {
-            StringBuilder result = new StringBuilder();
+            // Fast path: no placeholders at all
+            if (template.IndexOf("{{")
+ == -1)
+                return SubstituteVariables(template);
+
+            var result = new StringBuilder();
             int i = 0;
 
             while (i < template.Length)
             {
-                // Look for opening {{
+                // Jump directly to the next {{ rather than scanning char-by-char
+                int openIndex = template.IndexOf("{{", i);
 
-                if (i < template.Length - 1 && template[i] == '{' && template[i + 1] == '{')
+                if (openIndex == -1)
                 {
-                    int closeIndex = template.IndexOf("}}", i + 2);
+                    // No more placeholders - append the rest and stop
+                    result.Append(template, i, template.Length - i);
+                    break;
+                }
 
-                    if (closeIndex > 0)
-                    {
-                        // Extract the content between {{ and }}
-                        string placeholder = template.Substring(i + 2, closeIndex - i - 2);
+                // Append everything before the placeholder literally
+                if (openIndex > i)
+                    result.Append(template, i, openIndex - i);
 
-                        string paramName;
-                        string defaultValue = "";
+                int closeIndex = template.IndexOf("}}", openIndex + 2);
 
-                        // Check for a default value separator ':'
-                        int colonIndex = placeholder.IndexOf(':');
-                        if (colonIndex >= 0)
-                        {
-                            paramName = placeholder.Substring(0, colonIndex).Trim();
-                            defaultValue = placeholder.Substring(colonIndex + 1).Trim();
-                        }
-                        else
-                        {
-                            paramName = placeholder.Trim();
-                        }
+                if (closeIndex == -1)
+                {
+                    // No closing }} - output literally and stop
+                    result.Append(template, openIndex, template.Length - openIndex);
+                    break;
+                }
 
-                        // Use the provided option value, or fall back to the default
-                        string value;
-                        if (options != null && options.ContainsKey(paramName))
-                            value = options[paramName];
-                        else
-                            value = defaultValue;
+                // Extract content between {{ and }}
+                string placeholder = template.Substring(openIndex + 2, closeIndex - openIndex - 2);
 
-                        result.Append(value);
-                        i = closeIndex + 2;
-                    }
-                    else
-                    {
-                        // No closing }} found, output literally
-                        result.Append(template[i]);
-                        i++;
-                    }
+                string paramName;
+                string defaultValue = "";
+
+                int colonIndex = placeholder.IndexOf(':');
+                if (colonIndex >= 0)
+                {
+                    paramName = placeholder.Substring(0, colonIndex).Trim();
+                    defaultValue = placeholder.Substring(colonIndex + 1).Trim();
                 }
                 else
                 {
-                    result.Append(template[i]);
-                    i++;
+                    paramName = placeholder.Trim();
                 }
+
+                string value;
+                if (options != null && options.ContainsKey(paramName))
+                    value = options[paramName];
+                else
+                    value = defaultValue;
+
+                result.Append(value);
+                i = closeIndex + 2;
             }
 
             // After parameter substitution, resolve any $VARIABLE references
             // (including those that came from default values like {{player:$PLAYER}})
-            return SubstituteVariables($"{result}");
+            return SubstituteVariables(result.ToString());
         }
     }
 }

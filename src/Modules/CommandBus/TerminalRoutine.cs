@@ -243,10 +243,10 @@ namespace IngameScript
                 UnpackedCommands.Add(new TerminalCommand(unpackedCommandString));
             }
 
+            var sb = new StringBuilder();
             foreach (TerminalCommand command in UnpackedCommands)
-            {
-                UnpackedRoutineString += command.CommandString + ";";
-            }
+                sb.Append(command.CommandString).Append(';');
+            UnpackedRoutineString = sb.ToString();
 
             return this;
         }

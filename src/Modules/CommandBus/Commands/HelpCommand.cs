@@ -51,14 +51,14 @@ namespace IngameScript
         /// <returns></returns>
         public override string Execute(TerminalCommand command)
         {
-            string commandsString = "";
+            var sb = new StringBuilder();
 
             Module.Commands.ForEach(moduleCommand =>
             {
-                commandsString += moduleCommand.GetCommandName() + "\n";
+                sb.Append(moduleCommand.GetCommandName()).Append('\n');
             });
 
-            return commandsString;
+            return $"{sb}";
         }
     }
 }
