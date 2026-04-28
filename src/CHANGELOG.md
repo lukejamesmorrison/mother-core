@@ -116,6 +116,9 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 - `CommandBus` now maintains registries for `ConstructCommands` and `ImportantConstructCommands` to track commands available on other Mother Core instances.
 - `CommandBus` now handles external command requests via relay and internal construct commands directly via `localcmd` route.
 - `Mother` now includes a `SafeZone` bounding sphere for collision avoidance during flight planning.
+- Add `boot` command to manually trigger the system boot process.
+- Add `var/set` command to dynamically set a variable from the terminal or a command routine.
+- Add `onBoot` hook to run logic when the script is finished booting.
 
 ### Changed
 - Task Queue in `CommandBus` is now a `List`.
