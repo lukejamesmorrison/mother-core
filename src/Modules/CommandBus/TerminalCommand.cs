@@ -165,7 +165,7 @@ namespace IngameScript
         {
             List<string> terms = new List<string>();
             bool insideQuotes = false;
-            string currentTerm = "";
+            var currentTerm = new StringBuilder();
 
             for (int i = 0; i < input.Length; i++)
             {
@@ -179,28 +179,28 @@ namespace IngameScript
                 else if (currentChar == '"' && insideQuotes)
                 {
                     insideQuotes = false;
-                    terms.Add(currentTerm);
-                    currentTerm = "";
+                    terms.Add(currentTerm.ToString());
+                    currentTerm.Clear();
                 }
 
                 // Or if not inside quotes, split by a space
                 else if (currentChar == ' ' && !insideQuotes)
                 {
-                    if (!string.IsNullOrWhiteSpace(currentTerm))
+                    if (currentTerm.Length > 0)
                     {
-                        terms.Add(currentTerm);
-                        currentTerm = "";
+                        terms.Add(currentTerm.ToString());
+                        currentTerm.Clear();
                     }
                 }
 
                 // Otherwise continue building the current term
                 else
-                    currentTerm += currentChar;
+                    currentTerm.Append(currentChar);
             }
 
             // Add the last term if there is any
-            if (!string.IsNullOrWhiteSpace(currentTerm))
-                terms.Add(currentTerm);
+            if (currentTerm.Length > 0)
+                terms.Add(currentTerm.ToString());
 
             return terms;
         }
