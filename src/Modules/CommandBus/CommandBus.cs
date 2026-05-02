@@ -284,7 +284,7 @@ namespace IngameScript
         /// <summary>
         /// Coroutine that executes a single command. If the command is a wait, 
         /// it yields the wait duration. If the command resolves to a config 
-        /// command, the expanded routine is inlined — its steps are yielded 
+        /// command, the expanded routine is inlined - its steps are yielded 
         /// through directly so waits block correctly. If the expanded config 
         /// command contains parallel groups, each group is launched as a 
         /// separate coroutine. Module commands and other primitives are 
@@ -308,7 +308,7 @@ namespace IngameScript
                 yield break;
             }
 
-            // Resolve config commands — inline their expanded steps
+            // Resolve config commands - inline their expanded steps
             string configCommandValue = ResolveConfigCommand(command);
 
             if (configCommandValue != null)
