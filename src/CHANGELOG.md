@@ -2,9 +2,7 @@
 
 ## [Unreleased]
 
-### Unimplemented
-
-## [1.1.0] - UPCOMING
+## [1.1.0] - 2026-05-12
 
 Version 1.1 marks a major milestone in the Mother project.  Any script running Mother Core will now share command libraries so that new scripts become plugins to your existing cluster of Mother scripts. It also introduces several quality of life improvements to support advanced command development.
 
@@ -128,6 +126,7 @@ Version 1.1 marks a major milestone in the Mother project.  Any script running M
 ### Fixed
 - Fixed issue where Almanac was not updating grid name and cannot be targeted when changing the name. When a grid's name changes, it will now be broadcasted on the construct, and through defined channels.
 - Fixed issue with setting hooks on the programmable block instance for blocks on the grid. Hooks for blocks can now be defined in the programmable block's custom data and are updated automatically.
+- All displays now render a random empty sprite to force a refresh each render cycle. This is to mitigate a bug when rendering displays in multiplayer.
 
 
 ### Remove
