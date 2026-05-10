@@ -177,7 +177,16 @@ namespace IngameScript
         /// <summary>
         /// Draw the frame for the display. This is where we can draw sprites and text.
         /// </summary>
-        public virtual void DrawFrame() => Frame = Surface.DrawFrame();
+        public virtual void DrawFrame() {
+            Frame = Surface.DrawFrame();
+
+            // random sprite vector
+            Random random = new Random();
+            Vector2 vector = new Vector2((float)random.NextDouble(), (float)random.NextDouble());
+
+            // add a random empty sprite to force the frame to render (workaround for SE bug where frame doesn't render without any sprites)
+            Frame.Add(SpriteFactory.CreateShape("SquareSimple", vector, vector, Color.Transparent));
+        }
 
         /// <summary>
         /// Calculate the viewport size and position based on SurfaceSize (not 
