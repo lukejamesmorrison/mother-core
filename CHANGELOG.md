@@ -2,11 +2,135 @@
 
 ## [Unreleased]
 
-## [1.0.1] - UPCOMING
+## [1.1.0] - 2026-05-12
 
-### BREAKING CHANGES TO IMPLEMENT
-- Rename `nav/set-flight-plan` to `fp/set`
+Version 1.1 marks a major milestone in the Mother project.  Any script running Mother Core will now share command libraries so that new scripts become plugins to your existing cluster of Mother scripts. It also introduces several quality of life improvements to support advanced command development.
 
+### Added
+- The `IntergridMessageService` and `CommandBus` have been updated to automatically sync with local instances of Mother Core and share command libraries. This means that any Mother-script can call commands of another without any additional effort from the player. Just load the script into a new programmable block and the scripts will handshake during boot.
+
+- **Important Commands** - Commands can now be marked as *important* using the `!` prefix. Important commands take priority over local commands on other Mother Core instances on the same construct. This is useful when multiple instances define the same command but you want one instance to be the authoritative source.
+
+    **Example - Programmable Block Custom Data (Instance A)**
+    ```ini
+    [commands]
+    ; This command will be called by all instances on the construct
+    !dock=connector/lock DockingPort
+    ```
+
+    **Example - Programmable Block Custom Data (Instance B)**
+    ```ini
+    [commands]
+    ; This local command will be ignored in favor of Instance A's important command
+    dock=echo "Local dock command"
+    ```
+
+    When Instance B runs `dock`, it will execute Instance A's important command instead of its own local command.
+
+- **Force Local Commands** - Use the `!!` prefix when running a command to force local execution, bypassing any important commands defined on other instances.
+
+    **Example - Execute in Terminal**
+    ```bash
+    # Run the important command from another instance (default behavior)
+    dock
+
+    # Force run the local command, ignoring important commands
+    !!dock
+    ```
+
+- Players can now override the instance name via configuration. This allows a programmable block to declare its own name rather than deferring to the grid name. This is useful for subgrids with unusual names that should act as the "main grid" from Mother's perspective.
+
+    **Example - Programmable Block Custom Data**
+    ```ini
+    [general]
+    name="Slave 2"
+    ```
+
+- Players can now user *variables* in their commands and routines.
+    
+    **Example - Programmable Block Custom Data**
+    ```ini
+    [variables]
+    PLAYER=Dave
+
+    [commands]
+    greeting=screen/print BedroomDisplay "Good morning, $PLAYER"
+    ```
+
+     **Example - Execute in Terminal**
+    ```bash
+    greeting
+    # => Good morning, Dave!
+    ```
+
+- Commands can now accept arguments which allows players to write dynamic rountines for various use cases. We use double curly braces to annotate an overrideable parameter. We also provide a default value.
+
+    **Example - Command Definition in Custom Data**
+    ```ini
+    [commands]
+    greeting=screen/print AirlockScreen "Hello, {{player:Space Engineer}}!"
+    ```
+
+    **Example - Execute in Terminal**
+    ```bash
+    # without parameter
+    greeting
+    # => Hello, Space Engineer!
+
+    # with parameter
+    greeting --player=Agentluke
+    # => Hello, Agentluke!
+
+    # with spaces
+    greeting --player="Ellen Ripley"
+    # => Hello, Ellen Ripley!
+    ```
+
+- The `DisplayModule` from Mother OS has moved most capability to Core so that scripts can use some of Mother's foundational logic for rendering content to a screen or the terminal window. Map logic has been moved to the [Mother Autopilot System (MAPS)](#) script
+
+- Commands and Routines may now be executed in *parallel*.  This is particularly useful when you want to separate multiple processes without depending on each other. We use curly braces `{}` to wrap a parallel routine:
+
+    **Example - Programmable Block Custom Data**
+    ```ini
+    [commands]
+    ; wait, then open AirlockDoor1, then open AirlockDoor2
+    openAirlock=wait 5; door/open AirlockDoor1; door/open AirlockDoor2;
+
+    ; wait, then open both airlock doors at the same time
+    openAirlock=wait 5; {door/open AirlockDoor1} {door/open AirlockDoor2}
+    ```
+- The `ColorHelper` utility class now support hexidecimal color values.
+- Add `NumberHelper` utility class with a generic `Parse<T>` method for converting string values to numeric types.
+- `BaseModuleCommand` now includes `IsSharedMode()` and `GetDistributedValue()` helper methods to support distributing values across multiple blocks. This enables commands to implement a `--share` flag for cumulative operations.
+- The Block Catalogue will now automatically update when merge blocks are merged/unmerged.
+- The `BlockCatalogue` will now automatically update when attaching/detaching mechanical blocks (Rotor, Hinge, Piston).
+- Add `MechanicalBlockModule` to handle mechanical block state changes.
+- Add `rename` command to set the grid's custom name. Use the `--unique` option to append a random integer for uniqueness.
+- `Almanac` now tracks grid orientation (`Forward` and `Up` vectors) for improved navigation and docking operations.
+- `Almanac` now validates records on load and periodically removes stale grid records that haven't pinged within 5 minutes.
+- `AlmanacRecord` now includes `SafeRadius`, `UnicastId`, and orientation data (`Forward`, `Up`) for enhanced grid tracking.
+- `IntergridMessageService` now elects a relay instance per construct for external communication and syncs commands across construct instances.
+- `IntergridMessageService` now supports Almanac synchronization via the `almanac` route to share grid position data across instances.
+- `CommandBus` now maintains registries for `ConstructCommands` and `ImportantConstructCommands` to track commands available on other Mother Core instances.
+- `CommandBus` now handles external command requests via relay and internal construct commands directly via `localcmd` route.
+- `Mother` now includes a `SafeZone` bounding sphere for collision avoidance during flight planning.
+- Add `boot` command to manually trigger the system boot process.
+- Add `var/set` command to dynamically set a variable from the terminal or a command routine.
+- Add `onBoot` hook to run logic when the script is finished booting.
+
+### Changed
+- Task Queue in `CommandBus` is now a `List`.
+- Changes to the Programmable Block custom data no longer force a system reboot. Instead, modules should listen for the `SystemConfigUpdatedEvent` so that when the system configuration changes, the modules can update their internal configuration without needing to reboot the system.
+- Remove Mother Core dependency on a Remote Control block. Remote control specific logic has been migrated to MAPS. Ship speed, gravity and mass are now determined from the first available `IMyShipController`, if found.
+
+### Fixed
+- Fixed issue where Almanac was not updating grid name and cannot be targeted when changing the name. When a grid's name changes, it will now be broadcasted on the construct, and through defined channels.
+- Fixed issue with setting hooks on the programmable block instance for blocks on the grid. Hooks for blocks can now be defined in the programmable block's custom data and are updated automatically.
+- All displays now render a random empty sprite to force a refresh each render cycle. This is to mitigate a bug when rendering displays in multiplayer.
+
+
+### Remove
+- Remove `FlightPlanningModule`, `FlightControlModule`, and `DockingModule`. These modules have been moved to the [Mother Autopilot System (MAPS)](https://lukejamesmorrison.github.io/mother-docs/MotherAutopilotSystem/) script.
 
 ## [0.2.14] - 2025-08-15
 
@@ -164,7 +288,7 @@
     - Hooks: `onDetect`, `onClear`
 
 ### Updated
-- `rotor/lock` and `rotor/unlock` commands now set upper/lower limits to enable rotation without specific angle defninitions via the `rotor/speed` command.
+- `rotor/lock` and `rotor/unlock` commands now set upper/lower limits to enable rotation without specific angle defnitions via the `rotor/speed` command.
 - `piston/speed`, `rotor/speed` and `hinge/speed` commands now accept increment/decrement options to adjust speed while in motion. ie. `rotor/speed Rotor1 2 --add` will increment the current rotor speed by 2 RPM.
 
 ## [0.2.6] - 2025-03-06
