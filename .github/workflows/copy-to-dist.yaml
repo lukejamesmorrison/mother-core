@@ -11,10 +11,14 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      ARCHIVE_NAME: mother-core-${{ github.ref_name }}.zip
 
     steps:
       # 1. Checkout repo
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       # 2. Build dist folder
       - name: Build dist folder
@@ -36,12 +40,13 @@ jobs:
       - name: Archive dist contents
         run: |
           cd dist
-          zip -r ../mother-core.zip .
+          zip -r ../${ARCHIVE_NAME} .
 
       # 4. Create GitHub Release from the tag
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: mother-core.zip
+          files: ${{ env.ARCHIVE_NAME }}
+          name: Release ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
