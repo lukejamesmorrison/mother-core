@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.1.4] = 2026-05-XX
+
+### Fixed
+
+- Fixed bug removing line breaks from custom data when saving a variable using the `var/set`command with the `--save` option.
+
+
 ## [1.1.0] - 2026-05-12
 
 Version 1.1 marks a major milestone in the Mother project.  Any script running Mother Core will now share command libraries so that new scripts become plugins to your existing cluster of Mother scripts. It also introduces several quality of life improvements to support advanced command development.
