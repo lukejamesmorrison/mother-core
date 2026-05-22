@@ -216,9 +216,7 @@ namespace IngameScript
             foreach (var key in keys)
             {
                 string variableName = key.Name;
-                string variableValue = $"{Ini.Get(sectionName, variableName)}"
-                    .Replace("\r", "")
-                    .Trim();
+                string variableValue = $"{Ini.Get(sectionName, variableName)}";
 
                 // Strip leading '$' from variable name if present
                 if (variableName.StartsWith("$"))
