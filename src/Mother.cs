@@ -250,28 +250,27 @@ namespace IngameScript
         public void RegisterCoreModules()
         {
             List<ICoreModule> modules = new List<ICoreModule> {
-                // ESSENTIAL
+                // FRAMEWORK
                 new Log(this),
                 new Configuration(this),
                 new Clock(this),
                 new EventBus(this),
                 new CommandBus(this),
                 new LocalStorage(this),
-
-                // CRITICAL
-                new BlockCatalogue(this),
-                new ActivityMonitor(this),
-                new Almanac(this),
-                new IntergridMessageService(this),
-                new DisplayModule(this),
-
-                // FUNCTIONAL
                 new Terminal(this),
 
-                // BLOCK BASED (FOR CONNECTIONS)
+                // COMMUNICATIONS
+                new Almanac(this),
+                new IntergridMessageService(this),
+
+                // BLOCK MANAGEMENT
+                new BlockCatalogue(this),
+                new ActivityMonitor(this),
+
                 new ConnectorModule(this),
                 new MechanicalBlockModule(this),
                 new MergeBlockModule(this),
+                new DisplayModule(this),
             };
 
             modules.ForEach(module => RegisterCoreModule(module));
@@ -395,6 +394,12 @@ namespace IngameScript
         /// <param name="updateType"></param>
         public void Run(string argument, UpdateType updateType)
         {
+            // The GridTerminalSystem and CubeGrid instances are reset by SE whenever the grid
+            // topology changes (merge block connect/disconnect changes the physical grid entity).
+            // Always read them from the live PB properties so every module downstream uses the
+            // current topology rather than stale references captured at Initialize().
+            GridTerminalSystem = Program.GridTerminalSystem;
+            CubeGrid = ProgrammableBlock.CubeGrid;
 
             //string state = "";
 

@@ -1,4 +1,4 @@
-﻿using Sandbox.Game.Entities;
+using Sandbox.Game.Entities;
 using Sandbox.Game.EntityComponents;
 //using Sandbox.ModAPI;
 using Sandbox.ModAPI.Ingame;
@@ -38,13 +38,27 @@ namespace IngameScript
         BlockCatalogue BlockCatalogue;
 
         /// <summary>
+        /// Merge blocks whose "onMerge" hook should run after the next construct refresh.
+        /// We defer the hook because RunHook calls GetBlocksByName which filters against
+        /// ConstructGridIds. At the moment the state change fires, RefreshConstruct has only
+        /// been queued — ConstructGridIds still reflects the old topology. Running the hook
+        /// after the refresh ensures block lookups resolve correctly.
+        /// </summary>
+        readonly List<IMyShipMergeBlock> _pendingMergeHooks = new List<IMyShipMergeBlock>();
+
+        /// <summary>
+        /// Merge blocks whose "onUnmerge" hook should run after the next construct refresh.
+        /// </summary>
+        readonly List<IMyShipMergeBlock> _pendingUnmergeHooks = new List<IMyShipMergeBlock>();
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
         public MergeBlockModule(Mother mother) : base(mother) { }
 
         /// <summary>
-        /// Boots the module. We reference modules, register commands, subscribe to 
+        /// Boots the module. We reference modules, register commands, subscribe to
         /// events, and register blocks for ongoing state monitoring.
         /// </summary>
         public override void Boot()
@@ -52,7 +66,16 @@ namespace IngameScript
             // Modules
             BlockCatalogue = Mother.GetModule<BlockCatalogue>();
 
-            // Monitor State for all merge blocks on grid
+            // Clear any hooks that were pending from a previous boot cycle so they
+            // do not fire spuriously after the next construct refresh.
+            _pendingMergeHooks.Clear();
+            _pendingUnmergeHooks.Clear();
+
+            // After a construct refresh, pick up any merge blocks that were added from
+            // the newly merged grid and were not present during this Boot().
+            Subscribe<ConstructRefreshedEvent>();
+
+            // Monitor State for all merge blocks currently on grid
             RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
                 mergeBlock => mergeBlock.State,
                 (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state)
@@ -62,7 +85,8 @@ namespace IngameScript
         /// <summary>
         /// Handle state changes for merge blocks. This is called when the state of a merge block changes.
         /// When blocks lock (merge), grids become one. When blocks turn off (unmerge), grids separate.
-        /// Both scenarios require a full construct refresh since the grid topology changes.
+        /// Hooks are deferred to run after RefreshConstruct completes so that ConstructGridIds reflects
+        /// the new topology before any block lookups are attempted.
         /// </summary>
         /// <param name="mergeBlock"></param>
         /// <param name="newState"></param>
@@ -70,8 +94,8 @@ namespace IngameScript
         {
             var status = newState as MergeState?;
 
-            Mother.Print($"Merge block status changed: {status}");
-
+            if(Mother.DebugMode)
+                Mother.Print($"Merge block status changed:\n{mergeBlock.CustomName} : {status}", false);
 
             var previousState = PreviousStates.ContainsKey(mergeBlock.EntityId)
                 ? PreviousStates[mergeBlock.EntityId] as MergeState?
@@ -87,12 +111,12 @@ namespace IngameScript
                         if (previousState == MergeState.Locked)
                         {
                             Emit<MergeBlockOffEvent>(mergeBlock);
-                            BlockCatalogue.RunHook(mergeBlock, "onUnmerge");
 
-                            // Trigger full construct refresh - grids have separated
-                            BlockCatalogue.RefreshConstruct();
+                            // Defer hook - ConstructGridIds is updated by RefreshConstruct which
+                            // has only been queued at this point, not yet executed.
+                            _pendingUnmergeHooks.Add(mergeBlock);
 
-                            Mother.Print($"Merge block unlocked: {status}");
+                            //Mother.Print($"Merge block unlocked: {status}");
                         }
                         break;
 
@@ -101,16 +125,44 @@ namespace IngameScript
                         if (previousState != MergeState.Locked)
                         {
                             Emit<MergeBlockLockedEvent>(mergeBlock);
-                            BlockCatalogue.RunHook(mergeBlock, "onMerge");
 
-                            // Trigger full construct refresh - grids have merged into one
-                            BlockCatalogue.RefreshConstruct();
+                            // Defer hook for the same reason as above.
+                            _pendingMergeHooks.Add(mergeBlock);
 
-                            Mother.Print($"Merge block locked: {status}");
-
+                            //Mother.Print($"Merge block locked: {status}");
                         }
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Handle events emitted by other modules.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="eventData"></param>
+        public override void HandleEvent(IEvent e, object eventData)
+        {
+            if (e is ConstructRefreshedEvent)
+            {
+                // Register any merge blocks that arrived from the newly merged/attached grid.
+                // preserveState: true keeps existing PreviousStates so in-flight transitions
+                // (e.g. Locked recorded before the refresh) are not discarded.
+                RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
+                    mergeBlock => mergeBlock.State,
+                    (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state),
+                    preserveState: true
+                );
+
+                // ConstructGridIds is now up to date — run any deferred hooks.
+                foreach (var block in _pendingMergeHooks)
+                    BlockCatalogue.RunHook(block, "onMerge");
+
+                foreach (var block in _pendingUnmergeHooks)
+                    BlockCatalogue.RunHook(block, "onUnmerge");
+
+                _pendingMergeHooks.Clear();
+                _pendingUnmergeHooks.Clear();
             }
         }
 
@@ -144,24 +196,5 @@ namespace IngameScript
             else
                 LockMergeBlock(mergeBlock);
         }
-
-        /// <summary>
-        /// Handle events emitted by a module if subscribed.
-        /// </summary>
-        /// <param name="e"></param>
-        /// <param name="eventData"></param>
-        //public override void HandleEvent(IEvent e, object eventData)
-        //{
-        //    //IMyShipMergeBlock mergeBlock = (IMyShipMergeBlock)eventData;
-
-        //    //if (e is MergeBlockLockedEvent)
-        //    //    BlockCatalogue.RunHook(mergeBlock, "onLock");
-
-        //    //else if (e is MergeBlockUnlockedEvent)
-        //    //    BlockCatalogue.RunHook(mergeBlock, "onUnlock");
-
-        //    //else if (e is MergeBlockReadyToLockEvent)
-        //    //    BlockCatalogue.RunHook(mergeBlock, "onReady");
-        //}
     }
 }

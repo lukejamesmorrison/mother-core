@@ -817,8 +817,14 @@ namespace IngameScript
 
             Mother.GridTerminalSystem.GetBlocks(allBlocks);
 
+            // Build a set of already-tracked entity IDs to prevent duplicates.
+            // After a merge/unmerge the same block objects can appear in the GTS query
+            // while already existing in TerminalBlocks (their CubeGrid entity changed but
+            // they were never removed because RemoveBlocksFromGrids missed them).
+            var existingEntityIds = new HashSet<long>(TerminalBlocks.Select(b => b.EntityId));
+
             var newBlocks = allBlocks
-                .Where(b => gridIds.Contains(b.CubeGrid.EntityId))
+                .Where(b => gridIds.Contains(b.CubeGrid.EntityId) && !existingEntityIds.Contains(b.EntityId))
                 .ToList();
 
             int index = 0;
@@ -1071,6 +1077,7 @@ namespace IngameScript
 
             LoadBlockGroups();
             _constructRefreshPending = false;
+            Emit<ConstructRefreshedEvent>();
 
             yield return 0;
         }
@@ -1099,6 +1106,7 @@ namespace IngameScript
 
             LoadBlockGroups();
             _constructRefreshPending = false;
+            Emit<ConstructRefreshedEvent>();
 
             yield return 0;
         }
@@ -1136,6 +1144,7 @@ namespace IngameScript
 
             LoadBlockGroups();
             _constructRefreshPending = false;
+            Emit<ConstructRefreshedEvent>();
 
             yield return 0;
         }
