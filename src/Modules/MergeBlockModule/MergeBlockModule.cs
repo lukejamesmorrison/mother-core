@@ -70,6 +70,9 @@ namespace IngameScript
         {
             var status = newState as MergeState?;
 
+            Mother.Print($"Merge block status changed: {status}");
+
+
             var previousState = PreviousStates.ContainsKey(mergeBlock.EntityId)
                 ? PreviousStates[mergeBlock.EntityId] as MergeState?
                 : null;
@@ -79,6 +82,7 @@ namespace IngameScript
                 switch (status)
                 {
                     // When turning off - unmerged grids (grid separation)
+                    case MergeState.Working:
                     case MergeState.None:
                         if (previousState == MergeState.Locked)
                         {
@@ -87,6 +91,8 @@ namespace IngameScript
 
                             // Trigger full construct refresh - grids have separated
                             BlockCatalogue.RefreshConstruct();
+
+                            Mother.Print($"Merge block unlocked: {status}");
                         }
                         break;
 
@@ -99,6 +105,9 @@ namespace IngameScript
 
                             // Trigger full construct refresh - grids have merged into one
                             BlockCatalogue.RefreshConstruct();
+
+                            Mother.Print($"Merge block locked: {status}");
+
                         }
                         break;
                 }
