@@ -193,7 +193,7 @@ namespace IngameScript
         /// <returns></returns>
         public bool RunTerminalCommand(string commandString)
         {
-            if (commandString.Length > 0)
+            if (!string.IsNullOrWhiteSpace(commandString))
             {
                 // Substitute variables before parsing
                 commandString = Mother.SubstituteVariables(commandString);

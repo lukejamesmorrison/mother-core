@@ -347,5 +347,58 @@ namespace MotherCore.Tests.Tests
             Assert.That(routine.Commands.Count, Is.EqualTo(1));
             Assert.That(routine.Commands[0].Name, Is.EqualTo("nav/set-flight-plan"));
         }
+
+        // A command whose name is not present in the lookup dictionary should pass
+        // through Unpack() unchanged, appearing in UnpackedRoutineString as-is.
+        [Test]
+        public void Unpack_Passes_Through_Commands_Not_In_Lookup()
+        {
+            var lookup = new Dictionary<string, string>
+            {
+                { "knownCommand", "block/on Light1" }
+            };
+
+            var routine = new TerminalRoutine("unknownCommand");
+            routine.Unpack(lookup);
+
+            Assert.That(routine.UnpackedRoutineString, Does.Contain("unknownCommand"));
+        }
+
+        // A semicolon inside a quoted string within a parallel group must not be
+        // treated as a command separator. ParseParallelGroups tracks insideQuotes and
+        // skips semicolon splitting while inside a quoted section.
+        [Test]
+        public void Semicolon_In_Quoted_String_Inside_Parallel_Group_Is_Not_A_Separator()
+        {
+            var routine = new TerminalRoutine("{ screen/print \"a;b\"; }");
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[0][0].Name, Is.EqualTo("screen/print"));
+            Assert.That(routine.ParallelGroups[0][0].Arguments[0], Is.EqualTo("a;b"));
+        }
+
+        // Documents current (broken) behaviour: Unpack() iterates Commands, which is
+        // always empty when the routine was parsed as parallel groups. The result is an
+        // empty UnpackedRoutineString. This test pins the baseline so any accidental change
+        // is immediately visible. The fix is deferred to Phase 3.
+        [Test]
+        public void Unpack_On_Parallel_Group_Routine_Produces_Empty_String()
+        {
+            var lookup = new Dictionary<string, string>
+            {
+                { "cmd1", "block/on Light1" },
+                { "cmd2", "block/off Light1" }
+            };
+
+            // Parsed as parallel groups — Commands list will be empty
+            var routine = new TerminalRoutine("{ cmd1; } { cmd2; }");
+            routine.Unpack(lookup);
+
+            // Current behaviour: UnpackedRoutineString is empty because Commands is empty
+            // for a parallel-group routine. This is the pinned baseline.
+            Assert.That(routine.UnpackedRoutineString, Is.EqualTo(""));
+        }
     }
 }

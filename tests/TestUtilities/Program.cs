@@ -25,7 +25,7 @@ namespace IngameScript
             };
 
             // Register Extension Modules (none for core tests)
-            mother.RegisterModules(new List<IExtensionModule>());
+            //mother.RegisterModules(new List<IExtensionModule>());
         }
 
         /// <summary>

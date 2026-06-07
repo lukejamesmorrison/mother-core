@@ -12,8 +12,8 @@ Three test files cover this area:
 | Test File | Tests |
 |---|---|
 | `CommandBusTests.cs` | 34 |
-| `TerminalCommandTests.cs` | 24 |
-| `TerminalRoutineTests.cs` | 28 |
+| `TerminalCommandTests.cs` | 27 |
+| `TerminalRoutineTests.cs` | 31 |
 
 Overall coverage is solid for the happy path and the most common player-facing input patterns. Several meaningful gaps exist — mostly around command resolution priority, newer features (`!!` force-local, `_` local prefix, `!` important config commands), and a few uncovered edge cases in parsing.
 
@@ -248,9 +248,9 @@ I would like to enable the following capabilities in a future iteration of the l
 
 | # | Gap | Source | Priority | Status |
 |---|---|---|---|---|
-| T2 | **Unclosed quote** — `SplitInputIntoTerms` handles this gracefully (`end = input.Length`), but there is no test asserting the fallback behaviour (e.g. `new TerminalCommand("print \"unclosed")`). | Prior review | Low | Open |
-| T3 | **Single `!` prefix in a command name** — a player typing `!halt` gets a `Name` of `"!halt"`. This is significant because `ResolveConfigCommand` explicitly checks for the `!` prefix in `ConfigCommands`. No test covers what `TerminalCommand` produces for a `!`-prefixed name. | Prior review | Medium | Open |
-| T4 | **Empty command string** — `new TerminalCommand("")` will throw an `IndexOutOfRangeException` on `Arguments[0]` since `SplitInputIntoTerms` returns an empty list. No test documents or guards this. | Prior review | Medium | Open |
+| T2 | **Unclosed quote** — `SplitInputIntoTerms` handles this gracefully (`end = input.Length`), but there is no test asserting the fallback behaviour (e.g. `new TerminalCommand("print \"unclosed")`). | Prior review | Low | **Done** |
+| T3 | **Single `!` prefix in a command name** — a player typing `!halt` gets a `Name` of `"!halt"`. This is significant because `ResolveConfigCommand` explicitly checks for the `!` prefix in `ConfigCommands`. No test covers what `TerminalCommand` produces for a `!`-prefixed name. | Prior review | Medium | **Done** |
+| T4 | **Empty command string** — `new TerminalCommand("")` throws `ArgumentOutOfRangeException` on `Arguments[0]` since `SplitInputIntoTerms` returns an empty list. Current (broken) behaviour is pinned by `Empty_Command_String_Throws_ArgumentOutOfRange`. The guard fix is in Phase 2. | Prior review | Medium | **Pinned** |
 | T6 | **Nested double quotes in flight plan arguments** — A flight plan passed as a quoted argument (`fp/set "... { light/color "Light 2" green; } "`) will be split at the first inner `"` by `SplitInputIntoTerms` because it uses `IndexOf('"', i+1)` to find the closing quote. The flight plan argument would be truncated at `... { light/color `. | Examples | High | Open |
 
 ---
@@ -274,9 +274,9 @@ I would like to enable the following capabilities in a future iteration of the l
 
 | # | Gap | Source | Priority | Status |
 |---|---|---|---|---|
-| R2 | **`Unpack()` on a routine that has parallel groups** — `Unpack()` only iterates `Commands`, which is empty when the routine was parsed as parallel groups. The result is an empty `UnpackedRoutineString`. No test covers this, and the behaviour is likely unintentional. | Prior review | High | Open |
-| R3 | **`Unpack()` with a command not in the lookup** — a command that is not a named alias should pass through unchanged. Not explicitly tested; it is only tested with commands that are in the lookup. | Prior review | Low | Open |
-| R4 | **Quoted content with semicolons inside parallel groups** — e.g. `{ screen/print "a;b"; }`. The parser tracks `braceDepth` and `insideQuotes` but no test exercises their interaction inside a group. | Prior review | Low | Open |
+| R2 | **`Unpack()` on a routine that has parallel groups** — `Unpack()` only iterates `Commands`, which is empty when the routine was parsed as parallel groups. The result is an empty `UnpackedRoutineString`. Current (broken) behaviour pinned by `Unpack_On_Parallel_Group_Routine_Produces_Empty_String`. The fix is in Phase 3. | Prior review | High | **Pinned** |
+| R3 | **`Unpack()` with a command not in the lookup** — a command that is not a named alias should pass through unchanged. Not explicitly tested; it is only tested with commands that are in the lookup. | Prior review | Low | **Done** |
+| R4 | **Quoted content with semicolons inside parallel groups** — e.g. `{ screen/print "a;b"; }`. The parser tracks `braceDepth` and `insideQuotes` but no test exercises their interaction inside a group. | Prior review | Low | **Done** |
 | R5 | **Remote target with spaces in grid name** — The agreed convention for multi-word grid names is to wrap the entire target token in quotes with `@` inside: `"@Mining Ship" cmd`. `SetTarget` currently splits by the first space before checking for `@`, so `"@Mining` becomes the first term and the `@` check fails. The fix is small and isolated: make `SetTarget` quote-aware so that if the routine string starts with `"`, it scans to the closing `"`, unquotes the token, then checks for the `@` prefix and strips it to set `Target`. | Examples | High | Open |
 | R6 | **Mixed sequential + parallel routing is a broken documented use case** — `door/open AirlockDoor1; { door/open AirlockDoor2; } { light/color AlertLights red; }` — `ContainsParallelGroups` returns `false` (content exists outside braces), so `SplitRoutineCommands` is used. The `{ ... }` blocks get lumped into a single malformed command token whose `Name` is `{`. The existing test `Mixed_Content_Outside_Braces_Is_Not_Treated_As_Parallel` **asserts the broken behaviour** and will need to be replaced when this is fixed. | Examples | High | Open |
 | R7 | **Multiple remote targets in a single routine** — `@FighterA mode/set attack; @FighterB mode/set attack;` — `SetTarget` reads only the first term of the whole routine string and strips it. The second command `@FighterB mode/set attack` is never re-inspected for its own `@` prefix; `@FighterB` becomes the command name. **Broken documented use case.** | Examples | High | Open |
@@ -299,8 +299,8 @@ I would like to enable the following capabilities in a future iteration of the l
 
 | # | Gap | Source | Priority | Status |
 |---|---|---|---|---|
-| CF1 | **Multi-line pipe notation has no end-to-end test** — `MyIni` strips `\|` continuation markers and joins lines. `RegisterCommands` then replaces `\n` with spaces and collapses whitespace. This pipeline is used in every multi-line example but has zero test coverage in `ConfigurationTests`. A `MyIni` version change or a `RegisterCommands` regression would go undetected. | Examples | Medium | Open |
-| CF3 | **Flight plan multi-line loading is untested end-to-end** — A flight plan defined with pipe continuation across many lines depends on the `MyIni` → `RegisterCommands` → `TerminalRoutine` → quoted-argument preservation chain. No test covers the full path from CustomData to parsed `TerminalCommand.Arguments[0]`. | Examples | Medium | Open |
+| CF1 | **Multi-line pipe notation** — `MyIni` strips `\|` continuation markers and joins lines automatically before the value is ever read by `RegisterCommands`. The pipeline therefore requires no custom test: `MyIni` owns this behaviour and any regression would be a library-level failure, not a Mother-level one. | Examples | Medium | **Not Required** |
+| CF3 | **Flight plan multi-line loading** — same rationale as CF1: `MyIni` reassembles the pipe-continued lines into a single string before `RegisterCommands` or `TerminalRoutine` ever sees them. No end-to-end test is needed at this layer. | Examples | Medium | **Not Required** |
 
 ---
 
@@ -325,18 +325,18 @@ I would like to enable the following capabilities in a future iteration of the l
 
 | # | Gap | Source | Priority | Status |
 |---|---|---|---|---|
-| C1 | **`!!` force-local execution path** — `RunTerminalCommand("!!help")` should bypass any important construct command with the same name and execute locally. The parsing is tested in `TerminalCommandTests`, but the `ExecutePrimitiveCommand` and `ResolveConfigCommand` branches that honour `IsForceLocal` are never exercised from `CommandBus`. | Prior review | High | Open |
-| C2 | **`_` underscore local-command prefix** — `RunTerminalCommand("_myAction")` should resolve to `ConfigCommands["myAction"]` and execute locally, even if an important construct command with that name is registered. This path is entirely untested. | Prior review | High | Open |
-| C3 | **`!` important config command resolution** — `ConfigCommands["!dock"] = "help"` should be resolved when `RunTerminalCommand("dock")` is called and no construct instance owns it. The lookup `"!" + command.Name` branch in `ResolveConfigCommand` has no test. | Prior review | High | Open |
-| C4 | **`GetSelfCommandNames` with important (`!`-prefixed) config commands** — `ConfigCommands["!dock"]` — the key is included in names via the `foreach` loop. No test asserts that `!dock` is present in the returned list, which matters for `RegisterRemoteCommands` consumers. | Prior review | Medium | Open |
-| C5 | **`wait` command in a coroutine** — a routine like `"track; wait 2; track"` should yield between the two `track` executions. No test verifies that the wait yields the correct duration and that subsequent commands don't execute on the same tick. | Prior review | High | Open |
-| C6 | **Config command expanding to parallel groups** — `ConfigCommands["par"] = "{ track; } { track; }"` — when `RunTerminalCommand("par")` is called, the expanded routine should launch multiple coroutines. Not tested. | Prior review | Medium | Open |
-| C7 | **`CommandNotFound` message** — when an unrecognized command is run, `Messages.CommandNotFound` is passed to `Mother.Print`. No test asserts the correct message is printed or that the bus doesn't throw. | Prior review | Low | Open |
-| C8 | **`HaltCommand` execution** — `halt` is registered on boot but `Execute` (which calls `Clock.Halt()`) is never directly tested. | Prior review | Medium | Open |
-| C9 | **`HelpCommand` output** — `help` is registered on boot but the string it returns (listing all command names) is never asserted. | Prior review | Low | Open |
-| C10 | **`RegisterRemoteCommands` with an empty list** — should result in an empty set stored for the remote id, not an exception. | Prior review | Low | Open |
-| C11 | **`RunTerminalCommand` with only whitespace** — e.g. `"   "` — `commandString.Length > 0` would be true, so it would attempt to create a `TerminalRoutine`, which in turn creates a `TerminalCommand` from whitespace-trimmed empty string, throwing on `Arguments[0]`. | Prior review | Medium | Open |
-| C12 | **`wait` scope is not tested with parallel groups** — `{ wait 2; door/open A; } { door/open B; }` — the `wait` in the first group should only block commands within that coroutine. If the wait mechanism bleeds across parallel coroutines, both groups would stall, silently breaking the player's intended concurrency. | Examples | High | Open |
+| C1 | **`!!` force-local execution path** — `RunTerminalCommand("!!help")` should bypass any important construct command with the same name and execute locally. The parsing is tested in `TerminalCommandTests`, but the `ExecutePrimitiveCommand` and `ResolveConfigCommand` branches that honour `IsForceLocal` are never exercised from `CommandBus`. | Prior review | High | **Done** |
+| C2 | **`_` underscore local-command prefix** — `RunTerminalCommand("_myAction")` should resolve to `ConfigCommands["myAction"]` and execute locally, even if an important construct command with that name is registered. This path is entirely untested. | Prior review | High | **Done** |
+| C3 | **`!` important config command resolution** — `ConfigCommands["!dock"] = "help"` should be resolved when `RunTerminalCommand("dock")` is called and no construct instance owns it. The lookup `"!" + command.Name` branch in `ResolveConfigCommand` has no test. | Prior review | High | **Done** |
+| C4 | **`GetSelfCommandNames` with important (`!`-prefixed) config commands** — `ConfigCommands["!dock"]` — the key is included in names via the `foreach` loop. No test asserts that `!dock` is present in the returned list, which matters for `RegisterRemoteCommands` consumers. | Prior review | Medium | **Done** |
+| C5 | **`wait` command in a coroutine** — a routine like `"track; wait 2; track"` should yield between the two `track` executions. No test verifies that the wait yields the correct duration and that subsequent commands don't execute on the same tick. | Prior review | High | **Done** |
+| C6 | **Config command expanding to parallel groups** — `ConfigCommands["par"] = "{ track; } { track; }"` — when `RunTerminalCommand("par")` is called, the expanded routine should launch multiple coroutines. Not tested. | Prior review | Medium | **Done** |
+| C7 | **`CommandNotFound` message** — when an unrecognized command is run, `Messages.CommandNotFound` is passed to `Mother.Print`. No test asserts the correct message is printed or that the bus doesn't throw. | Prior review | Low | **Done** |
+| C8 | **`HaltCommand` execution** — `halt` is registered on boot but `Execute` (which calls `Clock.Halt()`) is never directly tested. | Prior review | Medium | **Done** |
+| C9 | **`HelpCommand` output** — `help` is registered on boot but the string it returns (listing all command names) is never asserted. Also revealed that `HelpCommand` was iterating `Module.Commands` (the `BaseModule` list, always empty for `CommandBus`) instead of `Module.ModuleCommands`; the bug was fixed as part of writing the test. | Prior review | Low | **Done** |
+| C10 | **`RegisterRemoteCommands` with an empty list** — should result in an empty set stored for the remote id, not an exception. | Prior review | Low | **Done** |
+| C11 | **`RunTerminalCommand` with only whitespace** — e.g. `"   "` — `commandString.Length > 0` would be true, so it would attempt to create a `TerminalRoutine`, which in turn creates a `TerminalCommand` from whitespace-trimmed empty string, throwing on `Arguments[0]`. Guard changed to `!string.IsNullOrWhiteSpace`. | Prior review | Medium | **Done** |
+| C12 | **`wait` scope is not tested with parallel groups** — `{ wait 2; door/open A; } { door/open B; }` — the `wait` in the first group should only block commands within that coroutine. If the wait mechanism bleeds across parallel coroutines, both groups would stall, silently breaking the player's intended concurrency. | Examples | High | **Done** |
 | C13 | **Fleet-targeting (multi-target) routing is untested** — a config command like `@FighterA mode/set attack; @FighterB mode/set attack;` should route each semicolon-separated command to its own target. Because `SetTarget` only captures the first `@` prefix of the whole routine string, the second `@FighterB` token becomes a command name rather than a routing directive. No tests cover multi-target dispatch or the expected failure mode. | Examples | High | Open |
 
 ---
@@ -348,48 +348,39 @@ The following tests are recommended to close the gaps above. They are grouped by
 ### Phase 1 — `TerminalCommandTests.cs`
 
 ```
-[T4] Empty_Command_String_Does_Not_Throw          -- guard, should not IndexOutOfRange
-[T3] Single_Bang_Prefix_Preserved_In_Name         -- new TerminalCommand("!halt").Name == "!halt"
-[T2] Unclosed_Quote_Falls_Back_To_End_Of_String   -- argument is captured to end of input
+[T4] Empty_Command_String_Throws_ArgumentOutOfRange   -- ✅ pins current broken behaviour (guard in Phase 2)
+[T3] Single_Bang_Prefix_Is_Preserved_In_Name          -- ✅ new TerminalCommand("!halt").Name == "!halt"
+[T2] Unclosed_Quote_Falls_Back_To_End_Of_String        -- ✅ argument is captured to end of input
 ```
 
 ### Phase 1 — `TerminalRoutineTests.cs`
 
 ```
-[R3] Unpack_Passes_Through_Commands_Not_In_Lookup  -- command not in lookup survives Unpack() unchanged
-[R4] Semicolon_In_Quoted_String_Inside_Parallel_Group_Is_Not_A_Separator
-     -- { screen/print "a;b"; } → 1 command, argument "a;b"
-[R2] Unpack_On_Parallel_Group_Routine_Behaviour_Is_Defined
-     -- documents current output and pins it so any change is visible
+[R3] Unpack_Passes_Through_Commands_Not_In_Lookup                        -- ✅ command not in lookup survives Unpack() unchanged
+[R4] Semicolon_In_Quoted_String_Inside_Parallel_Group_Is_Not_A_Separator -- ✅ { screen/print "a;b"; } → 1 command, argument "a;b"
+[R2] Unpack_On_Parallel_Group_Routine_Produces_Empty_String              -- ✅ pins current broken behaviour (fix in Phase 3)
 ```
 
 ### Phase 1 — `CommandBusTests.cs`
 
 ```
-[C1]  Force_Local_Bypasses_Important_Construct_Command
-[C2]  Underscore_Prefix_Resolves_Local_Config_Command
-[C3]  Important_Config_Command_Is_Resolved_When_No_Construct_Owner
-[C4]  GetSelfCommandNames_Includes_Important_Config_Command_With_Bang_Prefix
-[C5]  Wait_Blocks_Subsequent_Commands_In_Same_Coroutine
-[C6]  Config_Command_Expanding_To_Parallel_Groups_Launches_Multiple_Coroutines
-[C7]  Unknown_Command_Prints_CommandNotFound_And_Does_Not_Throw
-[C8]  Halt_Command_Clears_All_Coroutines
-[C9]  Help_Command_Output_Lists_All_Registered_Commands
-[C10] RegisterRemoteCommands_With_Empty_List_Stores_Empty_Set
-[C11] RunTerminalCommand_With_Only_Whitespace_Returns_False
-[C12] Wait_In_Parallel_Group_Does_Not_Block_Other_Parallel_Group
+[C1]  Force_Local_Bypasses_Important_Construct_Command              ✅
+[C2]  Underscore_Prefix_Resolves_Local_Config_Command               ✅
+[C3]  Important_Config_Command_Is_Resolved_When_No_Construct_Owner              ✅
+[C4]  GetSelfCommandNames_Includes_Important_Config_Command_With_Bang_Prefix   ✅
+[C5]  Wait_Blocks_Subsequent_Commands_In_Same_Coroutine                        ✅
+[C6]  Config_Command_Expanding_To_Parallel_Groups_Launches_Multiple_Coroutines ✅
+[C7]  Unknown_Command_Prints_CommandNotFound_And_Does_Not_Throw   ✅
+[C8]  Halt_Command_Clears_All_Coroutines                           ✅
+[C9]  Help_Command_Output_Lists_All_Registered_Commands        ✅
+[C10] RegisterRemoteCommands_With_Empty_List_Stores_Empty_Set  ✅
+[C11] RunTerminalCommand_With_Only_Whitespace_Returns_False        ✅
+[C12] Wait_In_Parallel_Group_Does_Not_Block_Other_Parallel_Group   ✅
 ```
 
 ### Phase 1 — `ConfigurationTests.cs`
 
-```
-[CF1-a] Multi_Line_Pipe_Command_Loads_As_Single_Command_String
-         -- openDoors=\n| door/open A;\n| light/color B green;\n → "door/open A; light/color B green;"
-[CF1-b] Multi_Line_Pipe_Command_Executes_Correctly_Via_CommandBus
-         -- end-to-end: CustomData → Boot → RunTerminalCommand("openDoors")
-[CF3]   Flight_Plan_Multi_Line_Pipe_Loads_As_Quoted_Single_Argument
-         -- fp/set "GPS:A:...: { ... } GPS:B:...: { ... }" → Arguments[0] is the full plan string
-```
+> **CF1 and CF3 removed.** `MyIni` reassembles pipe-continued lines into a single string before `RegisterCommands` ever reads the value. The multi-line → single-string transformation is a `MyIni` library concern, not a Mother concern, so no end-to-end tests are required at this layer.
 
 ### Phase 2 — `TerminalCommandTests.cs`
 
@@ -444,7 +435,7 @@ Each item in this phase touches a single, well-scoped method with no downstream 
 
 | Item | Change required |
 |---|---|
-| T4 / C11 | Guard `TerminalCommand` constructor and/or `RunTerminalCommand` against empty/whitespace input. Add early return or throw `ArgumentException`. |
+| T4 / C11 | Guard `TerminalCommand` constructor and/or `RunTerminalCommand` against empty/whitespace input. `RunTerminalCommand` guard updated to `!string.IsNullOrWhiteSpace` (**Done**); `TerminalCommand` constructor guard deferred (T4 pins broken behaviour). |
 | R5 | Fix `SetTarget` to be quote-aware. If the routine string starts with `"`, scan to the closing `"`, unquote the token, then apply the existing `@` prefix check. This is a change to a single method with no structural side effects. |
 | T6 | Fix `SplitInputIntoTerms` for nested quotes. The simplest approach is to define an escape character (`\"` within a quoted string), or to use a different delimiter for the outer flight plan wrapper. Coordinate with the flight plan format specification before implementing. |
 
@@ -546,7 +537,7 @@ _mother.ProgrammableBlock.CustomData = new CustomDataBuilder()
     .Build();
 ```
 
-This directly benefits CF1, CF3, and all variable/parameter substitution tests in the proposed Phase 1–3 suite.
+This directly benefits all variable/parameter substitution tests in the proposed Phase 1–3 suite.
 
 ---
 
@@ -625,35 +616,19 @@ This directly enables C5 and C12 without fragile manual tick counting.
 
 ---
 
-### H4. `PrintCapture` — assert what Mother prints without `Terminal` wiring
+### H4. `PrintCapture` — assert what Mother prints without `Terminal` wiring ✅ Done
 
 **Problem:** Several gaps (C7 `CommandNotFound`, C9 `HelpCommand` output) require asserting the string passed to `Mother.Print`. The `Terminal` module is not booted in most module-level tests, so `Mother.Print` falls back to `Program.Echo`. There is no way to capture that output in the current setup without replacing the echo delegate, which requires rebuilding the program.
 
-**Recommendation:** Add a `PrintCapture` utility to `TestUtilities/` that redirects `Program.Echo` at setup time:
-
-```csharp
-// TestUtilities/PrintCapture.cs
-public class PrintCapture
-{
-    public List<string> Lines { get; } = new List<string>();
-
-    public PrintCapture(Program program)
-    {
-        program.Echo = message => Lines.Add(message);
-    }
-
-    public bool Contains(string fragment) =>
-        Lines.Any(l => l.Contains(fragment));
-
-    public void Clear() => Lines.Clear();
-}
-```
+**Implementation:** `PrintCapture` in `TestUtilities/PrintCapture.cs` accepts a `TestSession` and redirects its underlying `Program.Echo` delegate to an in-memory list. It exposes `Lines`, `Contains(fragment)`, and `Clear()`.
 
 Usage:
 ```csharp
-var capture = new PrintCapture(_program);
-commandBus.Boot();
-commandBus.RunTerminalCommand("nonexistent");
+var session = new TestSession().Boot();
+var capture = new PrintCapture(session);
+
+session.Bus.RunTerminalCommand("nonexistent");
+session.Clock.RunToIdle();
 
 Assert.That(capture.Contains("Command not found"), Is.True);
 ```
@@ -708,27 +683,11 @@ Sessions joined via `OnNetwork()` expose `session.NetworkIGC` typed as `MockIGC`
 
 ---
 
-### H7. Complete `ProgrammableBlockFactory`
+### H7. Complete `ProgrammableBlockFactory` ✅ Done
 
-**Problem:** `Factories/ProgrammableBlockFactory.cs` exists but is entirely commented out. Tests that need a PB with specific properties (a particular `CustomName`, `EntityId`, or `CustomData`) have no factory to call — they either use the default fake from `ProgramBuilder` or set properties inline, which is fragile when the fake's interface changes.
+**Problem:** `Factories/ProgrammableBlockFactory.cs` existed but was entirely commented out. Tests that need a PB with specific properties (a particular `CustomName`, `EntityId`, or `CustomData`) had no factory to call — they either used the default fake from `ProgramBuilder` or set properties inline, which is fragile when the fake's interface changes.
 
-**Recommendation:** Uncomment and complete `ProgrammableBlockFactory` with at minimum:
-
-```csharp
-public static IMyProgrammableBlock Create(
-    string customData = "",
-    string customName = "Test PB",
-    long entityId = 1000)
-{
-    var fake = A.Fake<IMyProgrammableBlock>();
-    A.CallTo(() => fake.CustomData).Returns(customData);
-    A.CallTo(() => fake.CustomName).Returns(customName);
-    A.CallTo(() => fake.EntityId).Returns(entityId);
-    return fake;
-}
-```
-
-This factory would be used directly by CF1/CF3 (CustomData loading tests) and by R7/C13 (multi-script scenarios where each PB needs a distinct identity).
+**Implementation:** `ProgrammableBlockFactory` in `Factories/ProgrammableBlockFactory.cs` is now complete. It creates a `FakeItEasy` fake with mutable `CustomData` (supports get/set), a configurable `CustomName` (defaults to `"Mother Core PB"`), and a random `EntityId` when none is supplied. This factory is used directly by R7/C13 (multi-script scenarios where each PB needs a distinct identity).
 
 ---
 
@@ -785,13 +744,13 @@ public class MotherOSTestSession : TestSession
 
 | # | Utility | Location | Unblocks gaps | Status |
 |---|---|---|---|---|
-| H1 | `CustomDataBuilder` | `TestUtilities/CustomDataBuilder.cs` | CF1, CF3, all variable/param tests | **Done** |
+| H1 | `CustomDataBuilder` | `TestUtilities/CustomDataBuilder.cs` | All variable/param tests (CF1, CF3 removed as not required) | **Done** |
 | H2 | `TrackingCommand` (shared) | `TestUtilities/TrackingCommand.cs` | C5, C6, C12, C13 | **Done** |
 | H3 | `ClockDriver` | `TestUtilities/ClockDriver.cs` | C5, C12, coroutine ordering | **Done** |
-| H4 | `PrintCapture` | `TestUtilities/PrintCapture.cs` | C7, C9 | Open |
+| H4 | `PrintCapture` | `TestUtilities/PrintCapture.cs` | C7, C9 | **Done** |
 | H5 | `MockIGCNetwork` + `MockIGC` | `TestUtilities/MockIGCNetwork.cs` | C13, R7, all multi-script tests | **Done** |
 | H6 | `BootedCommandBus()` in `BaseModuleTests` | `Tests/BaseModuleTests.cs` | All CommandBus tests | Superseded by `TestSession` |
-| H7 | Complete `ProgrammableBlockFactory` | `Factories/ProgrammableBlockFactory.cs` | CF1, CF3, R7, C13 | Open |
+| H7 | Complete `ProgrammableBlockFactory` | `Factories/ProgrammableBlockFactory.cs` | R7, C13 (CF1, CF3 removed as not required) | **Done** |
 | H8 | `TestSession` | `TestUtilities/TestSession.cs` | All end-to-end tests; base for MotherOS/GUI | **Done** |
 
-H4 and H7 are the remaining open items before beginning the Phase 1 test gaps.
+All harness items H1–H8 are complete. Phase 1 test gaps can now begin.

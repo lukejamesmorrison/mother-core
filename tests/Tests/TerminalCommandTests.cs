@@ -264,5 +264,38 @@ namespace MotherCore.Tests.Tests
             Assert.That(command.Name, Is.EqualTo("help"));
             Assert.That(command.IsForceLocal, Is.False);
         }
+
+        // Documents current behaviour: an empty string throws ArgumentOutOfRangeException
+        // because SplitInputIntoTerms returns an empty list and ParseCommand accesses Arguments[0]
+        // on an empty List<string>.  The guard fix is deferred to Phase 2 (T4 / C11).
+        [Test]
+        public void Empty_Command_String_Throws_ArgumentOutOfRange()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new TerminalCommand(""));
+        }
+
+        // A single '!' prefix is NOT the force-local '!!' prefix, so it is preserved
+        // verbatim in Name. ResolveConfigCommand on the bus uses this prefix to identify
+        // important config commands, so TerminalCommand must not strip it.
+        [Test]
+        public void Single_Bang_Prefix_Is_Preserved_In_Name()
+        {
+            TerminalCommand command = new TerminalCommand("!halt");
+
+            Assert.That(command.Name, Is.EqualTo("!halt"));
+            Assert.That(command.IsForceLocal, Is.False);
+        }
+
+        // An unclosed quote causes SplitInputIntoTerms to fall back to the end of
+        // the input string (end = input.Length), so the argument is captured rather than lost.
+        [Test]
+        public void Unclosed_Quote_Falls_Back_To_End_Of_String()
+        {
+            TerminalCommand command = new TerminalCommand("print \"unclosed");
+
+            Assert.That(command.Name, Is.EqualTo("print"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(1));
+            Assert.That(command.Arguments[0], Is.EqualTo("unclosed"));
+        }
     }
 }
