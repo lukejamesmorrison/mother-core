@@ -3,7 +3,7 @@ using NUnit.Framework;
 using MotherCore.Tests.TestUtilities;
 using System.Linq;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Integration
 {
     /// <summary>
     /// Verifies that <see cref="TestSession"/> and <see cref="MockIGCNetwork"/> are

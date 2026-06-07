@@ -2,10 +2,11 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Models
 {
     public class TerminalCommandTests : BaseModuleTests
     {

@@ -6,7 +6,7 @@ using Sandbox.ModAPI.Ingame;
 using System.Net.NetworkInformation;
 //using System.Collections.Generic;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.TestUtilities
 {
     public class BaseModuleTests
     {

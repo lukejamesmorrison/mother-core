@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Modules
 {
     public class CommandBusTests : BaseModuleTests
     {

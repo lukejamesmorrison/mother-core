@@ -5,7 +5,7 @@ using MotherCore.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Core
 {
     public class MotherTests
     {

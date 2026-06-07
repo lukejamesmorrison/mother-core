@@ -2,13 +2,14 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System.Net.NetworkInformation;
 using System;
 using System.Collections.Generic;
 using VRageMath;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Utilities
 {
     public class SerializerTests : BaseModuleTests
     {

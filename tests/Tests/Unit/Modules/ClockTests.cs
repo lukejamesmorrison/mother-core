@@ -2,11 +2,12 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Modules
 {
     /// <summary>
     /// Tests for the Clock module's coroutine, scheduled task, and queued task

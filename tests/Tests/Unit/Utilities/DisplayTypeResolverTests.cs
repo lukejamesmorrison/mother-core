@@ -3,7 +3,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using VRage.Game.ModAPI.Ingame.Utilities;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Utilities
 {
     public class DisplayTypeResolverTests
     {
@@ -24,7 +24,7 @@ namespace MotherCore.Tests.Tests
         }
 
         // ----------------------------------------------------------------
-        // Unquoted view name — no parameter
+        // Unquoted view name ï¿½ no parameter
         // ----------------------------------------------------------------
 
         [Test]
@@ -54,7 +54,7 @@ namespace MotherCore.Tests.Tests
         }
 
         // ----------------------------------------------------------------
-        // Quoted view name with spaces — no parameter
+        // Quoted view name with spaces ï¿½ no parameter
         // ----------------------------------------------------------------
 
         [Test]

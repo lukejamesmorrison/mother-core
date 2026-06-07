@@ -6,7 +6,7 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Modules
 {
     public class ConfigurationTests : BaseModuleTests
     {

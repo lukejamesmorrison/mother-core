@@ -2,11 +2,12 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System.Net.NetworkInformation;
 using System;
 
-namespace MotherCore.Tests.Tests
+namespace MotherCore.Tests.Unit.Modules
 {
     public class EventBusTests : BaseModuleTests
     {
