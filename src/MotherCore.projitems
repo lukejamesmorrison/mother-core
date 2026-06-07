@@ -92,6 +92,7 @@
     <None Include="$(MSBuildThisFileDirectory).gitattributes" />
     <None Include="$(MSBuildThisFileDirectory).gitignore" />
     <None Include="$(MSBuildThisFileDirectory)CHANGELOG.md" />
+    <None Include="$(MSBuildThisFileDirectory)Specs\CommandBusRefactorSpec.md" />
     <None Include="$(MSBuildThisFileDirectory)ImprovementAreas.md" />
     <None Include="$(MSBuildThisFileDirectory)LICENSE.md" />
     <None Include="$(MSBuildThisFileDirectory)README.md" />
@@ -101,6 +102,7 @@
     <Folder Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Events\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Specs\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />
   </ItemGroup>
 </Project>
