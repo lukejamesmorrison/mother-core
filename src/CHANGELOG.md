@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
-## [1.1.4] = 2026-05-XX
+## [1.1.4] = 2026-06-XX
+
+### Added
+
+- Add `halt` command that stops are current and future command exection. 
 
 ### Fixed
 

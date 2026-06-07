@@ -88,6 +88,7 @@ namespace IngameScript
 
             // Commands
             RegisterCommand(new HelpCommand(this));
+            RegisterCommand(new HaltCommand(Clock));
 
             // Routes
             // External commands from remote grids - relay handles routing

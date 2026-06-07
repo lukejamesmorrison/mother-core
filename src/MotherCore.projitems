@@ -29,6 +29,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Clock\Clock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\BlockMessages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\CommandBus.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HaltCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HelpCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalRoutine.cs" />

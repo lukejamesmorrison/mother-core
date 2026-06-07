@@ -151,9 +151,23 @@ namespace IngameScript
             Coroutines.Add(new Coroutine { Enumerator = routine.GetEnumerator(), WaitTime = waitTime });
         }
 
+        /// <summary>
+        /// Halt execution by clearing all queued tasks and active coroutines.
+        /// System tasks are not affected.
+        /// </summary>
+        public void Halt()
+        {
+            QueuedTasks.Clear();
+
+            for (int i = Coroutines.Count - 1; i >= 0; i--)
+                Coroutines[i].Enumerator.Dispose();
+
+            Coroutines.Clear();
+        }
+
 
         /// <summary>
-        /// Run the Clock eac program cycle. The clock will run scheduled 
+        /// Run the Clock each program cycle.
         /// tasks and any tasks queued for execution with a time delay.
         /// </summary>
         public override void Run()
