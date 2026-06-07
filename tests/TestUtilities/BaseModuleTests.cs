@@ -3,6 +3,7 @@ using IngameScript;
 using NUnit.Framework;
 using MotherCore.TestUtilities;
 using Sandbox.ModAPI.Ingame;
+using System.Reflection;
 using System.Net.NetworkInformation;
 //using System.Collections.Generic;
 
@@ -16,8 +17,9 @@ namespace MotherCore.Tests.TestUtilities
         [SetUp]
         public void Setup()
         {
-            _program = Gateway.CreateProgram<Program>().Build();
-            _mother = new Mother(_program);
+            var session = new TestSession().Boot();
+            _program = session.Program;
+            _mother = session.Mother;
         }
     }
 }

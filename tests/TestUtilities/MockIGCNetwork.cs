@@ -20,15 +20,12 @@ namespace MotherCore.Tests.TestUtilities
     /// <code>
     /// var network = new MockIGCNetwork();
     ///
-    /// var shipA = network.CreateSession()
+    /// var shipA = new TestSession("ShipA")
+    ///     .OnNetwork(network)
     ///     .WithCustomData(new CustomDataBuilder().WithCommand("attack", "@ShipB weapons/fire").Build())
     ///     .Boot();
     ///
-    /// var shipB = network.CreateSession().Boot();
-    ///
-    /// // Teach each script about the other
-    /// network.RegisterInAlmanac(shipA, shipB, "ShipA");
-    /// network.RegisterInAlmanac(shipB, shipA, "ShipB");
+    /// var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
     ///
     /// shipA.Bus.RunTerminalCommand("attack");
     ///
@@ -44,8 +41,8 @@ namespace MotherCore.Tests.TestUtilities
         static long _nextId = 100_000_000_000L;
 
         readonly List<MockIGC> _endpoints = new List<MockIGC>();
-        readonly List<(TestSession Session, string GridName)> _sessions
-            = new List<(TestSession, string)>();
+        readonly List<(ITestSession Session, string GridName)> _sessions
+            = new List<(ITestSession, string)>();
         readonly List<PendingDelivery> _pending = new List<PendingDelivery>();
 
         /// <summary>
@@ -67,12 +64,12 @@ namespace MotherCore.Tests.TestUtilities
         }
 
         /// <summary>
-        /// Registers a booted <see cref="TestSession"/> on the network and
-        /// cross-populates every other booted session's Almanac with this session's
-        /// grid name, and vice versa. Called automatically by
-        /// <see cref="TestSession.Boot"/> — no manual call required.
+        /// Registers a booted session on the network and cross-populates every other
+        /// booted session's Almanac with this session's grid name, and vice versa.
+        /// Called automatically by <see cref="TestSession{TProgram}.Boot"/> — no
+        /// manual call required.
         /// </summary>
-        internal void RegisterSession(TestSession session, string gridName)
+        internal void RegisterSession(ITestSession session, string gridName)
         {
             foreach (var (existing, existingName) in _sessions)
             {
@@ -83,7 +80,7 @@ namespace MotherCore.Tests.TestUtilities
             _sessions.Add((session, gridName));
         }
 
-        static void SyncToAlmanac(TestSession recipient, TestSession subject, string subjectName)
+        static void SyncToAlmanac(ITestSession recipient, ITestSession subject, string subjectName)
         {
             var almanac = recipient.Mother.GetModule<Almanac>();
             if (almanac == null) return;

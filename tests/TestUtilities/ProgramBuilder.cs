@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Runtime.Serialization;
 using FakeItEasy;
+using MotherCore.Tests;
+using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
-using VRage.Game.ModAPI.Ingame;
-using VRageMath;
 
 
-namespace MotherCore.TestUtilities
+namespace MotherCore.Tests.TestUtilities
 {
     /// <summary>
     /// Provides utility methods for setting up and testing Space Engineers' programmable block scripts.
@@ -58,8 +58,8 @@ namespace MotherCore.TestUtilities
         /// The builder pattern is used to allow flexible configuration of dependencies before final instantiation.
         /// Each method (e.g., <see cref="WithGridTerminalSystem"/>, <see cref="WithRuntime"/>) returns a new builder instance
         /// with the specified dependency, ensuring immutability.
-        /// 
-        /// The `Build` method finalizes the construction, initializing the script with the provided dependencies.
+        ///
+        /// The <c>Build</c> method finalizes the construction, initializing the script with the provided dependencies.
         /// </remarks>
         public class ProgramBuilder<T> where T : MyGridProgram, new()
         {
@@ -114,39 +114,27 @@ namespace MotherCore.TestUtilities
                 _storage = storage;
             }
 
-            /// <summary>
-            /// Specifies a custom Inter-Grid Communication (IGC) system.
-            /// </summary>
+            /// <summary>Specifies a custom Inter-Grid Communication (IGC) system.</summary>
             public ProgramBuilder<T> WithIgc(IMyIntergridCommunicationSystem igc) =>
                 new ProgramBuilder<T>(igc, _gridTerminalSystem, _runtime, _me, _echo, _storage);
 
-            /// <summary>
-            /// Specifies a custom Grid Terminal System.
-            /// </summary>
+            /// <summary>Specifies a custom Grid Terminal System.</summary>
             public ProgramBuilder<T> WithGridTerminalSystem(IMyGridTerminalSystem gridTerminalSystem) =>
                 new ProgramBuilder<T>(_igc, gridTerminalSystem, _runtime, _me, _echo, _storage);
 
-            /// <summary>
-            /// Specifies a custom runtime environment.
-            /// </summary>
+            /// <summary>Specifies a custom runtime environment.</summary>
             public ProgramBuilder<T> WithRuntime(IMyGridProgramRuntimeInfo runtime) =>
                 new ProgramBuilder<T>(_igc, _gridTerminalSystem, runtime, _me, _echo, _storage);
 
-            /// <summary>
-            /// Specifies a custom programmable block reference.
-            /// </summary>
+            /// <summary>Specifies a custom programmable block reference.</summary>
             public ProgramBuilder<T> WithMe(IMyProgrammableBlock me) =>
                 new ProgramBuilder<T>(_igc, _gridTerminalSystem, _runtime, me, _echo, _storage);
 
-            /// <summary>
-            /// Specifies a custom echo function.
-            /// </summary>
+            /// <summary>Specifies a custom echo function.</summary>
             public ProgramBuilder<T> WithEcho(Action<string> echo) =>
                 new ProgramBuilder<T>(_igc, _gridTerminalSystem, _runtime, _me, echo, _storage);
 
-            /// <summary>
-            /// Specifies custom storage data.
-            /// </summary>
+            /// <summary>Specifies custom storage data.</summary>
             public ProgramBuilder<T> WithStorage(string storage) =>
                 new ProgramBuilder<T>(_igc, _gridTerminalSystem, _runtime, _me, _echo, storage);
 
@@ -154,66 +142,30 @@ namespace MotherCore.TestUtilities
             {
                 if (_igc != null) return () => _igc;
 
-                var me = GetMe(); // capture instance method result outside the lambda
-                //var fakeIgc = A.Fake<IMyIntergridCommunicationSystem>(o => o.Strict());
-                var fakeIgc = A.Fake<IMyIntergridCommunicationSystem>();
-
-                // Manually implement the Me property using a custom fake
-                //var me = GetMe();
-                var rand = new Random();
-                long randomId = ((long)rand.Next(100000, 1000000)) * 10000000000L
-                   + rand.Next(0, 1000000000); // ensures we stay within 15 digits
-
-                A.CallTo(() => fakeIgc.Me).Returns(randomId);
-
-                return () => fakeIgc;
+                // Use a real MockIGC rather than a partial FakeItEasy stub so that
+                // IntergridMessageService.Boot() gets functioning UnicastListener and
+                // RegisterBroadcastListener implementations. The private network is only
+                // used to allocate the endpoint; messages sent to it are silently dropped
+                // since no Deliver() is called. For multi-script tests, supply a shared
+                // MockIGCNetwork via TestSession.OnNetwork().
+                var standaloneIgc = new MockIGCNetwork().AllocateEndpoint();
+                return () => standaloneIgc;
             }
 
-            private IMyGridTerminalSystem GetGridTerminalSystem()
-            {
-                return _gridTerminalSystem 
-                    //?? A.Fake<IMyGridTerminalSystem>(o => o.Strict());
-                    ?? A.Fake<IMyGridTerminalSystem>();
-
-            }
+            private IMyGridTerminalSystem GetGridTerminalSystem() =>
+                _gridTerminalSystem ?? A.Fake<IMyGridTerminalSystem>();
 
             private string GetStorage() => _storage ?? string.Empty;
 
-
-
-            private IMyProgrammableBlock GetMe()
-            {
-                if (_me != null) return _me;
-
-                // Create strict fakes
-                //var fakeMe = A.Fake<IMyProgrammableBlock>(opts => opts.Strict());
-                var fakeMe = A.Fake<IMyProgrammableBlock>();
-
-                //var fakeCubeGrid = A.Fake<IMyCubeGrid>(opts => opts.Strict());
-                var fakeCubeGrid = A.Fake<IMyCubeGrid>();
-
-
-                // Configure CubeGrid property to return fake grid
-                A.CallTo(() => fakeMe.CubeGrid).Returns(fakeCubeGrid);
-
-                // random long
-                long randomId = new Random().Next(1, 1000000);
-                A.CallTo(() => fakeMe.EntityId).Returns(randomId);
-
-                // Optionally set up common calls
-                //A.CallTo(() => fakeCubeGrid.GetPosition()).Returns(Vector3D.Zero);
-
-                return fakeMe;
-            }
+            // Delegates to ProgrammableBlockFactory so CustomData is properly mutable
+            // and EntityId is unique, matching the same contract used across all tests.
+            private IMyProgrammableBlock GetMe() =>
+                _me ?? ProgrammableBlockFactory.Create();
 
             private Action<string> GetEcho() => _echo ?? Console.WriteLine;
 
-            private IMyGridProgramRuntimeInfo GetRuntime() {
-                return _runtime 
-                    //?? A.Fake<IMyGridProgramRuntimeInfo>(o => o.Strict());
-                    ?? A.Fake<IMyGridProgramRuntimeInfo>();
-
-            }
+            private IMyGridProgramRuntimeInfo GetRuntime() =>
+                _runtime ?? A.Fake<IMyGridProgramRuntimeInfo>();
         }
     }
 }

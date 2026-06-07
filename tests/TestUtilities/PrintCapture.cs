@@ -30,7 +30,7 @@ namespace MotherCore.Tests.TestUtilities
         /// <summary>
         /// Redirects <c>Program.Echo</c> for the session's underlying program.
         /// </summary>
-        public PrintCapture(TestSession session)
+        public PrintCapture(ITestSession session)
         {
             ((Sandbox.ModAPI.IMyGridProgram)session.Mother.Program).Echo = message => Lines.Add(message);
         }
