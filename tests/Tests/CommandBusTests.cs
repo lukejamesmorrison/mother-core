@@ -1,6 +1,6 @@
 ﻿using IngameScript;
 using NUnit.Framework;
-using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -400,17 +400,15 @@ namespace MotherCore.Tests.Tests
         [Test]
         public void Single_Command_Creates_Exactly_One_Coroutine()
         {
-            var tracker = new ExecutionTracker();
-            CommandBus commandBus = BootedBusWithTracker(tracker);
-            Clock clock = _mother.GetModule<Clock>();
+            var tracker = new TrackingCommand();
+            var session = new TestSession().WithCommands(tracker).Boot();
 
-            commandBus.RunTerminalCommand("track");
+            session.Bus.RunTerminalCommand("track");
 
-            Assert.That(clock.CoroutineCount, Is.EqualTo(1),
+            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(1),
                 "A single command should add exactly one coroutine.");
 
-            clock.Run();
-            clock.Run();
+            session.Clock.Tick(2);
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
         }
@@ -424,24 +422,23 @@ namespace MotherCore.Tests.Tests
         [Test]
         public void Semicolon_Commands_Run_Sequentially_In_One_Coroutine()
         {
-            var tracker = new ExecutionTracker();
-            CommandBus commandBus = BootedBusWithTracker(tracker);
-            Clock clock = _mother.GetModule<Clock>();
+            var tracker = new TrackingCommand();
+            var session = new TestSession().WithCommands(tracker).Boot();
 
-            commandBus.RunTerminalCommand("track; track; track");
+            session.Bus.RunTerminalCommand("track; track; track");
 
-            Assert.That(clock.CoroutineCount, Is.EqualTo(1),
+            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(1),
                 "Semicolon-separated commands should share a single coroutine.");
 
-            clock.Run();
+            session.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "First tick: only the first command should have executed.");
 
-            clock.Run();
+            session.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
                 "Second tick: the second command should have executed.");
 
-            clock.Run();
+            session.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(3),
                 "Third tick: the third command should have executed.");
         }
@@ -452,66 +449,19 @@ namespace MotherCore.Tests.Tests
         [Test]
         public void Parallel_Groups_Launch_One_Coroutine_Per_Group()
         {
-            var tracker = new ExecutionTracker();
-            CommandBus commandBus = BootedBusWithTracker(tracker);
-            Clock clock = _mother.GetModule<Clock>();
+            var tracker = new TrackingCommand();
+            var session = new TestSession().WithCommands(tracker).Boot();
 
-            commandBus.RunTerminalCommand("{ track; } { track; } { track; }");
+            session.Bus.RunTerminalCommand("{ track; } { track; } { track; }");
 
-            Assert.That(clock.CoroutineCount, Is.EqualTo(3),
+            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(3),
                 "Three parallel groups should launch three coroutines.");
 
-            clock.Run();
+            session.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(3),
                 "All three parallel groups should execute on the same tick.");
         }
 
-        // =====================================================================
-        // Helpers
-        // =====================================================================
-
-        /// <summary>
-        /// Creates a booted CommandBus with the given tracker registered.
-        /// Resets the clock to isolate coroutine counts from boot-time activity.
-        /// </summary>
-        CommandBus BootedBusWithTracker(ExecutionTracker tracker)
-        {
-            CommandBus commandBus = new CommandBus(_mother);
-            commandBus.Boot();
-            commandBus.RegisterCommand(tracker);
-
-            _mother.GetModule<Clock>().Reset();
-
-            return commandBus;
-        }
-
-        /// <summary>
-        /// A test command that counts how many times Execute() is called.
-        /// Used to verify coroutine execution order and count.
-        /// </summary>
-        class ExecutionTracker : BaseModuleCommand
-        {
-            /// <summary>
-            /// The name of the tracking command.
-            /// </summary>
-            public override string Name => "track";
-
-            /// <summary>
-            /// Counter tracking how many times this command has been executed.
-            /// </summary>
-            public int ExecutionCount = 0;
-
-            /// <summary>
-            /// Executes the tracking command, incrementing the execution counter.
-            /// </summary>
-            /// <param name="command">The terminal command (ignored).</param>
-            /// <returns>Empty string.</returns>
-            public override string Execute(TerminalCommand command)
-            {
-                ExecutionCount++;
-                return "";
-            }
-        }
     }
 }

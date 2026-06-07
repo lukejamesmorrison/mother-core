@@ -522,7 +522,7 @@ The following improvements to the test infrastructure in `tests/` would meaningf
 
 ---
 
-### H1. `CustomDataBuilder` — eliminates repeated INI string construction
+### H1. `CustomDataBuilder` — eliminates repeated INI string construction ✅ Done
 
 **Problem:** Every `ConfigurationTests` test builds CustomData from scratch with `string.Join("\n", "[variables]", "KEY=VALUE", "", "[commands]", ...)`. Missing a blank line between sections causes `MyIni` parse failures that produce silent wrong results rather than test errors. The pattern is copied verbatim across 20+ tests.
 
@@ -550,7 +550,7 @@ This directly benefits CF1, CF3, and all variable/parameter substitution tests i
 
 ---
 
-### H2. `ExecutionTracker` moved to `TestUtilities/` — shared across test files
+### H2. `ExecutionTracker` moved to `TestUtilities/` — shared across test files ✅ Done
 
 **Problem:** `ExecutionTracker` (the `IModuleCommand` that counts `Execute` calls) is currently a private nested class inside `CommandBusTests`. Any other test file that needs to count command invocations — coroutine ordering, wait timing, config command expansion — must either duplicate it or leave the behaviour untested.
 
@@ -579,7 +579,7 @@ The `ExecutionOrder` variant is particularly useful for verifying that sequentia
 
 ---
 
-### H3. `ClockDriver` — structured tick control for coroutine tests
+### H3. `ClockDriver` — structured tick control for coroutine tests ✅ Done
 
 **Problem:** Tests that verify coroutine sequencing manually call `clock.Run()` one line at a time and track tick counts in comments. This is fragile: adding a new `yield return 0` inside a coroutine shifts every subsequent assertion by one tick, causing all downstream assertions to silently pass with stale counts.
 
@@ -662,70 +662,47 @@ This unblocks C7, C9 and any future test that needs to assert on user-visible ou
 
 ---
 
-### H5. `RemoteScriptRegistrar` — clean multi-script test setup
+### H5. `RemoteScriptRegistrar` — Superseded by `MockIGCNetwork`
 
-**Problem:** Tests for `RegisterRemoteCommands`, `FindInstanceWithCommand`, and `FindInstanceWithImportantCommand` manually compute script IDs as `_mother.Id + 1`, `_mother.Id + 2`, etc. and pass raw `List<string>` command arrays. The intent of each registration is not immediately clear, and there is no guard against accidentally registering the same ID twice or using `_mother.Id` itself.
-
-**Recommendation:** A small builder that encapsulates remote script setup and documents the intent:
+**Update:** The original proposal was a simple ID-management helper. The implemented solution goes further: `MockIGCNetwork` in `TestUtilities/MockIGCNetwork.cs` is a full in-process IGC transport that connects multiple `TestSession` instances. It replaces both `RemoteScriptRegistrar` and the manual `_mother.Id + 1` ID arithmetic.
 
 ```csharp
-// TestUtilities/RemoteScriptRegistrar.cs
-public class RemoteScriptRegistrar
-{
-    readonly CommandBus _bus;
-    readonly long _baseId;
-    int _next = 1;
+var network = new MockIGCNetwork();
 
-    public RemoteScriptRegistrar(CommandBus bus, long baseId)
-    {
-        _bus = bus;
-        _baseId = baseId;
-    }
+var shipA = network.CreateSession()
+    .WithCustomData(new CustomDataBuilder()
+        .WithCommand("attack", "@ShipB weapons/fire")
+        .Build())
+    .Boot();
 
-    /// <summary>
-    /// Registers a new remote script and returns its assigned ID.
-    /// Prefix command names with ! to mark them as important.
-    /// </summary>
-    public long Register(params string[] commands)
-    {
-        long id = _baseId + _next++;
-        _bus.RegisterRemoteCommands(id, new List<string>(commands));
-        return id;
-    }
-}
+var shipB = network.CreateSession().Boot();
+
+// Make each script aware of the other's grid name
+network.RegisterInAlmanac(shipA, shipB, "ShipB");
+network.RegisterInAlmanac(shipB, shipA, "ShipA");
+
+shipA.Bus.RunTerminalCommand("attack");
+
+// Assert message was queued without full delivery
+Assert.That(network.SentMessages.Any(m => m.TargetId == shipB.IGC.Me), Is.True);
+
+// Or deliver to the recipient and assert execution
+network.Deliver();
 ```
 
-Usage:
-```csharp
-var remotes = new RemoteScriptRegistrar(commandBus, _mother.Id);
-long fighterId  = remotes.Register("mode/set", "!weapons/fire");
-long minerId    = remotes.Register("drill/start", "dock");
+**Key types:**
+- `MockIGCNetwork` — the network hub; `CreateSession()`, `Deliver()`, `ClearSentMessages()`, `RegisterInAlmanac()`
+- `MockIGC` — `IMyIntergridCommunicationSystem` implementation; routes through the network
+- `MockUnicastListener` / `MockBroadcastListener` — `IMyUnicastListener` / `IMyBroadcastListener` implementations with message queues
+- `SentMessage` — capture record for asserting outbound traffic without full delivery
 
-Assert.That(commandBus.FindInstanceWithImportantCommand("weapons/fire"), Is.EqualTo(fighterId));
-```
-
-This makes the multi-script scenarios in C13 and R7 straightforward to express.
+Sessions created via `network.CreateSession()` have `session.NetworkIGC` typed as `MockIGC` for direct queue inspection.
 
 ---
 
-### H6. `BootedCommandBus` factory method in `BaseModuleTests`
+### H6. `BootedCommandBus` factory method in `BaseModuleTests` — Superseded by `TestSession`
 
-**Problem:** The pattern of `new CommandBus(_mother); commandBus.Boot(); clock.Reset();` appears in 15+ tests in `CommandBusTests`. The local `BootedBusWithTracker` helper partially addresses this but is private and only works when a tracker is needed. Tests that need a booted bus without a tracker still repeat the three-line sequence manually.
-
-**Recommendation:** Add a protected helper to `BaseModuleTests`:
-
-```csharp
-// Tests/BaseModuleTests.cs
-protected CommandBus BootedCommandBus()
-{
-    var bus = new CommandBus(_mother);
-    bus.Boot();
-    _mother.GetModule<Clock>().Reset();
-    return bus;
-}
-```
-
-This eliminates the three-line boilerplate across the entire `CommandBusTests` file and any future test file that works with `CommandBus`.
+**Update:** This helper is no longer needed. `TestSession` (H8) covers the same use case with a cleaner API and also handles `Configuration` boot, clock reset, and the `ClockDriver` wrapper. Tests that previously used the three-line `new CommandBus / Boot / Reset` pattern should use `new TestSession(_mother).Boot()` instead.
 
 ---
 
@@ -753,16 +730,66 @@ This factory would be used directly by CF1/CF3 (CustomData loading tests) and by
 
 ---
 
+### H8. `TestSession` — full boot cycle orchestrator ✅ Done
+
+**Problem:** Tests that exercise the full `CustomData → Configuration.Boot → CommandBus.Boot → RunTerminalCommand` pipeline had no clean way to express the complete setup. Each test assembled the same three-to-five line boot sequence manually, with no consistent clock reset discipline.
+
+**Implementation:** `TestSession` in `TestUtilities/TestSession.cs` is a builder-before-boot, context-holder-after-boot. The minimal case is one line:
+
+```csharp
+var s = new TestSession(_mother).Boot();
+```
+
+Layer in what each test needs:
+
+```csharp
+var s = new TestSession(_mother)
+    .WithCustomData(new CustomDataBuilder()
+        .WithCommand("openDoor", "door/open AirlockDoor")
+        .Build())
+    .WithCommands(tracker)
+    .Boot();
+
+s.Bus.RunTerminalCommand("openDoor");
+s.Clock.Tick();
+s.Clock.RunToIdle();
+```
+
+Post-boot properties: `s.Bus` (`CommandBus`), `s.Clock` (`ClockDriver`), `s.Config` (`Configuration`).
+
+`ClockDriver` (H3) is built directly into the session — `s.Clock` is ready to use immediately after `Boot()`.
+
+**Extension for MotherOS / MotherGUI:** Subclass `TestSession` and override `OnBeforeBoot`:
+
+```csharp
+public class MotherOSTestSession : TestSession
+{
+    public MotherOSTestSession(Mother mother) : base(mother) { }
+
+    protected override void OnBeforeBoot(Mother mother)
+    {
+        new DoorModule(mother);
+        new LightModule(mother);
+        // all OS modules
+    }
+}
+```
+
+`TestSession` lives in `MotherCore.Tests.TestUtilities`. Each downstream project owns only its thin subclass.
+
+---
+
 ### Summary
 
 | # | Utility | Location | Unblocks gaps | Status |
 |---|---|---|---|---|
-| H1 | `CustomDataBuilder` | `TestUtilities/CustomDataBuilder.cs` | CF1, CF3, all variable/param tests | Open |
-| H2 | `TrackingCommand` (shared) | `TestUtilities/TrackingCommand.cs` | C5, C6, C12, C13 | Open |
-| H3 | `ClockDriver` | `TestUtilities/ClockDriver.cs` | C5, C12, coroutine ordering | Open |
+| H1 | `CustomDataBuilder` | `TestUtilities/CustomDataBuilder.cs` | CF1, CF3, all variable/param tests | **Done** |
+| H2 | `TrackingCommand` (shared) | `TestUtilities/TrackingCommand.cs` | C5, C6, C12, C13 | **Done** |
+| H3 | `ClockDriver` | `TestUtilities/ClockDriver.cs` | C5, C12, coroutine ordering | **Done** |
 | H4 | `PrintCapture` | `TestUtilities/PrintCapture.cs` | C7, C9 | Open |
-| H5 | `RemoteScriptRegistrar` | `TestUtilities/RemoteScriptRegistrar.cs` | C13, R7 | Open |
-| H6 | `BootedCommandBus()` in `BaseModuleTests` | `Tests/BaseModuleTests.cs` | All CommandBus tests | Open |
+| H5 | `MockIGCNetwork` + `MockIGC` | `TestUtilities/MockIGCNetwork.cs` | C13, R7, all multi-script tests | **Done** |
+| H6 | `BootedCommandBus()` in `BaseModuleTests` | `Tests/BaseModuleTests.cs` | All CommandBus tests | Superseded by `TestSession` |
 | H7 | Complete `ProgrammableBlockFactory` | `Factories/ProgrammableBlockFactory.cs` | CF1, CF3, R7, C13 | Open |
+| H8 | `TestSession` | `TestUtilities/TestSession.cs` | All end-to-end tests; base for MotherOS/GUI | **Done** |
 
-H1, H2, H3, and H6 offer the highest return on investment — they reduce boilerplate in already-written tests immediately, before any new tests are added.
+H4, H5, and H7 are the remaining open items before beginning the Phase 1 test gaps.
