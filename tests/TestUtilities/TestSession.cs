@@ -41,8 +41,8 @@ namespace MotherCore.Tests.TestUtilities
     /// <code>
     /// var network = new MockIGCNetwork();
     ///
-    /// var shipA = new TestSession().OnNetwork(network, "ShipA").Boot();
-    /// var shipB = new TestSession().OnNetwork(network, "ShipB").Boot();
+    /// var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
+    /// var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
     ///
     /// // ShipA already knows "ShipB" and vice versa — no RegisterInAlmanac call needed.
     /// shipA.Bus.RunTerminalCommand("@ShipB weapons/fire");
@@ -69,7 +69,18 @@ namespace MotherCore.Tests.TestUtilities
         string _customData;
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
         MockIGCNetwork _network;
-        string _gridName;
+        readonly string _gridName;
+
+        /// <param name="gridName">
+        /// Optional grid name for this session. Sets <see cref="Mother.Name"/> before boot
+        /// and is used as the address other sessions use to reach this one on a
+        /// <see cref="MockIGCNetwork"/>. When omitted, falls back to the cube grid's
+        /// <c>CustomName</c> and then to <c>"grid-{Mother.Id}"</c>.
+        /// </param>
+        public TestSession(string gridName = null)
+        {
+            _gridName = gridName;
+        }
 
         /// <summary>The booted <see cref="CommandBus"/>. Available after <see cref="Boot"/> is called.</summary>
         public CommandBus Bus { get; private set; }
@@ -107,17 +118,13 @@ namespace MotherCore.Tests.TestUtilities
         /// Joins this session to a <see cref="MockIGCNetwork"/>. A <see cref="MockIGC"/>
         /// will be allocated from the network and injected into this session's
         /// <c>Program</c> during <see cref="Boot"/>. After boot, the session is
-        /// automatically cross-registered in every other booted session's Almanac.
+        /// automatically cross-registered in every other booted session's Almanac
+        /// under the grid name supplied to the constructor (or the derived fallback).
         /// </summary>
         /// <param name="network">The network to join.</param>
-        /// <param name="gridName">
-        /// The grid name other sessions use to address this one (e.g. <c>"ShipA"</c>).
-        /// Defaults to the programmable block's grid name if omitted.
-        /// </param>
-        public TestSession OnNetwork(MockIGCNetwork network, string gridName = null)
+        public TestSession OnNetwork(MockIGCNetwork network)
         {
             _network = network;
-            _gridName = gridName;
             return this;
         }
 
@@ -142,8 +149,10 @@ namespace MotherCore.Tests.TestUtilities
 
         /// <summary>
         /// Override in a subclass to register project-specific modules before the boot
-        /// sequence runs. Called after <c>CustomData</c> is applied but before
-        /// <see cref="Configuration"/> and <see cref="CommandBus"/> are booted.
+        /// sequence runs. Called after <c>CustomData</c> is applied but before any module
+        /// is booted. Use <see cref="Mother.RegisterCoreModule"/> for core modules and
+        /// <see cref="Mother.RegisterModule"/> for extension modules — both will be picked
+        /// up automatically by the boot loop.
         /// </summary>
         protected virtual void OnBeforeBoot(Mother mother) { }
 
@@ -177,27 +186,29 @@ namespace MotherCore.Tests.TestUtilities
 
             OnBeforeBoot(_mother);
 
-            Config = new Configuration(_mother);
-            Config.Boot();
+            foreach (var module in _mother.CoreModules.Values)
+                module.Boot();
 
-            Bus = new CommandBus(_mother);
-            Bus.Boot();
+            foreach (var module in _mother.ExtensionModules.Values)
+                module.Boot();
+
+            if (!string.IsNullOrEmpty(_gridName))
+                _mother.Name = _gridName;
+            else if (string.IsNullOrEmpty(_mother.Name))
+                _mother.Name = $"grid-{_mother.Id}";
 
             foreach (var command in _commands)
-                Bus.RegisterCommand(command);
+                _mother.GetModule<CommandBus>().RegisterCommand(command);
+
+            Config = _mother.GetModule<Configuration>();
+            Bus = _mother.GetModule<CommandBus>();
 
             var clock = _mother.GetModule<Clock>();
             clock.Reset();
             Clock = new ClockDriver(clock);
 
             if (_network != null)
-            {
-                string name = !string.IsNullOrEmpty(_gridName) ? _gridName
-                    : !string.IsNullOrEmpty(_mother.Name) ? _mother.Name
-                    : _mother.Id.ToString();
-
-                _network.RegisterSession(this, name);
-            }
+                _network.RegisterSession(this, _mother.Name);
 
             return this;
         }

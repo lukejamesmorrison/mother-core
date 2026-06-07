@@ -662,47 +662,49 @@ This unblocks C7, C9 and any future test that needs to assert on user-visible ou
 
 ---
 
-### H5. `RemoteScriptRegistrar` — Superseded by `MockIGCNetwork`
+### H5. `RemoteScriptRegistrar` — Superseded by `MockIGCNetwork` ✅ Done
 
 **Update:** The original proposal was a simple ID-management helper. The implemented solution goes further: `MockIGCNetwork` in `TestUtilities/MockIGCNetwork.cs` is a full in-process IGC transport that connects multiple `TestSession` instances. It replaces both `RemoteScriptRegistrar` and the manual `_mother.Id + 1` ID arithmetic.
+
+The grid name is passed to the `TestSession` constructor; `OnNetwork()` takes only the network. Almanac cross-registration between all sessions on the same network is automatic — no manual wiring required.
 
 ```csharp
 var network = new MockIGCNetwork();
 
-var shipA = network.CreateSession()
+var shipA = new TestSession("ShipA")
+    .OnNetwork(network)
     .WithCustomData(new CustomDataBuilder()
         .WithCommand("attack", "@ShipB weapons/fire")
         .Build())
     .Boot();
 
-var shipB = network.CreateSession().Boot();
+var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
 
-// Make each script aware of the other's grid name
-network.RegisterInAlmanac(shipA, shipB, "ShipB");
-network.RegisterInAlmanac(shipB, shipA, "ShipA");
-
+// ShipA already knows "ShipB" and vice versa — no manual Almanac wiring needed.
 shipA.Bus.RunTerminalCommand("attack");
+shipA.Clock.RunToIdle();
 
 // Assert message was queued without full delivery
 Assert.That(network.SentMessages.Any(m => m.TargetId == shipB.IGC.Me), Is.True);
 
 // Or deliver to the recipient and assert execution
 network.Deliver();
+shipB.Clock.RunToIdle();
 ```
 
 **Key types:**
-- `MockIGCNetwork` — the network hub; `CreateSession()`, `Deliver()`, `ClearSentMessages()`, `RegisterInAlmanac()`
+- `MockIGCNetwork` — the network hub; `AllocateEndpoint()`, `Deliver()`, `ClearSentMessages()`
 - `MockIGC` — `IMyIntergridCommunicationSystem` implementation; routes through the network
 - `MockUnicastListener` / `MockBroadcastListener` — `IMyUnicastListener` / `IMyBroadcastListener` implementations with message queues
 - `SentMessage` — capture record for asserting outbound traffic without full delivery
 
-Sessions created via `network.CreateSession()` have `session.NetworkIGC` typed as `MockIGC` for direct queue inspection.
+Sessions joined via `OnNetwork()` expose `session.NetworkIGC` typed as `MockIGC` for direct queue inspection.
 
 ---
 
 ### H6. `BootedCommandBus` factory method in `BaseModuleTests` — Superseded by `TestSession`
 
-**Update:** This helper is no longer needed. `TestSession` (H8) covers the same use case with a cleaner API and also handles `Configuration` boot, clock reset, and the `ClockDriver` wrapper. Tests that previously used the three-line `new CommandBus / Boot / Reset` pattern should use `new TestSession(_mother).Boot()` instead.
+**Update:** This helper is no longer needed. `TestSession` (H8) covers the same use case with a cleaner API and also handles booting all core and extension modules, clock reset, and the `ClockDriver` wrapper. Tests that previously used the three-line `new CommandBus / Boot / Reset` pattern should use `new TestSession().Boot()` instead.
 
 ---
 
@@ -734,16 +736,16 @@ This factory would be used directly by CF1/CF3 (CustomData loading tests) and by
 
 **Problem:** Tests that exercise the full `CustomData → Configuration.Boot → CommandBus.Boot → RunTerminalCommand` pipeline had no clean way to express the complete setup. Each test assembled the same three-to-five line boot sequence manually, with no consistent clock reset discipline.
 
-**Implementation:** `TestSession` in `TestUtilities/TestSession.cs` is a builder-before-boot, context-holder-after-boot. The minimal case is one line:
+**Implementation:** `TestSession` in `TestUtilities/TestSession.cs` is a builder-before-boot, context-holder-after-boot. It creates its own `Program` and `Mother`, boots every registered core and extension module in order, then applies the grid name. The minimal case is one line:
 
 ```csharp
-var s = new TestSession(_mother).Boot();
+var s = new TestSession().Boot();
 ```
 
-Layer in what each test needs:
+Layer in only what each test needs:
 
 ```csharp
-var s = new TestSession(_mother)
+var s = new TestSession()
     .WithCustomData(new CustomDataBuilder()
         .WithCommand("openDoor", "door/open AirlockDoor")
         .Build())
@@ -755,22 +757,22 @@ s.Clock.Tick();
 s.Clock.RunToIdle();
 ```
 
-Post-boot properties: `s.Bus` (`CommandBus`), `s.Clock` (`ClockDriver`), `s.Config` (`Configuration`).
+Post-boot properties: `s.Bus` (`CommandBus`), `s.Clock` (`ClockDriver`), `s.Config` (`Configuration`), `s.Mother` (`Mother`).
 
 `ClockDriver` (H3) is built directly into the session — `s.Clock` is ready to use immediately after `Boot()`.
 
-**Extension for MotherOS / MotherGUI:** Subclass `TestSession` and override `OnBeforeBoot`:
+An optional grid name passed to the constructor sets `Mother.Name` after all modules boot (so `Configuration.Boot()` cannot overwrite it). If omitted, the name derived by `Configuration` is kept; if that is also empty, it falls back to `"grid-{Mother.Id}"`.
+
+**Extension for MotherOS / MotherGUI:** Subclass `TestSession` and override `OnBeforeBoot` to register extension modules before the boot loop runs:
 
 ```csharp
 public class MotherOSTestSession : TestSession
 {
-    public MotherOSTestSession(Mother mother) : base(mother) { }
+    public MotherOSTestSession(string gridName = null) : base(gridName) { }
 
     protected override void OnBeforeBoot(Mother mother)
     {
-        new DoorModule(mother);
-        new LightModule(mother);
-        // all OS modules
+      //
     }
 }
 ```
@@ -792,4 +794,4 @@ public class MotherOSTestSession : TestSession
 | H7 | Complete `ProgrammableBlockFactory` | `Factories/ProgrammableBlockFactory.cs` | CF1, CF3, R7, C13 | Open |
 | H8 | `TestSession` | `TestUtilities/TestSession.cs` | All end-to-end tests; base for MotherOS/GUI | **Done** |
 
-H4, H5, and H7 are the remaining open items before beginning the Phase 1 test gaps.
+H4 and H7 are the remaining open items before beginning the Phase 1 test gaps.
