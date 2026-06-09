@@ -1,17 +1,11 @@
-﻿using FakeItEasy;
-using IngameScript;
+﻿using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
-using Sandbox.ModAPI.Ingame;
-using System.Net.NetworkInformation;
 using System;
 using System.Collections.Generic;
 
-//using System.Collections.Generic;
-
-namespace MotherCore.Tests.Unit.Models
+namespace MotherCore.Tests.Tests.Unit
 {
-    public class RequestTests : BaseModuleTests
+    public class RequestTests
     {
 
         [Test]

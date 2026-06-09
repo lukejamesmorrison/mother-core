@@ -1,6 +1,6 @@
 ﻿using Sandbox.ModAPI.Ingame;
 using System;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities;
 
 namespace MotherCore.Tests
 {

@@ -1,6 +1,6 @@
 using IngameScript;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// Wraps <see cref="Clock"/> to provide structured, assertion-friendly tick control for

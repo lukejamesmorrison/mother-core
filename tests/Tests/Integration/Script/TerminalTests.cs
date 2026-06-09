@@ -1,28 +1,28 @@
-﻿using FakeItEasy;
+using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities;
 using Sandbox.ModAPI.Ingame;
 using System.Net.NetworkInformation;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Unit.Modules
+namespace MotherCore.Tests.Integration.Script
 {
-    public class TerminalTests : BaseModuleTests
+    public class TerminalTests : ScriptTestBase<TestProgram>
     {
         [Test]
         public void It_Can_Be_Instantiated_With_An_Instance_Of_Mother()
         {
-            Terminal terminal = new Terminal(_mother);
+            Terminal terminal = new Terminal(Mother);
 
-            Assert.That(terminal.Mother, Is.SameAs(_mother));
+            Assert.That(terminal.Mother, Is.SameAs(Mother));
         }
 
         [Test]
         public void It_Can_Be_Booted()
         {
-            Terminal terminal = new Terminal(_mother);
+            Terminal terminal = new Terminal(Mother);
 
             terminal.Boot();
 
@@ -32,7 +32,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Can_Have_Highlights()
         {
-            Terminal terminal = new Terminal(_mother);
+            Terminal terminal = new Terminal(Mother);
 
             terminal.Highlight("Test Highlight 1");
             terminal.Highlight("Test Highlight 2");
@@ -45,7 +45,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Can_Be_Cleared()
         {
-            Terminal terminal = new Terminal(_mother);
+            Terminal terminal = new Terminal(Mother);
 
             terminal.Print("Test Print 1");
 
@@ -58,7 +58,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void The_Terminal_Window_Can_Be_Updated()
         {
             Terminal terminal = A.Fake<Terminal>(options => options
-                .WithArgumentsForConstructor(() => new Terminal(_mother))
+                .WithArgumentsForConstructor(() => new Terminal(Mother))
             );
 
             A.CallTo(() => terminal.GetConsoleHeader()).Returns("System OK");
@@ -70,3 +70,4 @@ namespace MotherCore.Tests.Unit.Modules
         }
     }
 }
+

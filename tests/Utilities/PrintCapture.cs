@@ -3,7 +3,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// Redirects <see cref="TestProgram.Echo"/> to an in-memory list so tests can assert

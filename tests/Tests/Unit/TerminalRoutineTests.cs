@@ -1,12 +1,11 @@
 ﻿using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Unit.Models
+namespace MotherCore.Tests.Tests.Unit
 {
-    public class TerminalRoutineTests : BaseModuleTests
+    public class TerminalRoutineTests
     {
         // --- Basic sequential parsing ---
 

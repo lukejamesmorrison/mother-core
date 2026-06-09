@@ -1,27 +1,27 @@
-﻿using FakeItEasy;
+using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities;
 using Sandbox.ModAPI.Ingame;
 using System.Net.NetworkInformation;
 using System;
 
-namespace MotherCore.Tests.Unit.Modules
+namespace MotherCore.Tests.Integration.Script
 {
-    public class EventBusTests : BaseModuleTests
+    public class EventBusTests : ScriptTestBase<TestProgram>
     {
         [Test]
         public void It_Can_Be_Instantiated_With_An_Instance_Of_Mother()
         {
-            EventBus eventBus = new EventBus(_mother);
+            EventBus eventBus = new EventBus(Mother);
 
-            Assert.That(eventBus.Mother, Is.SameAs(_mother));
+            Assert.That(eventBus.Mother, Is.SameAs(Mother));
         }
 
         [Test]
         public void It_Can_Be_Booted()
         {
-            EventBus module = new EventBus(_mother);
+            EventBus module = new EventBus(Mother);
 
             module.Boot();
 
@@ -31,7 +31,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Can_Be_Subscribed_To_An_Event()
         {
-            EventBus eventBus = new EventBus(_mother);
+            EventBus eventBus = new EventBus(Mother);
             var module1 = A.Fake<IModule>();
             var module2 = A.Fake<IModule>();
 
@@ -45,7 +45,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Can_Be_Unsubscribed_From_An_Event()
         {
-            EventBus eventBus = new EventBus(_mother);
+            EventBus eventBus = new EventBus(Mother);
             var module = A.Fake<IModule>();
 
             //var someEvent = A.Fake<ConnectorLockedEvent>();
@@ -59,10 +59,10 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Can_Emit_An_Event()
         {
-            EventBus eventBus = new EventBus(_mother);
+            EventBus eventBus = new EventBus(Mother);
 
             Almanac almanac = A.Fake<Almanac>(options =>
-                options.WithArgumentsForConstructor(() => new Almanac(_mother)));
+                options.WithArgumentsForConstructor(() => new Almanac(Mother)));
 
             Security security = A.Fake<Security>(options =>
                 options.WithArgumentsForConstructor(() => new Security()));
@@ -80,3 +80,4 @@ namespace MotherCore.Tests.Unit.Modules
         }
     }
 }
+

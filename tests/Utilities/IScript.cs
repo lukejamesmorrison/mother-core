@@ -1,7 +1,7 @@
 using IngameScript;
 using Sandbox.ModAPI.Ingame;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// Common interface shared by all <see cref="Script{TProgram}"/> instances,

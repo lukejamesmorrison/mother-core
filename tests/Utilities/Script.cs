@@ -1,9 +1,10 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using Sandbox.ModAPI.Ingame;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// Orchestrates a complete Mother script boot cycle for use in tests.
@@ -270,11 +271,14 @@ namespace MotherCore.Tests.TestUtilities
 
             OnBeforeBoot(_mother);
 
-            foreach (var module in _mother.CoreModules.Values)
-                module.Boot();
-
-            foreach (var module in _mother.ExtensionModules.Values)
-                module.Boot();
+            // Delegate to Mother's own boot sequence, then drive the clock tick by tick
+            // until the system reaches WORKING state. We stop at WORKING rather than
+            // RunToIdle() so persistent module coroutines (e.g. BlockCatalogue refresh)
+            // are not over-driven and do not interfere with per-test clock assertions.
+            _mother.Boot();
+            var clock = _mother.GetModule<Clock>();
+            for (int i = 0; i < 500 && _mother.SystemState != Mother.SystemStates.WORKING; i++)
+                clock.Run();
 
             if (!string.IsNullOrEmpty(_gridName))
                 _mother.Name = _gridName;
@@ -286,14 +290,7 @@ namespace MotherCore.Tests.TestUtilities
 
             Config = _mother.GetModule<Configuration>();
             Bus = _mother.GetModule<CommandBus>();
-
-            var clock = _mother.GetModule<Clock>();
-            clock.Reset();
             Clock = new ClockDriver(clock);
-
-            // Mark the script as fully operational so Mother.Run() dispatches
-            // commands and periodic updates without triggering another boot cycle.
-            _mother.SystemState = Mother.SystemStates.WORKING;
 
             if (_network != null)
                 _network.RegisterSession(this, _mother.Name);

@@ -1,29 +1,29 @@
-ï»¿using FakeItEasy;
+using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MotherCore.Tests.Unit.Modules
+namespace MotherCore.Tests.Integration.Script
 {
-    public class CommandBusTests : BaseModuleTests
+    public class CommandBusTests : ScriptTestBase<TestProgram>
     {
         // --- Construction ---
 
         [Test]
         public void It_Can_Be_Instantiated_With_An_Instance_Of_Mother()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            Assert.That(commandBus.Mother, Is.SameAs(_mother));
+            Assert.That(commandBus.Mother, Is.SameAs(Mother));
         }
 
         [Test]
         public void It_Can_Be_Booted()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             commandBus.Boot();
 
@@ -35,7 +35,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void A_Module_Command_Can_Be_Registered()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             commandBus.RegisterCommand(new HelpCommand(commandBus));
 
@@ -45,7 +45,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void A_Module_Command_Can_Be_Run_From_A_Terminal_Command()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.RegisterCommand(new HelpCommand(commandBus));
 
             bool commandRun = commandBus.RunTerminalCommand("help");
@@ -56,7 +56,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void Multiple_Module_Commands_Can_Be_Registered()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             commandBus.RegisterCommand(new HelpCommand(commandBus));
             commandBus.RegisterCommand(new HelpCommand(commandBus));
@@ -69,9 +69,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Substitutes_Variables_In_Terminal_Input()
         {
-            _mother.ConfigVariables["BLOCK"] = "Light1";
+            Mother.ConfigVariables["BLOCK"] = "Light1";
 
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.Boot();
 
             bool commandRun = commandBus.RunTerminalCommand("light/on $BLOCK");
@@ -82,10 +82,10 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Substitutes_Multiple_Variables_In_Terminal_Input()
         {
-            _mother.ConfigVariables["BLOCK"] = "Light1";
-            _mother.ConfigVariables["COLOR"] = "red";
+            Mother.ConfigVariables["BLOCK"] = "Light1";
+            Mother.ConfigVariables["COLOR"] = "red";
 
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.Boot();
 
             bool commandRun = commandBus.RunTerminalCommand("light/color $BLOCK $COLOR");
@@ -96,7 +96,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void It_Runs_Terminal_Command_Without_Variables_When_None_Defined()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.Boot();
             commandBus.RegisterCommand(new HelpCommand(commandBus));
 
@@ -110,7 +110,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void RunTerminalCommand_Returns_False_For_Empty_String()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.Boot();
 
             bool result = commandBus.RunTerminalCommand("");
@@ -121,7 +121,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void RunTerminalCommand_Handles_Semicolon_Separated_Commands()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.Boot();
 
             bool result = commandBus.RunTerminalCommand("help;help");
@@ -136,7 +136,7 @@ namespace MotherCore.Tests.Unit.Modules
         // is an essential UX element.
         public void Boot_Registers_The_Help_Command()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             commandBus.Boot();
 
@@ -149,7 +149,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void Boot_Clears_Construct_Commands()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             commandBus.ConstructCommands[999] = new HashSet<string> { "stale" };
 
@@ -163,7 +163,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void GetSelfCommandNames_Includes_Module_Commands()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.RegisterCommand(new HelpCommand(commandBus));
 
             List<string> names = commandBus.GetSelfCommandNames();
@@ -174,9 +174,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void GetSelfCommandNames_Includes_Config_Commands()
         {
-            _mother.ConfigCommands["myCommand"] = "help";
+            Mother.ConfigCommands["myCommand"] = "help";
 
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             List<string> names = commandBus.GetSelfCommandNames();
 
@@ -186,9 +186,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void GetSelfCommandNames_Includes_Both_Module_And_Config_Commands()
         {
-            _mother.ConfigCommands["myCommand"] = "help";
+            Mother.ConfigCommands["myCommand"] = "help";
 
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.RegisterCommand(new HelpCommand(commandBus));
 
             List<string> names = commandBus.GetSelfCommandNames();
@@ -201,7 +201,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void GetSelfCommandNames_Returns_Empty_When_No_Commands()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             List<string> names = commandBus.GetSelfCommandNames();
 
@@ -217,9 +217,9 @@ namespace MotherCore.Tests.Unit.Modules
         // which Programmable Blocks.
         public void RegisterRemoteCommands_Stores_Commands_For_Remote_Script()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId = _mother.Id + 1;
+            long remoteId = Mother.Id + 1;
             var commands = new List<string> { "dock", "undock" };
 
             commandBus.RegisterRemoteCommands(remoteId, commands);
@@ -231,11 +231,11 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C10
         public void RegisterRemoteCommands_With_Empty_List_Stores_Empty_Set()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId = _mother.Id + 1;
+            long remoteId = Mother.Id + 1;
 
-            // Should not throw and should store empty sets â€” not skip the entry entirely.
+            // Should not throw and should store empty sets — not skip the entry entirely.
             Assert.DoesNotThrow(() => commandBus.RegisterRemoteCommands(remoteId, new List<string>()),
                 "RegisterRemoteCommands with an empty list must not throw.");
 
@@ -253,21 +253,21 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void RegisterRemoteCommands_Ignores_Self_Id()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             var commands = new List<string> { "dock" };
 
-            commandBus.RegisterRemoteCommands(_mother.Id, commands);
+            commandBus.RegisterRemoteCommands(Mother.Id, commands);
 
-            Assert.That(commandBus.ConstructCommands.ContainsKey(_mother.Id), Is.False);
+            Assert.That(commandBus.ConstructCommands.ContainsKey(Mother.Id), Is.False);
         }
 
         [Test]
         public void RegisterRemoteCommands_Overwrites_Existing_Entry()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId = _mother.Id + 1;
+            long remoteId = Mother.Id + 1;
 
             commandBus.RegisterRemoteCommands(remoteId, new List<string> { "old" });
             commandBus.RegisterRemoteCommands(remoteId, new List<string> { "new" });
@@ -281,9 +281,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void FindInstanceWithCommand_Returns_Script_Id_When_Found()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId = _mother.Id + 1;
+            long remoteId = Mother.Id + 1;
             commandBus.RegisterRemoteCommands(remoteId, new List<string> { "dock", "undock" });
 
             long result = commandBus.FindInstanceWithCommand("dock");
@@ -294,7 +294,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void FindInstanceWithCommand_Returns_Zero_When_Not_Found()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             long result = commandBus.FindInstanceWithCommand("nonexistent");
 
@@ -304,10 +304,10 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void FindInstanceWithCommand_Returns_First_Match_From_Multiple_Scripts()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId1 = _mother.Id + 1;
-            long remoteId2 = _mother.Id + 2;
+            long remoteId1 = Mother.Id + 1;
+            long remoteId2 = Mother.Id + 2;
 
             commandBus.RegisterRemoteCommands(remoteId1, new List<string> { "dock" });
             commandBus.RegisterRemoteCommands(remoteId2, new List<string> { "undock" });
@@ -321,9 +321,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void RegisterRemoteCommands_Separates_Important_Commands()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId = _mother.Id + 1;
+            long remoteId = Mother.Id + 1;
             var commands = new List<string> { "dock", "!undock", "status" };
 
             commandBus.RegisterRemoteCommands(remoteId, commands);
@@ -340,9 +340,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void FindInstanceWithImportantCommand_Returns_Script_Id_When_Found()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId = _mother.Id + 1;
+            long remoteId = Mother.Id + 1;
             commandBus.RegisterRemoteCommands(remoteId, new List<string> { "!dock", "!undock" });
 
             long result = commandBus.FindInstanceWithImportantCommand("dock");
@@ -353,7 +353,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void FindInstanceWithImportantCommand_Returns_Zero_When_Not_Found()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             long result = commandBus.FindInstanceWithImportantCommand("nonexistent");
 
@@ -363,9 +363,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void FindInstanceWithImportantCommand_Does_Not_Find_Normal_Commands()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
-            long remoteId = _mother.Id + 1;
+            long remoteId = Mother.Id + 1;
             commandBus.RegisterRemoteCommands(remoteId, new List<string> { "dock" });
 
             long result = commandBus.FindInstanceWithImportantCommand("dock");
@@ -376,7 +376,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void Boot_Clears_Important_Construct_Commands()
         {
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             commandBus.ImportantConstructCommands[999] = new HashSet<string> { "stale" };
 
@@ -390,9 +390,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void RunTerminalCommand_Expands_Config_Command()
         {
-            _mother.ConfigCommands["myAction"] = "help";
+            Mother.ConfigCommands["myAction"] = "help";
 
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.Boot();
 
             bool result = commandBus.RunTerminalCommand("myAction");
@@ -403,9 +403,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]
         public void RunTerminalCommand_Expands_Config_Command_With_Multiple_Steps()
         {
-            _mother.ConfigCommands["sequence"] = "help;help";
+            Mother.ConfigCommands["sequence"] = "help;help";
 
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
             commandBus.Boot();
 
             bool result = commandBus.RunTerminalCommand("sequence");
@@ -424,14 +424,15 @@ namespace MotherCore.Tests.Unit.Modules
         public void Single_Command_Creates_Exactly_One_Coroutine()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
+            int bootCount = script.Clock.CoroutineCount;
 
-            session.Bus.RunTerminalCommand("track");
+            script.Bus.RunTerminalCommand("track");
 
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(1),
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 1),
                 "A single command should add exactly one coroutine.");
 
-            session.Clock.Tick(2);
+            script.Clock.Tick(2);
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
         }
@@ -446,22 +447,23 @@ namespace MotherCore.Tests.Unit.Modules
         public void Semicolon_Commands_Run_Sequentially_In_One_Coroutine()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
+            int bootCount = script.Clock.CoroutineCount;
 
-            session.Bus.RunTerminalCommand("track; track; track");
+            script.Bus.RunTerminalCommand("track; track; track");
 
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(1),
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 1),
                 "Semicolon-separated commands should share a single coroutine.");
 
-            session.Clock.Tick();
+            script.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "First tick: only the first command should have executed.");
 
-            session.Clock.Tick();
+            script.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
                 "Second tick: the second command should have executed.");
 
-            session.Clock.Tick();
+            script.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(3),
                 "Third tick: the third command should have executed.");
         }
@@ -473,14 +475,15 @@ namespace MotherCore.Tests.Unit.Modules
         public void Parallel_Groups_Launch_One_Coroutine_Per_Group()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
+            int bootCount = script.Clock.CoroutineCount;
 
-            session.Bus.RunTerminalCommand("{ track; } { track; } { track; }");
+            script.Bus.RunTerminalCommand("{ track; } { track; } { track; }");
 
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(3),
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 3),
                 "Three parallel groups should launch three coroutines.");
 
-            session.Clock.Tick();
+            script.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(3),
                 "All three parallel groups should execute on the same tick.");
@@ -500,17 +503,17 @@ namespace MotherCore.Tests.Unit.Modules
         public void Force_Local_Bypasses_Important_Construct_Command()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
 
             // Register "track" as an important command on a remote construct instance.
-            long remoteId = session.Mother.Id + 1;
-            session.Bus.RegisterRemoteCommands(remoteId, new List<string> { "!track" });
+            long remoteId = script.Mother.Id + 1;
+            script.Bus.RegisterRemoteCommands(remoteId, new List<string> { "!track" });
 
             // Without force-local the important construct command takes priority:
             // ExecutePrimitiveCommand delegates to the remote script and the local
             // tracker is never invoked.
-            session.Bus.RunTerminalCommand("track");
-            session.Clock.Tick();
+            script.Bus.RunTerminalCommand("track");
+            script.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(0),
                 "Plain 'track' should be delegated to the remote important construct command, " +
@@ -518,8 +521,8 @@ namespace MotherCore.Tests.Unit.Modules
 
             // With !! force-local prefix the important construct check is skipped and
             // the locally registered module command runs instead.
-            session.Bus.RunTerminalCommand("!!track");
-            session.Clock.Tick();
+            script.Bus.RunTerminalCommand("!!track");
+            script.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "Force-local '!!track' should execute the local command regardless of the " +
@@ -528,7 +531,7 @@ namespace MotherCore.Tests.Unit.Modules
 
         /// <summary>
         /// A command prefixed with _ (e.g. "_myAction") should always resolve the
-        /// local config command unconditionally â€” before the important-construct check
+        /// local config command unconditionally — before the important-construct check
         /// is even reached. This guarantees local execution even when an important
         /// construct command with the same base name is registered on a remote script.
         /// </summary>
@@ -537,7 +540,7 @@ namespace MotherCore.Tests.Unit.Modules
         {
             var tracker = new TrackingCommand();
 
-            var session = new Script()
+            var script = new Script<TestProgram>()
                 .WithCustomData(new CustomDataBuilder()
                     .WithCommand("myAction", "track")
                     .Build())
@@ -545,21 +548,21 @@ namespace MotherCore.Tests.Unit.Modules
                 .Boot();
 
             // Register "myAction" as an important command on a remote construct instance.
-            long remoteId = session.Mother.Id + 1;
-            session.Bus.RegisterRemoteCommands(remoteId, new List<string> { "!myAction" });
+            long remoteId = script.Mother.Id + 1;
+            script.Bus.RegisterRemoteCommands(remoteId, new List<string> { "!myAction" });
 
             // Without the underscore the important construct command takes priority:
             // "myAction" is delegated to the remote script and the local tracker never runs.
-            session.Bus.RunTerminalCommand("myAction");
-            session.Clock.Tick();
+            script.Bus.RunTerminalCommand("myAction");
+            script.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(0),
                 "Plain 'myAction' should be delegated to the remote important construct command.");
 
             // With the _ prefix the local config command is resolved regardless of
             // what is registered on the construct.
-            session.Bus.RunTerminalCommand("_myAction");
-            session.Clock.RunToIdle();
+            script.Bus.RunTerminalCommand("_myAction");
+            script.Clock.RunToIdle();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "Underscore-prefixed '_myAction' should resolve and execute the local config command.");
@@ -576,15 +579,15 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C7
         public void Unknown_Command_Prints_CommandNotFound_And_Does_Not_Throw()
         {
-            var session = new Script().Boot();
-            var capture = new PrintCapture(session);
-            var terminal = session.Mother.GetModule<Terminal>();
+            var script = new Script<TestProgram>().Boot();
+            var capture = new PrintCapture(script);
+            var terminal = script.Mother.GetModule<Terminal>();
 
             // Does not throw.
             Assert.DoesNotThrow(() =>
             {
-                session.Bus.RunTerminalCommand("nonexistent_cmd");
-                session.Clock.Tick(2);
+                script.Bus.RunTerminalCommand("nonexistent_cmd");
+                script.Clock.Tick(2);
             }, "RunTerminalCommand should never throw for an unknown command.");
 
             // Terminal buffers messages; flush them through Echo so PrintCapture can see them.
@@ -614,12 +617,12 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C9
         public void Help_Command_Output_Lists_All_Registered_Commands()
         {
-            var session = new Script().Boot();
-            var capture = new PrintCapture(session);
-            var terminal = session.Mother.GetModule<Terminal>();
+            var script = new Script<TestProgram>().Boot();
+            var capture = new PrintCapture(script);
+            var terminal = script.Mother.GetModule<Terminal>();
 
-            session.Bus.RunTerminalCommand("help");
-            session.Clock.Tick(2);
+            script.Bus.RunTerminalCommand("help");
+            script.Clock.Tick(2);
 
             // Terminal buffers messages; flush them through Echo so PrintCapture can see them.
             terminal.UpdateTerminal();
@@ -636,33 +639,34 @@ namespace MotherCore.Tests.Unit.Modules
         public void Halt_Command_Clears_All_Coroutines()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
-            var clock = session.Mother.GetModule<Clock>();
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
+            var clock = script.Mother.GetModule<Clock>();
 
             // Start long-running coroutines so there is something to clear.
-            session.Bus.RunTerminalCommand("track; wait 100; track");
-            session.Bus.RunTerminalCommand("track; wait 100; track");
-            session.Clock.Tick(2); // advance past first command into wait state
+            script.Bus.RunTerminalCommand("track; wait 100; track");
+            script.Bus.RunTerminalCommand("track; wait 100; track");
+            script.Clock.Tick(2); // advance past first command into wait state
 
-            Assert.That(session.Clock.CoroutineCount, Is.GreaterThan(0),
+            Assert.That(script.Clock.CoroutineCount, Is.GreaterThan(0),
                 "Coroutines should be active before halt is called.");
 
             // Queue a deferred task so we can assert halt clears it too.
+            int queuedBefore = clock.QueuedTaskCount;
             clock.QueueForLater(() => { }, 5.0);
-            Assert.That(clock.QueuedTaskCount, Is.EqualTo(1));
+            Assert.That(clock.QueuedTaskCount, Is.EqualTo(queuedBefore + 1));
 
             // Verify halt is registered on boot.
-            var haltCommand = session.Bus.ModuleCommands
+            var haltCommand = script.Bus.ModuleCommands
                 .First(c => c.GetCommandName() == "halt") as HaltCommand;
 
             Assert.That(haltCommand, Is.Not.Null,
                 "HaltCommand should be registered on boot.");
 
-            // Call Execute() directly â€” tests Clock.Halt() without triggering
+            // Call Execute() directly — tests Clock.Halt() without triggering
             // the re-entrant dispose that happens when Halt() runs inside a coroutine.
             haltCommand.Execute(new TerminalCommand("halt"));
 
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(0),
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(0),
                 "Halt command should clear all active coroutines.");
 
             Assert.That(clock.QueuedTaskCount, Is.EqualTo(0),
@@ -679,17 +683,18 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C11
         public void RunTerminalCommand_With_Only_Whitespace_Returns_False()
         {
-            var session = new Script().Boot();
+            var script = new Script<TestProgram>().Boot();
+            int bootCount = script.Clock.CoroutineCount;
 
             bool result = false;
-            Assert.DoesNotThrow(() => result = session.Bus.RunTerminalCommand("   "),
+            Assert.DoesNotThrow(() => result = script.Bus.RunTerminalCommand("   "),
                 "RunTerminalCommand must not throw for a whitespace-only string.");
 
             Assert.That(result, Is.False,
                 "Whitespace-only input should return false, the same as an empty string.");
 
-            // No coroutine should have been queued.
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(0),
+            // No coroutine should have been queued by the command.
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount),
                 "No coroutine should be launched for a whitespace-only command string.");
         }
 
@@ -707,29 +712,29 @@ namespace MotherCore.Tests.Unit.Modules
         public void Wait_Blocks_Subsequent_Commands_In_Same_Coroutine()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
-            var fakeRuntime = session.Mother.Program.Runtime;
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
+            var fakeRuntime = script.Mother.Program.Runtime;
 
-            session.Bus.RunTerminalCommand("track; wait 2; track");
+            script.Bus.RunTerminalCommand("track; wait 2; track");
 
             // Tick 1: first "track" executes.
-            session.Clock.Tick();
+            script.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "Tick 1: first 'track' should have executed.");
 
-            // Tick 2: wait 2 starts â€” coroutine yields 2.0s, no new execution.
-            session.Clock.Tick();
+            // Tick 2: wait 2 starts — coroutine yields 2.0s, no new execution.
+            script.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "Tick 2: wait started, second 'track' must not execute yet.");
 
-            // Tick 3 (delta=0): wait still active â€” still blocked.
-            session.Clock.Tick();
+            // Tick 3 (delta=0): wait still active — still blocked.
+            script.Clock.Tick();
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "Tick 3: wait still active (deltaTime=0), second 'track' must not execute.");
 
             // Advance simulated time past the 2-second wait threshold.
             A.CallTo(() => fakeRuntime.TimeSinceLastRun).Returns(TimeSpan.FromSeconds(2.1));
-            session.Clock.RunToIdle();
+            script.Clock.RunToIdle();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
                 "After the 2s wait expires, the second 'track' should execute.");
@@ -737,33 +742,34 @@ namespace MotherCore.Tests.Unit.Modules
 
         /// <summary>
         /// When a config command expands to a routine that contains parallel groups,
-        /// the expansion should launch one coroutine per group â€” not collapse them
+        /// the expansion should launch one coroutine per group — not collapse them
         /// into a single sequential coroutine.
         /// </summary>
         [Test]  // C6
         public void Config_Command_Expanding_To_Parallel_Groups_Launches_Multiple_Coroutines()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
+            int bootCount = script.Clock.CoroutineCount;
 
             // Config command whose value is a parallel-group routine.
-            session.Mother.ConfigCommands["par"] = "{ track; } { track; }";
+            script.Mother.ConfigCommands["par"] = "{ track; } { track; }";
 
-            session.Bus.RunTerminalCommand("par");
+            script.Bus.RunTerminalCommand("par");
 
             // One coroutine holds the unexpanded "par" command.
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(1),
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 1),
                 "Before expansion: exactly one coroutine for the 'par' command.");
 
             // Tick 1: 'par' expands, the two parallel groups are launched as separate
             // coroutines, and the original 'par' coroutine finishes.
-            session.Clock.Tick();
+            script.Clock.Tick();
 
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(2),
-                "After expansion: two coroutines â€” one per parallel group.");
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 2),
+                "After expansion: two coroutines — one per parallel group.");
 
             // Tick 2: both group coroutines run.
-            session.Clock.Tick();
+            script.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
                 "Both parallel groups should have each executed their 'track' command.");
@@ -778,40 +784,41 @@ namespace MotherCore.Tests.Unit.Modules
         public void Wait_In_Parallel_Group_Does_Not_Block_Other_Parallel_Group()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
-            var fakeRuntime = session.Mother.Program.Runtime;
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
+            int bootCount = script.Clock.CoroutineCount;
+            var fakeRuntime = script.Mother.Program.Runtime;
 
             // Group 1: wait 2 seconds, then track.
             // Group 2: track immediately.
-            session.Bus.RunTerminalCommand("{ wait 2; track; } { track; }");
+            script.Bus.RunTerminalCommand("{ wait 2; track; } { track; }");
 
             // Both coroutines are launched before any tick.
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(2),
-                "Two coroutines should be active â€” one per parallel group.");
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 2),
+                "Two coroutines should be active — one per parallel group.");
 
             // Tick 1: group 1 hits 'wait 2' and yields; group 2 runs 'track' and yields 0.
-            session.Clock.Tick();
+            script.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "Tick 1: only group 2's 'track' should have run; group 1 is blocked by its wait.");
 
             // Group 2 yielded 0 this tick, so the clock needs one more MoveNext() to
             // confirm it is exhausted.  Both coroutines are still in the list.
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(2),
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 2),
                 "Tick 1: group 2 yielded 0 and needs one more tick to be collected.");
 
             // Tick 2 (delta=0): group 2 drains and is removed; group 1 is still waiting.
-            session.Clock.Tick();
+            script.Clock.Tick();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "Tick 2: group 2 is being collected; group 1's wait is still active.");
 
-            Assert.That(session.Clock.CoroutineCount, Is.EqualTo(1),
+            Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 1),
                 "Tick 2: group 2 should have been collected; only group 1 remains.");
 
             // Advance simulated time past the 2-second wait threshold.
             A.CallTo(() => fakeRuntime.TimeSinceLastRun).Returns(TimeSpan.FromSeconds(2.1));
-            session.Clock.RunToIdle();
+            script.Clock.RunToIdle();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
                 "After the 2s wait expires, group 1's 'track' should execute, bringing the total to 2.");
@@ -831,13 +838,13 @@ namespace MotherCore.Tests.Unit.Modules
         public void Important_Config_Command_Is_Resolved_When_No_Construct_Owner()
         {
             var tracker = new TrackingCommand();
-            var session = new Script().WithCommands(tracker).Boot();
+            var script = new Script<TestProgram>().WithCommands(tracker).Boot();
 
-            // Register the important config command directly â€” no construct owner for "dock".
-            session.Mother.ConfigCommands["!dock"] = "track";
+            // Register the important config command directly — no construct owner for "dock".
+            script.Mother.ConfigCommands["!dock"] = "track";
 
-            session.Bus.RunTerminalCommand("dock");
-            session.Clock.RunToIdle();
+            script.Bus.RunTerminalCommand("dock");
+            script.Clock.RunToIdle();
 
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
                 "'dock' should resolve via the '!dock' config command entry when no construct instance owns it.");
@@ -853,9 +860,9 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C4
         public void GetSelfCommandNames_Includes_Important_Config_Command_With_Bang_Prefix()
         {
-            _mother.ConfigCommands["!dock"] = "help";
+            Mother.ConfigCommands["!dock"] = "help";
 
-            CommandBus commandBus = new CommandBus(_mother);
+            CommandBus commandBus = new CommandBus(Mother);
 
             List<string> names = commandBus.GetSelfCommandNames();
 
@@ -866,3 +873,5 @@ namespace MotherCore.Tests.Unit.Modules
 
     }
 }
+
+

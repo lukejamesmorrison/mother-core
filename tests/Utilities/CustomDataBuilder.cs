@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// Builds a valid INI-formatted CustomData string with [variables] and [commands] sections.

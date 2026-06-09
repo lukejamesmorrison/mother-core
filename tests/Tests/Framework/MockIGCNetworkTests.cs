@@ -1,6 +1,6 @@
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities;
 using System.Linq;
 
 namespace MotherCore.Tests.Framework

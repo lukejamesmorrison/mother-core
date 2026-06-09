@@ -10,7 +10,7 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.ObjectBuilders;
 using VRageMath;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// Lightweight concrete programmable block for tests.

@@ -1,7 +1,7 @@
 using IngameScript;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// A test command that counts how many times Execute() is called and records call order.

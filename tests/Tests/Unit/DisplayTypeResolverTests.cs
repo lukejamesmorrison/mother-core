@@ -3,7 +3,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using VRage.Game.ModAPI.Ingame.Utilities;
 
-namespace MotherCore.Tests.Unit.Utilities
+namespace MotherCore.Tests.Tests.Unit
 {
     public class DisplayTypeResolverTests
     {

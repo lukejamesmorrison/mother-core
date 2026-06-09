@@ -1,16 +1,12 @@
-﻿using FakeItEasy;
-using IngameScript;
+﻿using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
-using Sandbox.ModAPI.Ingame;
-using System.Net.NetworkInformation;
 using System;
 using System.Collections.Generic;
 using VRageMath;
 
-namespace MotherCore.Tests.Unit.Utilities
+namespace MotherCore.Tests.Tests.Unit
 {
-    public class SerializerTests : BaseModuleTests
+    public class SerializerTests
     {
 
         [Test]

@@ -1,10 +1,10 @@
 ﻿using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities;
 using Sandbox.ModAPI.Ingame;
 //using static Sandbox.ModAPI.Ingame.MyGridProgram as Program;
 
-namespace MotherCore.Tests.Unit.Core
+namespace MotherCore.Tests.Tests.Unit
 {
     /// <summary>
     ///     Sample tests for the <see cref="TestProgram" /> class.
@@ -16,14 +16,6 @@ namespace MotherCore.Tests.Unit.Core
     [TestFixture]
     public class ProgramInstanceTests
     {
-
-        [Test]
-        public void Test_Assert_True()
-        {
-            // Act & Assert
-            Assert.That(true, Is.True);
-        }
-
         /// <summary>
         ///     Happy-case test for creating a new program instance.
         /// </summary>

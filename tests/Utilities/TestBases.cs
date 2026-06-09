@@ -1,17 +1,20 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
-    /// Base class for unit tests that focus on commands and module methods inside
-    /// a single script. Boots a fresh <see cref="Script{TProgram}"/> before each test.
+    /// Base class for integration tests that exercise a single booted script.
+    /// Boots a fresh <see cref="Script{TProgram}"/> before each test and exposes
+    /// <see cref="Mother"/>, <see cref="Bus"/>, and <see cref="Clock"/> for direct access.
     /// </summary>
     /// <remarks>
-    /// Usage:
+    /// Use this base for Tests/Integration/Script/ tests that exercise module
+    /// behaviour, event firing, and command handling within one script instance.
     /// <code>
-    /// public class MyCommandTests : ModuleUnitTestBase&lt;TestProgram&gt;
+    /// public class MyModuleTests : ScriptTestBase&lt;TestProgram&gt;
     /// {
     ///     [Test]
     ///     public void SomeCommand_DoesExpectedThing()
@@ -23,7 +26,7 @@ namespace MotherCore.Tests.TestUtilities
     ///     }
     /// }
     /// </code>
-    /// Override <see cref="SetUp"/> (calling <c>base.SetUp()</c>) to add
+    /// Override <see cref="SetUp"/> (calling <c>base.SetUp()</c>) to inject
     /// custom data, extra commands, or other per-test configuration.
     /// </remarks>
     /// <typeparam name="TProgram">
@@ -31,7 +34,7 @@ namespace MotherCore.Tests.TestUtilities
     /// MotherCore-only tests; use a real script's <c>Program</c> for targeted
     /// module tests inside that script.
     /// </typeparam>
-    public abstract class ModuleUnitTestBase<TProgram>
+    public abstract class ScriptTestBase<TProgram>
         where TProgram : MyGridProgram, new()
     {
         /// <summary>The booted script. Available after <see cref="SetUp"/>.</summary>
@@ -58,14 +61,15 @@ namespace MotherCore.Tests.TestUtilities
     }
 
     /// <summary>
-    /// Base class for integration tests that exercise one real script instance.
-    /// Boots a fresh <see cref="Script{TProgram}"/> before each test and wires
-    /// up echo capture automatically.
+    /// Base class for integration tests that exercise one real script instance
+    /// and assert on its printed output. Boots a fresh <see cref="Script{TProgram}"/>
+    /// before each test and wires up <see cref="Echo"/> capture automatically.
     /// </summary>
     /// <remarks>
-    /// Usage:
+    /// Use this base for Tests/Integration/Script/ tests that need to assert on
+    /// terminal output (e.g. help text, status messages).
     /// <code>
-    /// public class MyFeatureTests : ProgramFeatureTestBase&lt;TestProgram&gt;
+    /// public class MyFeatureTests : ScriptFeatureTestBase&lt;TestProgram&gt;
     /// {
     ///     [Test]
     ///     public void Command_PrintsExpectedOutput()
@@ -81,7 +85,7 @@ namespace MotherCore.Tests.TestUtilities
     /// The script's <c>Program</c> type. Use <see cref="TestProgram"/> for
     /// MotherCore-only tests; use a real script's <c>Program</c> for feature tests.
     /// </typeparam>
-    public abstract class ProgramFeatureTestBase<TProgram>
+    public abstract class ScriptFeatureTestBase<TProgram>
         where TProgram : MyGridProgram, new()
     {
         /// <summary>The booted script. Available after <see cref="SetUp"/>.</summary>
@@ -116,19 +120,20 @@ namespace MotherCore.Tests.TestUtilities
     }
 
     /// <summary>
-    /// Base class for tests that involve multiple scripts running inside one shared
-    /// <see cref="TestWorld"/>. Creates a fresh world before each test.
+    /// Base class for integration tests that involve multiple scripts running inside
+    /// one shared <see cref="TestWorld"/>. Creates a fresh world before each test.
     /// </summary>
     /// <remarks>
-    /// Usage:
+    /// Use this base for Tests/Integration/World/ tests that exercise cross-script
+    /// communication via the <see cref="IntergridMessageService"/>.
     /// <code>
-    /// public class MultiScriptTests : MultiProgramFeatureTestBase
+    /// public class MultiScriptTests : WorldTestBase
     /// {
     ///     [Test]
     ///     public void ShipA_Can_Send_Command_To_ShipB()
     ///     {
-    ///         var shipA = World.CreateScript&lt;Program&gt;("ShipA").Boot();
-    ///         var shipB = World.CreateScript&lt;Program&gt;("ShipB").Boot();
+    ///         var shipA = World.CreateScript&lt;TestProgram&gt;("ShipA").Boot();
+    ///         var shipB = World.CreateScript&lt;TestProgram&gt;("ShipB").Boot();
     ///
     ///         shipA.Bus.RunTerminalCommand("@ShipB help");
     ///         shipA.Clock.RunToIdle();
@@ -138,7 +143,7 @@ namespace MotherCore.Tests.TestUtilities
     /// }
     /// </code>
     /// </remarks>
-    public abstract class MultiProgramFeatureTestBase
+    public abstract class WorldTestBase
     {
         /// <summary>The shared test world. Available after <see cref="SetUp"/>.</summary>
         protected TestWorld World { get; private set; }

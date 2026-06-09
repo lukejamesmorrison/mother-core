@@ -1,11 +1,11 @@
 ﻿using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities;
 using Sandbox.ModAPI.Ingame;
 using System;
 
-namespace MotherCore.Tests.Unit.Core
+namespace MotherCore.Tests.Tests.Unit
 {
     public class MotherTests
     {

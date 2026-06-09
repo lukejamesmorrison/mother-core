@@ -6,7 +6,7 @@ using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 
 
-namespace MotherCore.Tests.TestUtilities
+namespace MotherCore.Tests.Utilities
 {
     /// <summary>
     /// Provides utility methods for setting up and testing Space Engineers' programmable block scripts.
