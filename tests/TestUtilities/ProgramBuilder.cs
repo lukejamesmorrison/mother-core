@@ -147,7 +147,7 @@ namespace MotherCore.Tests.TestUtilities
                 // RegisterBroadcastListener implementations. The private network is only
                 // used to allocate the endpoint; messages sent to it are silently dropped
                 // since no Deliver() is called. For multi-script tests, supply a shared
-                // MockIGCNetwork via TestSession.OnNetwork().
+                // MockIGCNetwork via Script.OnNetwork().
                 var standaloneIgc = new MockIGCNetwork().AllocateEndpoint();
                 return () => standaloneIgc;
             }

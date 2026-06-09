@@ -1,5 +1,4 @@
 using IngameScript;
-using MotherCore.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System.Collections.Generic;
 using System.Reflection;
@@ -11,7 +10,7 @@ namespace MotherCore.Tests.TestUtilities
     /// </summary>
     /// <typeparam name="TProgram">
     /// The script's <c>Program</c> type. Must be a <see cref="MyGridProgram"/> subclass
-    /// with a parameterless constructor. No extra interface is required — the session
+    /// with a parameterless constructor. No extra interface is required — the script
     /// locates the <see cref="Mother"/> instance via reflection after construction.
     /// </typeparam>
     /// <remarks>
@@ -19,43 +18,43 @@ namespace MotherCore.Tests.TestUtilities
     /// Zero-configuration MotherCore test (uses the built-in <see cref="Program"/>):
     /// </para>
     /// <code>
-    /// var session = new TestSession().Boot();
-    /// session.Bus.RunTerminalCommand("help");
+    /// var script = new Script().Boot();
+    /// script.Bus.RunTerminalCommand("help");
     /// </code>
     /// <para>
     /// Layer in only what each test needs:
     /// </para>
     /// <code>
-    /// var session = new TestSession()
+    /// var script = new Script()
     ///     .WithCustomData(new CustomDataBuilder()
     ///         .WithCommand("openDoor", "door/open AirlockDoor")
     ///         .Build())
     ///     .WithCommands(tracker)
     ///     .Boot();
     ///
-    /// session.Bus.RunTerminalCommand("openDoor");
-    /// session.Clock.Tick();
-    /// session.Clock.RunToIdle();
+    /// script.Bus.RunTerminalCommand("openDoor");
+    /// script.Clock.Tick();
+    /// script.Clock.RunToIdle();
     /// </code>
     /// <para>
     /// To test a real script (MotherOS, MAPS, …) pass its <c>Program</c> type.
     /// The Program constructor runs normally, registering all its modules; the
-    /// session then boots them and wires up the same helpers:
+    /// script then boots them and wires up the same helpers:
     /// </para>
     /// <code>
     /// // In a MotherOS test project — Program must implement IMotherProgram
-    /// var session = new TestSession&lt;MotherOS.Program&gt;().Boot();
+    /// var script = new Script&lt;MotherOS.Program&gt;().Boot();
     /// </code>
     /// <para>
     /// For multi-script tests, join a <see cref="MockIGCNetwork"/>. The network
-    /// automatically cross-registers every booted session in every other session's
+    /// automatically cross-registers every booted script in every other script's
     /// Almanac, so grids can discover each other by name without any manual wiring:
     /// </para>
     /// <code>
     /// var network = new MockIGCNetwork();
     ///
-    /// var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
-    /// var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
+    /// var shipA = new Script("ShipA").OnNetwork(network).Boot();
+    /// var shipB = new Script("ShipB").OnNetwork(network).Boot();
     ///
     /// // ShipA already knows "ShipB" and vice versa — no RegisterInAlmanac call needed.
     /// shipA.Bus.RunTerminalCommand("@ShipB weapons/fire");
@@ -66,7 +65,7 @@ namespace MotherCore.Tests.TestUtilities
     /// after the Program constructor has run but before any module is booted:
     /// </para>
     /// <code>
-    /// public class MyTestSession : TestSession
+    /// public class MyScript : Script
     /// {
     ///     protected override void OnBeforeBoot(Mother mother)
     ///     {
@@ -75,7 +74,7 @@ namespace MotherCore.Tests.TestUtilities
     /// }
     /// </code>
     /// </remarks>
-    public class TestSession<TProgram> : ITestSession
+    public class Script<TProgram> : IScript
         where TProgram : MyGridProgram, new()
     {
         Mother _mother;
@@ -86,12 +85,12 @@ namespace MotherCore.Tests.TestUtilities
         readonly string _gridName;
 
         /// <param name="gridName">
-        /// Optional grid name for this session. Sets <see cref="Mother.Name"/> before boot
-        /// and is used as the address other sessions use to reach this one on a
+        /// Optional grid name for this script. Sets <see cref="Mother.Name"/> before boot
+        /// and is used as the address other scripts use to reach this one on a
         /// <see cref="MockIGCNetwork"/>. When omitted, falls back to the cube grid's
         /// <c>CustomName</c> and then to <c>"grid-{Mother.Id}"</c>.
         /// </param>
-        public TestSession(string gridName = null)
+        public Script(string gridName = null)
         {
             _gridName = gridName;
         }
@@ -110,7 +109,7 @@ namespace MotherCore.Tests.TestUtilities
 
         /// <summary>
         /// The underlying <see cref="Mother"/> instance.
-        /// Useful for accessing modules not directly exposed by the session.
+        /// Useful for accessing modules not directly exposed by the script.
         /// </summary>
         public Mother Mother => _mother;
 
@@ -122,39 +121,39 @@ namespace MotherCore.Tests.TestUtilities
         public TProgram Program { get; private set; }
 
         /// <summary>
-        /// The IGC in use by this session's program.
-        /// When joined to a <see cref="MockIGCNetwork"/> this is the session's
+        /// The IGC in use by this script's program.
+        /// When joined to a <see cref="MockIGCNetwork"/> this is the script's
         /// <see cref="MockIGC"/>; use <see cref="NetworkIGC"/> for the typed reference.
         /// </summary>
         public IMyIntergridCommunicationSystem IGC => _mother.IGC;
 
         /// <summary>
-        /// The typed <see cref="MockIGC"/> for this session.
-        /// Non-null only when the session was joined to a <see cref="MockIGCNetwork"/>
+        /// The typed <see cref="MockIGC"/> for this script.
+        /// Non-null only when the script was joined to a <see cref="MockIGCNetwork"/>
         /// via <see cref="OnNetwork"/>.
         /// </summary>
         public MockIGC NetworkIGC { get; private set; }
 
         /// <summary>
-        /// Injects a pre-created IGC into this session's program. Use this when you
+        /// Injects a pre-created IGC into this script's program. Use this when you
         /// need an explicit <see cref="MockIGC"/> reference before calling
         /// <see cref="Boot"/>. When also joined to a <see cref="MockIGCNetwork"/> via
         /// <see cref="OnNetwork"/>, the network-allocated IGC takes precedence.
         /// </summary>
-        public TestSession<TProgram> WithIGC(IMyIntergridCommunicationSystem igc)
+        public Script<TProgram> WithIGC(IMyIntergridCommunicationSystem igc)
         {
             _igc = igc;
             return this;
         }
 
         /// <summary>
-        /// Joins this session to a <see cref="MockIGCNetwork"/>. A <see cref="MockIGC"/>
-        /// will be allocated from the network and injected into this session's
-        /// <c>Program</c> during <see cref="Boot"/>. After boot, the session is
-        /// automatically cross-registered in every other booted session's Almanac
+        /// Joins this script to a <see cref="MockIGCNetwork"/>. A <see cref="MockIGC"/>
+        /// will be allocated from the network and injected into this script's
+        /// <c>Program</c> during <see cref="Boot"/>. After boot, the script is
+        /// automatically cross-registered in every other booted script's Almanac
         /// under the grid name supplied to the constructor (or the derived fallback).
         /// </summary>
-        public TestSession<TProgram> OnNetwork(MockIGCNetwork network)
+        public Script<TProgram> OnNetwork(MockIGCNetwork network)
         {
             _network = network;
             return this;
@@ -164,7 +163,7 @@ namespace MotherCore.Tests.TestUtilities
         /// Sets the programmable block's <c>CustomData</c> before boot.
         /// Use <see cref="CustomDataBuilder"/> to construct the INI string.
         /// </summary>
-        public TestSession<TProgram> WithCustomData(string customData)
+        public Script<TProgram> WithCustomData(string customData)
         {
             _customData = customData;
             return this;
@@ -173,7 +172,7 @@ namespace MotherCore.Tests.TestUtilities
         /// <summary>
         /// Registers one or more commands with the <see cref="CommandBus"/> after boot.
         /// </summary>
-        public TestSession<TProgram> WithCommands(params BaseModuleCommand[] commands)
+        public Script<TProgram> WithCommands(params BaseModuleCommand[] commands)
         {
             _commands.AddRange(commands);
             return this;
@@ -217,10 +216,10 @@ namespace MotherCore.Tests.TestUtilities
         /// <see cref="Mother"/> the constructor created, applies
         /// <c>CustomData</c>, calls <see cref="OnBeforeBoot"/>, boots all
         /// registered modules, and — if on a network — cross-registers this
-        /// session in every other booted session's Almanac.
+        /// script in every other booted script's Almanac.
         /// Returns <c>this</c> so the call can be chained inline.
         /// </summary>
-        public TestSession<TProgram> Boot()
+        public Script<TProgram> Boot()
         {
             TProgram program;
 
@@ -275,33 +274,47 @@ namespace MotherCore.Tests.TestUtilities
     }
 
     /// <summary>
-    /// Convenience alias for <see cref="TestSession{TProgram}"/> that targets the
-    /// built-in MotherCore test <see cref="Program"/>. All existing MotherCore tests
-    /// continue to work without any changes.
+    /// Convenience alias for <see cref="Script{TProgram}"/> that targets the
+    /// built-in MotherCore test <see cref="TestProgram"/>.
     /// </summary>
-    /// <remarks>
-    /// All fluent methods are overridden here to return <c>TestSession</c> so that
-    /// the compiler infers the correct type when chaining (e.g.
-    /// <c>new TestSession().WithCustomData(...).Boot()</c>).
-    /// </remarks>
-    public class TestSession : TestSession<Program>
+    public class Script : Script<TestProgram>
     {
-        /// <inheritdoc cref="TestSession{TProgram}(string)"/>
-        public TestSession(string gridName = null) : base(gridName) { }
+        /// <inheritdoc cref="Script{TProgram}(string)"/>
+        public Script(string gridName = null) : base(gridName) { }
 
-        /// <inheritdoc cref="TestSession{TProgram}.WithIGC"/>
-        public new TestSession WithIGC(IMyIntergridCommunicationSystem igc) { base.WithIGC(igc); return this; }
+        /// <inheritdoc cref="Script{TProgram}.WithIGC"/>
+        public new Script WithIGC(IMyIntergridCommunicationSystem igc)
+        {
+            base.WithIGC(igc);
+            return this;
+        }
 
-        /// <inheritdoc cref="TestSession{TProgram}.OnNetwork"/>
-        public new TestSession OnNetwork(MockIGCNetwork network) { base.OnNetwork(network); return this; }
+        /// <inheritdoc cref="Script{TProgram}.OnNetwork"/>
+        public new Script OnNetwork(MockIGCNetwork network)
+        {
+            base.OnNetwork(network);
+            return this;
+        }
 
-        /// <inheritdoc cref="TestSession{TProgram}.WithCustomData"/>
-        public new TestSession WithCustomData(string customData) { base.WithCustomData(customData); return this; }
+        /// <inheritdoc cref="Script{TProgram}.WithCustomData"/>
+        public new Script WithCustomData(string customData)
+        {
+            base.WithCustomData(customData);
+            return this;
+        }
 
-        /// <inheritdoc cref="TestSession{TProgram}.WithCommands"/>
-        public new TestSession WithCommands(params BaseModuleCommand[] commands) { base.WithCommands(commands); return this; }
+        /// <inheritdoc cref="Script{TProgram}.WithCommands"/>
+        public new Script WithCommands(params BaseModuleCommand[] commands)
+        {
+            base.WithCommands(commands);
+            return this;
+        }
 
-        /// <inheritdoc cref="TestSession{TProgram}.Boot"/>
-        public new TestSession Boot() { base.Boot(); return this; }
+        /// <inheritdoc cref="Script{TProgram}.Boot"/>
+        public new Script Boot()
+        {
+            base.Boot();
+            return this;
+        }
     }
 }

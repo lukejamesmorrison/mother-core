@@ -424,7 +424,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Single_Command_Creates_Exactly_One_Coroutine()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
 
             session.Bus.RunTerminalCommand("track");
 
@@ -446,7 +446,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Semicolon_Commands_Run_Sequentially_In_One_Coroutine()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
 
             session.Bus.RunTerminalCommand("track; track; track");
 
@@ -473,7 +473,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Parallel_Groups_Launch_One_Coroutine_Per_Group()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
 
             session.Bus.RunTerminalCommand("{ track; } { track; } { track; }");
 
@@ -500,7 +500,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Force_Local_Bypasses_Important_Construct_Command()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
 
             // Register "track" as an important command on a remote construct instance.
             long remoteId = session.Mother.Id + 1;
@@ -537,7 +537,7 @@ namespace MotherCore.Tests.Unit.Modules
         {
             var tracker = new TrackingCommand();
 
-            var session = new TestSession()
+            var session = new Script()
                 .WithCustomData(new CustomDataBuilder()
                     .WithCommand("myAction", "track")
                     .Build())
@@ -576,7 +576,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C7
         public void Unknown_Command_Prints_CommandNotFound_And_Does_Not_Throw()
         {
-            var session = new TestSession().Boot();
+            var session = new Script().Boot();
             var capture = new PrintCapture(session);
             var terminal = session.Mother.GetModule<Terminal>();
 
@@ -614,7 +614,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C9
         public void Help_Command_Output_Lists_All_Registered_Commands()
         {
-            var session = new TestSession().Boot();
+            var session = new Script().Boot();
             var capture = new PrintCapture(session);
             var terminal = session.Mother.GetModule<Terminal>();
 
@@ -636,7 +636,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Halt_Command_Clears_All_Coroutines()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
             var clock = session.Mother.GetModule<Clock>();
 
             // Start long-running coroutines so there is something to clear.
@@ -679,7 +679,7 @@ namespace MotherCore.Tests.Unit.Modules
         [Test]  // C11
         public void RunTerminalCommand_With_Only_Whitespace_Returns_False()
         {
-            var session = new TestSession().Boot();
+            var session = new Script().Boot();
 
             bool result = false;
             Assert.DoesNotThrow(() => result = session.Bus.RunTerminalCommand("   "),
@@ -707,7 +707,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Wait_Blocks_Subsequent_Commands_In_Same_Coroutine()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
             var fakeRuntime = session.Mother.Program.Runtime;
 
             session.Bus.RunTerminalCommand("track; wait 2; track");
@@ -744,7 +744,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Config_Command_Expanding_To_Parallel_Groups_Launches_Multiple_Coroutines()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
 
             // Config command whose value is a parallel-group routine.
             session.Mother.ConfigCommands["par"] = "{ track; } { track; }";
@@ -778,7 +778,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Wait_In_Parallel_Group_Does_Not_Block_Other_Parallel_Group()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
             var fakeRuntime = session.Mother.Program.Runtime;
 
             // Group 1: wait 2 seconds, then track.
@@ -831,7 +831,7 @@ namespace MotherCore.Tests.Unit.Modules
         public void Important_Config_Command_Is_Resolved_When_No_Construct_Owner()
         {
             var tracker = new TrackingCommand();
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
 
             // Register the important config command directly — no construct owner for "dock".
             session.Mother.ConfigCommands["!dock"] = "track";

@@ -6,21 +6,17 @@ using System.Linq;
 namespace MotherCore.Tests.Integration
 {
     /// <summary>
-    /// Verifies that <see cref="TestSession"/> and <see cref="MockIGCNetwork"/> are
+    /// Verifies that <see cref="Script"/> and <see cref="MockIGCNetwork"/> are
     /// working correctly. These tests protect the test harness itself — a regression
-    /// here means every test that relies on <c>TestSession</c> or the mock network
+    /// here means every test that relies on <c>Script</c> or the mock network
     /// is unreliable.
     /// </summary>
-    public class TestSessionTests
+    public class ScriptTests
     {
-        // =====================================================================
-        // Boot lifecycle
-        // =====================================================================
-
         [Test]
         public void Boot_Exposes_A_Non_Null_CommandBus()
         {
-            var session = new TestSession().Boot();
+            var session = new Script().Boot();
 
             Assert.That(session.Bus, Is.Not.Null);
         }
@@ -28,7 +24,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Boot_Exposes_A_Non_Null_ClockDriver()
         {
-            var session = new TestSession().Boot();
+            var session = new Script().Boot();
 
             Assert.That(session.Clock, Is.Not.Null);
         }
@@ -36,19 +32,15 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Boot_Exposes_A_Non_Null_Configuration()
         {
-            var session = new TestSession().Boot();
+            var session = new Script().Boot();
 
             Assert.That(session.Config, Is.Not.Null);
         }
 
-        // =====================================================================
-        // WithCustomData
-        // =====================================================================
-
         [Test]
         public void WithCustomData_Makes_Config_Command_Available_After_Boot()
         {
-            var session = new TestSession()
+            var session = new Script()
                 .WithCustomData(new CustomDataBuilder()
                     .WithCommand("openDoor", "track")
                     .Build())
@@ -59,15 +51,11 @@ namespace MotherCore.Tests.Integration
             Assert.That(names, Contains.Item("openDoor"));
         }
 
-        // =====================================================================
-        // WithCommands
-        // =====================================================================
-
         [Test]
         public void WithCommands_Registers_Command_With_Bus()
         {
             var tracker = new TrackingCommand("myCmd");
-            var session = new TestSession().WithCommands(tracker).Boot();
+            var session = new Script().WithCommands(tracker).Boot();
 
             session.Bus.RunTerminalCommand("myCmd");
             session.Clock.Tick(2);
@@ -80,7 +68,7 @@ namespace MotherCore.Tests.Integration
         {
             var trackerA = new TrackingCommand("cmdA");
             var trackerB = new TrackingCommand("cmdB");
-            var session = new TestSession().WithCommands(trackerA, trackerB).Boot();
+            var session = new Script().WithCommands(trackerA, trackerB).Boot();
 
             session.Bus.RunTerminalCommand("cmdA");
             session.Bus.RunTerminalCommand("cmdB");
@@ -90,17 +78,13 @@ namespace MotherCore.Tests.Integration
             Assert.That(trackerB.ExecutionCount, Is.EqualTo(1));
         }
 
-        // =====================================================================
-        // MockIGCNetwork — endpoint allocation
-        // =====================================================================
-
         [Test]
-        public void Two_Sessions_On_Same_Network_Have_Different_IGC_Ids()
+        public void Two_Scripts_On_Same_Network_Have_Different_IGC_Ids()
         {
             var network = new MockIGCNetwork();
 
-            var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
-            var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
             Assert.That(shipA.IGC.Me, Is.Not.EqualTo(shipB.IGC.Me));
         }
@@ -110,22 +94,18 @@ namespace MotherCore.Tests.Integration
         {
             var network = new MockIGCNetwork();
 
-            var session = new TestSession("ShipA").OnNetwork(network).Boot();
+            var session = new Script("ShipA").OnNetwork(network).Boot();
 
             Assert.That(session.NetworkIGC, Is.Not.Null);
         }
 
-        // =====================================================================
-        // MockIGCNetwork — Almanac cross-registration
-        // =====================================================================
-
         [Test]
-        public void Almanac_Record_Contains_Correct_UnicastId_For_Remote_Session()
+        public void Almanac_Record_Contains_Correct_UnicastId_For_Remote_Script()
         {
             var network = new MockIGCNetwork();
 
-            var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
-            var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
             var almanac = shipA.Mother.GetModule<Almanac>();
             var record = almanac.GetRecord("ShipB");
@@ -135,13 +115,13 @@ namespace MotherCore.Tests.Integration
         }
 
         [Test]
-        public void Three_Sessions_Are_All_Cross_Registered_With_Each_Other()
+        public void Three_Scripts_Are_All_Cross_Registered_With_Each_Other()
         {
             var network = new MockIGCNetwork();
 
-            var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
-            var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
-            var shipC = new TestSession("ShipC").OnNetwork(network).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
+            var shipC = new Script("ShipC").OnNetwork(network).Boot();
 
             var almanacA = shipA.Mother.GetModule<Almanac>();
             var almanacB = shipB.Mother.GetModule<Almanac>();
@@ -155,17 +135,13 @@ namespace MotherCore.Tests.Integration
             Assert.That(almanacC.GetRecord("ShipB"), Is.Not.Null, "C should know B");
         }
 
-        // =====================================================================
-        // MockIGCNetwork — SentMessages capture
-        // =====================================================================
-
         [Test]
         public void Remote_Command_SentMessage_Targets_Correct_Recipient()
         {
             var network = new MockIGCNetwork();
 
-            var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
-            var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -181,8 +157,8 @@ namespace MotherCore.Tests.Integration
         {
             var network = new MockIGCNetwork();
 
-            var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
-            var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -192,24 +168,18 @@ namespace MotherCore.Tests.Integration
             Assert.That(network.SentMessages.Count, Is.EqualTo(0));
         }
 
-        // =====================================================================
-        // MockIGCNetwork — Deliver
-        // =====================================================================
-
         [Test]
         public void Deliver_Executes_Remote_Command_On_Recipient()
         {
             var network = new MockIGCNetwork();
 
             var tracker = new TrackingCommand("probe");
-            var shipA = new TestSession("ShipA").OnNetwork(network).Boot();
-            var shipB = new TestSession("ShipB").OnNetwork(network).WithCommands(tracker).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).WithCommands(tracker).Boot();
 
-            // ShipA sends "probe" to ShipB
             shipA.Bus.RunTerminalCommand("@ShipB probe");
             shipA.Clock.RunToIdle();
 
-            // Message is queued but not yet delivered
             Assert.That(tracker.ExecutionCount, Is.EqualTo(0),
                 "Command should not execute on ShipB before Deliver() is called.");
 
@@ -227,8 +197,8 @@ namespace MotherCore.Tests.Integration
 
             var trackerA = new TrackingCommand("probe");
             var trackerB = new TrackingCommand("probe");
-            var shipA = new TestSession("ShipA").OnNetwork(network).WithCommands(trackerA).Boot();
-            var shipB = new TestSession("ShipB").OnNetwork(network).WithCommands(trackerB).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).WithCommands(trackerA).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).WithCommands(trackerB).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB probe");
             shipA.Clock.RunToIdle();
@@ -247,7 +217,7 @@ namespace MotherCore.Tests.Integration
         {
             var network = new MockIGCNetwork();
 
-            new TestSession("ShipA").OnNetwork(network).Boot();
+            new Script("ShipA").OnNetwork(network).Boot();
 
             Assert.DoesNotThrow(() => network.Deliver());
         }

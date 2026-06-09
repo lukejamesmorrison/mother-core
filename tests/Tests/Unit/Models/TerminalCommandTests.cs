@@ -1,7 +1,6 @@
 ﻿using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.TestUtilities;
 using MotherCore.Tests.TestUtilities;
 using System;
 using System.Collections.Generic;

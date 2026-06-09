@@ -5,15 +5,15 @@ using System.Linq;
 namespace MotherCore.Tests.TestUtilities
 {
     /// <summary>
-    /// Redirects <see cref="Program.Echo"/> to an in-memory list so tests can assert
+    /// Redirects <see cref="TestProgram.Echo"/> to an in-memory list so tests can assert
     /// on strings printed by <c>Mother.Print</c> without wiring a <c>Terminal</c> module.
     /// </summary>
     /// <remarks>
     /// Construct one instance per test and pass the <c>Program</c> from a
-    /// <see cref="TestSession"/> before calling <see cref="TestSession.Boot"/>, or
+    /// <see cref="Script"/> before calling <see cref="Script.Boot"/>, or
     /// immediately after boot (before any commands run):
     /// <code>
-    /// var session = new TestSession().Boot();
+    /// var session = new Script().Boot();
     /// var capture = new PrintCapture(session);
     ///
     /// session.Bus.RunTerminalCommand("nonexistent");
@@ -28,9 +28,9 @@ namespace MotherCore.Tests.TestUtilities
         public List<string> Lines { get; } = new List<string>();
 
         /// <summary>
-        /// Redirects <c>Program.Echo</c> for the session's underlying program.
+        /// Redirects <c>Program.Echo</c> for the script's underlying program.
         /// </summary>
-        public PrintCapture(ITestSession session)
+        public PrintCapture(IScript session)
         {
             ((Sandbox.ModAPI.IMyGridProgram)session.Mother.Program).Echo = message => Lines.Add(message);
         }

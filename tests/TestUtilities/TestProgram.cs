@@ -6,7 +6,7 @@ namespace IngameScript
     /// <summary>
     /// A minimal Program class for testing purposes.
     /// </summary>
-    public partial class Program : MyGridProgram
+    public partial class TestProgram : MyGridProgram
     {
         /// <summary>
         /// The Mother instance is the core service of the Mother script.
@@ -16,7 +16,7 @@ namespace IngameScript
         /// <summary>
         /// Program constructor. Creates a minimal Mother instance for testing.
         /// </summary>
-        public Program()
+        public TestProgram()
         {
             // Create the Mother instance
             mother = new Mother(this)

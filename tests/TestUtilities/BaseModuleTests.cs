@@ -1,7 +1,7 @@
 ﻿using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System.Reflection;
 using System.Net.NetworkInformation;
@@ -11,13 +11,13 @@ namespace MotherCore.Tests.TestUtilities
 {
     public class BaseModuleTests
     {
-        public Program _program;
+        public TestProgram _program;
         public Mother _mother;
 
         [SetUp]
         public void Setup()
         {
-            var session = new TestSession().Boot();
+            var session = new Script().Boot();
             _program = session.Program;
             _mother = session.Mother;
         }

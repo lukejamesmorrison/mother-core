@@ -8,11 +8,11 @@ namespace MotherCore.Tests.TestUtilities
 {
     /// <summary>
     /// A simulated intergrid communication network that connects multiple
-    /// <see cref="TestSession"/> instances for multi-script tests.
+    /// <see cref="Script"/> instances for multi-script tests.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Each session on the network gets a unique <see cref="MockIGC"/> that routes
+    /// Each script on the network gets a unique <see cref="MockIGC"/> that routes
     /// outbound messages through the network. Pending messages are buffered until
     /// <see cref="Deliver"/> is called, giving tests precise control over when
     /// each message is processed.
@@ -20,12 +20,12 @@ namespace MotherCore.Tests.TestUtilities
     /// <code>
     /// var network = new MockIGCNetwork();
     ///
-    /// var shipA = new TestSession("ShipA")
+    /// var shipA = new Script("ShipA")
     ///     .OnNetwork(network)
     ///     .WithCustomData(new CustomDataBuilder().WithCommand("attack", "@ShipB weapons/fire").Build())
     ///     .Boot();
     ///
-    /// var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
+    /// var shipB = new Script("ShipB").OnNetwork(network).Boot();
     ///
     /// shipA.Bus.RunTerminalCommand("attack");
     ///
@@ -41,8 +41,8 @@ namespace MotherCore.Tests.TestUtilities
         static long _nextId = 100_000_000_000L;
 
         readonly List<MockIGC> _endpoints = new List<MockIGC>();
-        readonly List<(ITestSession Session, string GridName)> _sessions
-            = new List<(ITestSession, string)>();
+        readonly List<(IScript Session, string GridName)> _sessions
+            = new List<(IScript, string)>();
         readonly List<PendingDelivery> _pending = new List<PendingDelivery>();
 
         /// <summary>
@@ -53,8 +53,8 @@ namespace MotherCore.Tests.TestUtilities
 
         /// <summary>
         /// Allocates a new <see cref="MockIGC"/> endpoint on this network.
-        /// Called internally by <see cref="TestSession.Boot"/> when the session
-        /// has been joined via <see cref="TestSession.OnNetwork"/>.
+        /// Called internally by <see cref="Script.Boot"/> when the script
+        /// has been joined via <see cref="Script.OnNetwork"/>.
         /// </summary>
         public MockIGC AllocateEndpoint()
         {
@@ -64,12 +64,12 @@ namespace MotherCore.Tests.TestUtilities
         }
 
         /// <summary>
-        /// Registers a booted session on the network and cross-populates every other
-        /// booted session's Almanac with this session's grid name, and vice versa.
-        /// Called automatically by <see cref="TestSession{TProgram}.Boot"/> — no
+        /// Registers a booted script on the network and cross-populates every other
+        /// booted script's Almanac with this script's grid name, and vice versa.
+        /// Called automatically by <see cref="Script{TProgram}.Boot"/> - no
         /// manual call required.
         /// </summary>
-        internal void RegisterSession(ITestSession session, string gridName)
+        internal void RegisterSession(IScript session, string gridName)
         {
             foreach (var (existing, existingName) in _sessions)
             {
@@ -80,7 +80,7 @@ namespace MotherCore.Tests.TestUtilities
             _sessions.Add((session, gridName));
         }
 
-        static void SyncToAlmanac(ITestSession recipient, ITestSession subject, string subjectName)
+        static void SyncToAlmanac(IScript recipient, IScript subject, string subjectName)
         {
             var almanac = recipient.Mother.GetModule<Almanac>();
             if (almanac == null) return;

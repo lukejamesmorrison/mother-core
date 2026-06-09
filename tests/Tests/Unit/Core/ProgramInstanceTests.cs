@@ -1,14 +1,13 @@
-﻿using FakeItEasy;
-using IngameScript;
+﻿using IngameScript;
 using NUnit.Framework;
-using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 //using static Sandbox.ModAPI.Ingame.MyGridProgram as Program;
 
 namespace MotherCore.Tests.Unit.Core
 {
     /// <summary>
-    ///     Sample tests for the <see cref="Program" /> class.
+    ///     Sample tests for the <see cref="TestProgram" /> class.
     /// </summary>
     /// <remarks>
     ///     You will need to add a reference to your Space Engineers script project before these tests will pass. You should
@@ -37,7 +36,7 @@ namespace MotherCore.Tests.Unit.Core
         public void NewProgram_WhenCalled_ShouldNotThrow()
         {
             // Act
-            var program = Gateway.CreateProgram<Program>()
+            var program = Gateway.CreateProgram<TestProgram>()
                 .Build();
 
             // Assert
@@ -52,7 +51,7 @@ namespace MotherCore.Tests.Unit.Core
         {
             // Arrange
             string echoMessage = null;
-            var program = Gateway.CreateProgram<Program>()
+            var program = Gateway.CreateProgram<TestProgram>()
                 .WithEcho(message => echoMessage = message)
                 .Build();
 
@@ -70,19 +69,13 @@ namespace MotherCore.Tests.Unit.Core
         public void NewProgram_WithCustomPbFake_HasMeInstance()
         {
             // Arrange
-            var me = A.Fake<IMyProgrammableBlock>();
-
-            //var pb = ProgrammableBlockFactory.Create(b =>
-            //{
-            //    A.CallTo(() => b.CustomName).Returns("Test PB");
-            //    A.CallTo(() => b.EntityId).Returns(123456);
-            //});
-
-            A.CallTo(() => me.IsRunning).Returns(true);
-            A.CallTo(() => me.CustomName).Returns("Test PB");
+            var me = new TestProgrammableBlock(
+                customName: "Test PB",
+                gridName: "Grid A");
+            me.IsRunning = true;
 
             // Act
-            var program = Gateway.CreateProgram<Program>()
+            var program = Gateway.CreateProgram<TestProgram>()
                 .WithMe(me)
                 .Build();
 

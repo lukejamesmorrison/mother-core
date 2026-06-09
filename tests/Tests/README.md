@@ -8,7 +8,7 @@ is required.
 > **Test project setup**  
 > MotherOS and MotherGUI tests live in their own test projects that include
 > the script source via `<Import Project="..\src\MotherCore.projitems" />` (for
-> MotherCore) and the script's own `.projitems` file. The `TestSession<Program>`
+> MotherCore) and the script's own `.projitems` file. The `Script<Program>`
 > generic picks up whichever `Program` type is in scope for that project.
 
 ---
@@ -28,7 +28,7 @@ alias was parsed, resolved, and dispatched correctly.
 [Test]
 public void OpenAirlock_Alias_Resolves_And_Dispatches_To_door_open()
 {
-    var session = new TestSession<Program>()
+    var session = new Script<Program>()
         .WithCustomData(new CustomDataBuilder()
             .WithCommand("openAirlock", "door/open AirlockDoor")
             .Build())
@@ -64,7 +64,7 @@ are in place.
 [Test]
 public void DoorModule_Registers_Commands_On_Boot()
 {
-    var session = new TestSession<Program>().Boot();
+    var session = new Script<Program>().Boot();
 
     var names = session.Bus.ModuleCommands.Select(c => c.Name).ToList();
 
@@ -83,7 +83,7 @@ For modules that subscribe to events during `Boot()`, use
 [Test]
 public void MergeBlockModule_Is_Subscribed_To_ConstructRefreshedEvent_After_Boot()
 {
-    var session = new TestSession().Boot();
+    var session = new Script().Boot();
     var mergeModule = session.Mother.GetModule<MergeBlockModule>();
     var eventBus   = session.Mother.GetModule<EventBus>();
 
@@ -102,7 +102,7 @@ parsed, and executed:
 [Test]
 public void door_open_Reports_BlockNotFound_For_An_Unknown_Block()
 {
-    var session = new TestSession<Program>().Boot();
+    var session = new Script<Program>().Boot();
     var capture = new PrintCapture(session);
 
     session.Bus.RunTerminalCommand("door/open HangarDoor");
@@ -122,7 +122,7 @@ the grid terminal system at all:
 [Test]
 public void door_open_With_No_Arguments_Returns_NoArgumentsProvided()
 {
-    var session = new TestSession<Program>().Boot();
+    var session = new Script<Program>().Boot();
     var capture = new PrintCapture(session);
 
     session.Bus.RunTerminalCommand("door/open");
@@ -152,7 +152,7 @@ public void Multi_Step_Routine_Executes_Commands_One_Per_Tick()
     var lights = new TrackingCommand("light/color");
     var blink  = new TrackingCommand("light/blink");
 
-    var session = new TestSession()
+    var session = new Script()
         .WithCustomData(new CustomDataBuilder()
             .WithCommand("dockReady", "light/color DockLight 0,255,0; light/blink DockLight fast")
             .Build())
@@ -182,7 +182,7 @@ dispatch or clock tick is needed:
 [Test]
 public void LightModule_SetColor_Applies_The_Requested_Color_To_The_Block()
 {
-    var session = new TestSession<Program>().Boot();
+    var session = new Script<Program>().Boot();
     var lights  = session.Mother.GetModule<LightModule>();
 
     var fakeLight = A.Fake<IMyLightingBlock>();
@@ -212,7 +212,7 @@ in isolation, without wiring up the full EventBus routing:
 [Test]
 public void MergeBlockModule_HandleEvent_Does_Not_Throw_On_ConstructRefreshedEvent()
 {
-    var session    = new TestSession().Boot();
+    var session    = new Script().Boot();
     var mergeModule = session.Mother.GetModule<MergeBlockModule>();
 
     Assert.DoesNotThrow(() =>
@@ -228,7 +228,7 @@ assert `HandleEvent` was called with the expected arguments:
 [Test]
 public void EventBus_Routes_DoorOpenedEvent_To_All_Subscribers()
 {
-    var session  = new TestSession<Program>().Boot();
+    var session  = new Script<Program>().Boot();
     var eventBus = session.Mother.GetModule<EventBus>();
 
     var spy      = A.Fake<IModule>();
@@ -266,12 +266,12 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
     var network = new MockIGCNetwork();
 
     // Boot MotherOS as the ship controller
-    var ship = new TestSession<MotherOSProgram>("Ship")
+    var ship = new Script<MotherOSProgram>("Ship")
         .OnNetwork(network)
         .Boot();
 
     // Boot MotherGUI as the display controller
-    var gui = new TestSession<MotherGUIProgram>("GUI")
+    var gui = new Script<MotherGUIProgram>("GUI")
         .OnNetwork(network)
         .Boot();
 

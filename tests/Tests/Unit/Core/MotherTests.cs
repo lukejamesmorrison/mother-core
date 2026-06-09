@@ -1,7 +1,7 @@
 ﻿using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
-using MotherCore.TestUtilities;
+using MotherCore.Tests.TestUtilities;
 using Sandbox.ModAPI.Ingame;
 using System;
 
@@ -9,12 +9,12 @@ namespace MotherCore.Tests.Unit.Core
 {
     public class MotherTests
     {
-        private Program _program;
+        private TestProgram _program;
 
         [SetUp]
         public void Setup()
         {
-            _program = Gateway.CreateProgram<Program>().Build();
+            _program = Gateway.CreateProgram<TestProgram>().Build();
         }
 
         [Test]

@@ -620,11 +620,11 @@ This directly enables C5 and C12 without fragile manual tick counting.
 
 **Problem:** Several gaps (C7 `CommandNotFound`, C9 `HelpCommand` output) require asserting the string passed to `Mother.Print`. The `Terminal` module is not booted in most module-level tests, so `Mother.Print` falls back to `Program.Echo`. There is no way to capture that output in the current setup without replacing the echo delegate, which requires rebuilding the program.
 
-**Implementation:** `PrintCapture` in `TestUtilities/PrintCapture.cs` accepts a `TestSession` and redirects its underlying `Program.Echo` delegate to an in-memory list. It exposes `Lines`, `Contains(fragment)`, and `Clear()`.
+**Implementation:** `PrintCapture` in `TestUtilities/PrintCapture.cs` accepts a `Script` and redirects its underlying `Program.Echo` delegate to an in-memory list. It exposes `Lines`, `Contains(fragment)`, and `Clear()`.
 
 Usage:
 ```csharp
-var session = new TestSession().Boot();
+var session = new Script().Boot();
 var capture = new PrintCapture(session);
 
 session.Bus.RunTerminalCommand("nonexistent");
@@ -639,21 +639,21 @@ This unblocks C7, C9 and any future test that needs to assert on user-visible ou
 
 ### H5. `RemoteScriptRegistrar` — Superseded by `MockIGCNetwork` ✅ Done
 
-**Update:** The original proposal was a simple ID-management helper. The implemented solution goes further: `MockIGCNetwork` in `TestUtilities/MockIGCNetwork.cs` is a full in-process IGC transport that connects multiple `TestSession` instances. It replaces both `RemoteScriptRegistrar` and the manual `_mother.Id + 1` ID arithmetic.
+**Update:** The original proposal was a simple ID-management helper. The implemented solution goes further: `MockIGCNetwork` in `TestUtilities/MockIGCNetwork.cs` is a full in-process IGC transport that connects multiple `Script` instances. It replaces both `RemoteScriptRegistrar` and the manual `_mother.Id + 1` ID arithmetic.
 
-The grid name is passed to the `TestSession` constructor; `OnNetwork()` takes only the network. Almanac cross-registration between all sessions on the same network is automatic — no manual wiring required.
+The grid name is passed to the `Script` constructor; `OnNetwork()` takes only the network. Almanac cross-registration between all scripts on the same network is automatic — no manual wiring required.
 
 ```csharp
 var network = new MockIGCNetwork();
 
-var shipA = new TestSession("ShipA")
+var shipA = new Script("ShipA")
     .OnNetwork(network)
     .WithCustomData(new CustomDataBuilder()
         .WithCommand("attack", "@ShipB weapons/fire")
         .Build())
     .Boot();
 
-var shipB = new TestSession("ShipB").OnNetwork(network).Boot();
+var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
 // ShipA already knows "ShipB" and vice versa — no manual Almanac wiring needed.
 shipA.Bus.RunTerminalCommand("attack");
@@ -677,9 +677,9 @@ Sessions joined via `OnNetwork()` expose `session.NetworkIGC` typed as `MockIGC`
 
 ---
 
-### H6. `BootedCommandBus` factory method in `BaseModuleTests` — Superseded by `TestSession`
+### H6. `BootedCommandBus` factory method in `BaseModuleTests` — Superseded by `Script`
 
-**Update:** This helper is no longer needed. `TestSession` (H8) covers the same use case with a cleaner API and also handles booting all core and extension modules, clock reset, and the `ClockDriver` wrapper. Tests that previously used the three-line `new CommandBus / Boot / Reset` pattern should use `new TestSession().Boot()` instead.
+**Update:** This helper is no longer needed. `Script` (H8) covers the same use case with a cleaner API and also handles booting all core and extension modules, clock reset, and the `ClockDriver` wrapper. Tests that previously used the three-line `new CommandBus / Boot / Reset` pattern should use `new Script().Boot()` instead.
 
 ---
 
@@ -691,20 +691,20 @@ Sessions joined via `OnNetwork()` expose `session.NetworkIGC` typed as `MockIGC`
 
 ---
 
-### H8. `TestSession` — full boot cycle orchestrator ✅ Done
+### H8. `Script` — full boot cycle orchestrator ✅ Done
 
 **Problem:** Tests that exercise the full `CustomData → Configuration.Boot → CommandBus.Boot → RunTerminalCommand` pipeline had no clean way to express the complete setup. Each test assembled the same three-to-five line boot sequence manually, with no consistent clock reset discipline.
 
-**Implementation:** `TestSession` in `TestUtilities/TestSession.cs` is a builder-before-boot, context-holder-after-boot. It creates its own `Program` and `Mother`, boots every registered core and extension module in order, then applies the grid name. The minimal case is one line:
+**Implementation:** `Script` in `TestUtilities/Script.cs` is a builder-before-boot, context-holder-after-boot. It creates its own `Program` and `Mother`, boots every registered core and extension module in order, then applies the grid name. The minimal case is one line:
 
 ```csharp
-var s = new TestSession().Boot();
+var s = new Script().Boot();
 ```
 
 Layer in only what each test needs:
 
 ```csharp
-var s = new TestSession()
+var s = new Script()
     .WithCustomData(new CustomDataBuilder()
         .WithCommand("openDoor", "door/open AirlockDoor")
         .Build())
@@ -722,12 +722,12 @@ Post-boot properties: `s.Bus` (`CommandBus`), `s.Clock` (`ClockDriver`), `s.Conf
 
 An optional grid name passed to the constructor sets `Mother.Name` after all modules boot (so `Configuration.Boot()` cannot overwrite it). If omitted, the name derived by `Configuration` is kept; if that is also empty, it falls back to `"grid-{Mother.Id}"`.
 
-**Extension for MotherOS / MotherGUI:** Subclass `TestSession` and override `OnBeforeBoot` to register extension modules before the boot loop runs:
+**Extension for MotherOS / MotherGUI:** Subclass `Script` and override `OnBeforeBoot` to register extension modules before the boot loop runs:
 
 ```csharp
-public class MotherOSTestSession : TestSession
+public class MotherOSScript : Script
 {
-    public MotherOSTestSession(string gridName = null) : base(gridName) { }
+    public MotherOSScript(string gridName = null) : base(gridName) { }
 
     protected override void OnBeforeBoot(Mother mother)
     {
@@ -736,7 +736,7 @@ public class MotherOSTestSession : TestSession
 }
 ```
 
-`TestSession` lives in `MotherCore.Tests.TestUtilities`. Each downstream project owns only its thin subclass.
+`Script` lives in `MotherCore.Tests.TestUtilities`. Each downstream project owns only its thin subclass.
 
 ---
 
@@ -749,8 +749,8 @@ public class MotherOSTestSession : TestSession
 | H3 | `ClockDriver` | `TestUtilities/ClockDriver.cs` | C5, C12, coroutine ordering | **Done** |
 | H4 | `PrintCapture` | `TestUtilities/PrintCapture.cs` | C7, C9 | **Done** |
 | H5 | `MockIGCNetwork` + `MockIGC` | `TestUtilities/MockIGCNetwork.cs` | C13, R7, all multi-script tests | **Done** |
-| H6 | `BootedCommandBus()` in `BaseModuleTests` | `Tests/BaseModuleTests.cs` | All CommandBus tests | Superseded by `TestSession` |
+| H6 | `BootedCommandBus()` in `BaseModuleTests` | `Tests/BaseModuleTests.cs` | All CommandBus tests | Superseded by `Script` |
 | H7 | Complete `ProgrammableBlockFactory` | `Factories/ProgrammableBlockFactory.cs` | R7, C13 (CF1, CF3 removed as not required) | **Done** |
-| H8 | `TestSession` | `TestUtilities/TestSession.cs` | All end-to-end tests; base for MotherOS/GUI | **Done** |
+| H8 | `Script` | `TestUtilities/Script.cs` | All end-to-end tests; base for MotherOS/GUI | **Done** |
 
 All harness items H1–H8 are complete. Phase 1 test gaps can now begin.
