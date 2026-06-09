@@ -611,3 +611,90 @@ The same rule should apply to the rest of the design:
 - grow the fake API surface only when a real test needs it
 
 The goal is not to fully simulate Space Engineers. The goal is to make testing Mother scripts and modules easy, predictable, and cheap.
+
+---
+
+## Implementation Progress
+
+> Last updated: 2026-06-09
+
+### Script layer (`Script<TProgram>`)
+
+| Feature | Status | Notes |
+|---|---|---|
+| `Boot()` | ✅ Done | Boots program, extracts Mother, runs module Boot |
+| `WithIGC(igc)` | ✅ Done | Injects custom IGC before boot |
+| `OnNetwork(network)` | ✅ Done | Joins `MockIGCNetwork` before boot |
+| `WithCustomData(string)` | ✅ Done | Sets custom data before boot |
+| `WithCommands(params ...)` | ✅ Done | Registers extra commands after boot |
+| `OnBeforeBoot(mother)` hook | ✅ Done | Override to inject test-only modules |
+| `Program`, `Mother`, `Bus`, `Config`, `Clock`, `IGC`, `NetworkIGC` | ✅ Done | Post-boot accessors |
+| `Run(UpdateType, string)` | ✅ Done | Drives one real `Mother.Run` cycle |
+| `CaptureEcho()` | ✅ Done | Returns `PrintCapture`; wires up Echo redirect |
+
+### PrintCapture
+
+| Feature | Status | Notes |
+|---|---|---|
+| `new PrintCapture(IScript)` | ✅ Done | Manual construction, existing pattern |
+| `Contains(string)` | ✅ Done | Returns bool |
+| `Clear()` | ✅ Done | Empties captured lines |
+| `ShouldHavePrinted(string)` | ✅ Done | NUnit assertion helper |
+
+### MockIGCNetwork
+
+| Feature | Status | Notes |
+|---|---|---|
+| `AllocateEndpoint()` | ✅ Done | Creates `MockIGC` on the network |
+| `RegisterSession(session, name)` | ✅ Done | Cross-populates Almanac on boot |
+| `Deliver()` | ✅ Done | Routes pending messages + triggers IGC processing |
+| `SentMessages` | ✅ Done | Capture list for lightweight assertions |
+| `ClearSentMessages()` | ✅ Done | Empties the capture list |
+| `Sessions` | ✅ Done | Exposes all registered `IScript` instances |
+| `DispatchIgc()` | ✅ Done | Preferred alias for `Deliver()` |
+
+### TestWorld (multi-script environment)
+
+| Feature | Status | Notes |
+|---|---|---|
+| `CreateScript<T>(name)` | ✅ Done | Returns `Script<T>` joined to world network |
+| `DispatchIgc()` | ✅ Done | Delegates to `MockIGCNetwork.Deliver()` |
+| `Run(UpdateType, string)` | ✅ Done | Runs all booted scripts one cycle |
+| `RunIGC()` | ✅ Done | Convenience for `Run(UpdateType.IGC)` |
+| `RunMany(count, UpdateType, string)` | ✅ Done | Advances multiple cycles |
+| `CreateConstruct()` / same-construct messaging | ⬜ Pending | Requires construct topology design |
+
+### Base test classes
+
+| Class | Status | Notes |
+|---|---|---|
+| `ModuleUnitTestBase<TProgram>` | ✅ Done | Exposes `Script`, `Mother`, `Program`, `Bus`, `Clock` |
+| `ProgramFeatureTestBase<TProgram>` | ✅ Done | Adds `Echo` capture; `SetUp` wires it automatically |
+| `MultiProgramFeatureTestBase` | ✅ Done | Exposes `World`; `SetUp` creates a fresh `TestWorld` |
+
+### Script partial layer (script-specific seams)
+
+| Feature | Status | Notes |
+|---|---|---|
+| `partial Program` in MotherOS tests | ⬜ Pending | Requires MotherOS test project |
+| `partial Program` in MotherGUI tests | ⬜ Pending | Requires MotherGUI test project |
+
+### Customization surfaces
+
+| Feature | Status | Notes |
+|---|---|---|
+| `WithCustomData(string)` | ✅ Done | |
+| `WithCustomData(Action<CustomDataBuilder>)` | ⬜ Pending | Fluent builder overload |
+| `ReloadConfiguration()` | ⬜ Pending | Hot-reload config in test |
+| `TerminalBlockFactory` / `GridTerminalSystemBuilder` | ⬜ Pending | Block registration helpers |
+| `WithBlock(IMyTerminalBlock)` / `WithBlocks(...)` | ⬜ Pending | Convenience block injection |
+
+### Future / long-term
+
+| Feature | Status | Notes |
+|---|---|---|
+| World-level shared clock / time advance | ⬜ Pending | Per-script `ClockDriver` exists today |
+| `world.CreateConstruct()` | ⬜ Pending | Same-construct messaging topology |
+| Script runtime inspection helpers | ⬜ Pending | Instruction count, update frequency per script |
+| Event recorder / spy module | ⬜ Pending | For narrower event assertion |
+

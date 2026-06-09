@@ -52,6 +52,13 @@ namespace MotherCore.Tests.TestUtilities
         public List<SentMessage> SentMessages { get; } = new List<SentMessage>();
 
         /// <summary>
+        /// All scripts that have registered on this network via
+        /// <see cref="Script{TProgram}.Boot"/>. Ordered by registration time.
+        /// </summary>
+        public IReadOnlyList<IScript> Sessions =>
+            _sessions.Select(s => s.Session).ToList();
+
+        /// <summary>
         /// Allocates a new <see cref="MockIGC"/> endpoint on this network.
         /// Called internally by <see cref="Script.Boot"/> when the script
         /// has been joined via <see cref="Script.OnNetwork"/>.
@@ -126,6 +133,14 @@ namespace MotherCore.Tests.TestUtilities
             SentMessages.Clear();
             return this;
         }
+
+        /// <summary>
+        /// Routes all pending messages to their recipients and triggers
+        /// <c>HandleIncomingIGCMessages</c> on every script with pending input.
+        /// Preferred alias for <see cref="Deliver"/> that aligns with the
+        /// <see cref="TestWorld"/> API naming.
+        /// </summary>
+        public MockIGCNetwork DispatchIgc() => Deliver();
 
         internal bool HasEndpoint(long id) => _endpoints.Any(e => e.Me == id);
 

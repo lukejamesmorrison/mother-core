@@ -83,6 +83,7 @@ namespace MotherCore.Tests.TestUtilities
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
         MockIGCNetwork _network;
         readonly string _gridName;
+        PrintCapture _printCapture;
 
         /// <param name="gridName">
         /// Optional grid name for this script. Sets <see cref="Mother.Name"/> before boot
@@ -186,6 +187,30 @@ namespace MotherCore.Tests.TestUtilities
         protected virtual void OnBeforeBoot(Mother mother) { }
 
         /// <summary>
+        /// Runs one <c>Mother.Run</c> cycle, mirroring a real
+        /// <c>Program.Main(argument, updateType)</c> call.
+        /// Returns <c>this</c> for chaining. Must be called after <see cref="Boot"/>.
+        /// </summary>
+        public Script<TProgram> Run(UpdateType updateType, string argument = "")
+        {
+            _mother.Run(argument, updateType);
+            return this;
+        }
+
+        /// <summary>
+        /// Starts capturing output written via <c>Program.Echo</c>.
+        /// Returns the <see cref="PrintCapture"/> so assertions can be made against it.
+        /// Subsequent calls return the same capture instance.
+        /// Must be called after <see cref="Boot"/>.
+        /// </summary>
+        public PrintCapture CaptureEcho()
+        {
+            if (_printCapture == null)
+                _printCapture = new PrintCapture(this);
+            return _printCapture;
+        }
+
+        /// <summary>
         /// Locates the <see cref="Mother"/> instance created by the Program constructor
         /// by scanning instance fields for a field of type <see cref="Mother"/>.
         /// Walks the type hierarchy so scripts that use partial classes or base classes
@@ -266,6 +291,10 @@ namespace MotherCore.Tests.TestUtilities
             clock.Reset();
             Clock = new ClockDriver(clock);
 
+            // Mark the script as fully operational so Mother.Run() dispatches
+            // commands and periodic updates without triggering another boot cycle.
+            _mother.SystemState = Mother.SystemStates.WORKING;
+
             if (_network != null)
                 _network.RegisterSession(this, _mother.Name);
 
@@ -314,6 +343,13 @@ namespace MotherCore.Tests.TestUtilities
         public new Script Boot()
         {
             base.Boot();
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.Run"/>
+        public new Script Run(UpdateType updateType, string argument = "")
+        {
+            base.Run(updateType, argument);
             return this;
         }
     }
