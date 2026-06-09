@@ -1,5 +1,7 @@
 using IngameScript;
 using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Factories;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 using System.Collections.Generic;
 using System.Reflection;
@@ -27,7 +29,7 @@ namespace MotherCore.Tests.Utilities
     /// </para>
     /// <code>
     /// var script = new Script()
-    ///     .WithCustomData(new CustomDataBuilder()
+    ///     .WithCustomData(new CustomDataComposer()
     ///         .WithCommand("openDoor", "door/open AirlockDoor")
     ///         .Build())
     ///     .WithCommands(tracker)
@@ -47,12 +49,12 @@ namespace MotherCore.Tests.Utilities
     /// var script = new Script&lt;MotherOS.Program&gt;().Boot();
     /// </code>
     /// <para>
-    /// For multi-script tests, join a <see cref="MockIGCNetwork"/>. The network
+    /// For multi-script tests, join a <see cref="FakeIgcNetwork"/>. The network
     /// automatically cross-registers every booted script in every other script's
     /// Almanac, so grids can discover each other by name without any manual wiring:
     /// </para>
     /// <code>
-    /// var network = new MockIGCNetwork();
+    /// var network = new FakeIgcNetwork();
     ///
     /// var shipA = new Script("ShipA").OnNetwork(network).Boot();
     /// var shipB = new Script("ShipB").OnNetwork(network).Boot();
@@ -82,14 +84,14 @@ namespace MotherCore.Tests.Utilities
         string _customData;
         IMyIntergridCommunicationSystem _igc;
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
-        MockIGCNetwork _network;
+        FakeIgcNetwork _network;
         readonly string _gridName;
         PrintCapture _printCapture;
 
         /// <param name="gridName">
         /// Optional grid name for this script. Sets <see cref="Mother.Name"/> before boot
         /// and is used as the address other scripts use to reach this one on a
-        /// <see cref="MockIGCNetwork"/>. When omitted, falls back to the cube grid's
+        /// <see cref="FakeIgcNetwork"/>. When omitted, falls back to the cube grid's
         /// <c>CustomName</c> and then to <c>"grid-{Mother.Id}"</c>.
         /// </param>
         public Script(string gridName = null)
@@ -124,22 +126,22 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>
         /// The IGC in use by this script's program.
-        /// When joined to a <see cref="MockIGCNetwork"/> this is the script's
-        /// <see cref="MockIGC"/>; use <see cref="NetworkIGC"/> for the typed reference.
+        /// When joined to a <see cref="FakeIgcNetwork"/> this is the script's
+        /// <see cref="FakeIgc"/>; use <see cref="NetworkIGC"/> for the typed reference.
         /// </summary>
         public IMyIntergridCommunicationSystem IGC => _mother.IGC;
 
         /// <summary>
-        /// The typed <see cref="MockIGC"/> for this script.
-        /// Non-null only when the script was joined to a <see cref="MockIGCNetwork"/>
+        /// The typed <see cref="FakeIgc"/> for this script.
+        /// Non-null only when the script was joined to a <see cref="FakeIgcNetwork"/>
         /// via <see cref="OnNetwork"/>.
         /// </summary>
-        public MockIGC NetworkIGC { get; private set; }
+        public FakeIgc NetworkIGC { get; private set; }
 
         /// <summary>
         /// Injects a pre-created IGC into this script's program. Use this when you
-        /// need an explicit <see cref="MockIGC"/> reference before calling
-        /// <see cref="Boot"/>. When also joined to a <see cref="MockIGCNetwork"/> via
+        /// need an explicit <see cref="FakeIgc"/> reference before calling
+        /// <see cref="Boot"/>. When also joined to a <see cref="FakeIgcNetwork"/> via
         /// <see cref="OnNetwork"/>, the network-allocated IGC takes precedence.
         /// </summary>
         public Script<TProgram> WithIGC(IMyIntergridCommunicationSystem igc)
@@ -149,13 +151,13 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// Joins this script to a <see cref="MockIGCNetwork"/>. A <see cref="MockIGC"/>
+        /// Joins this script to a <see cref="FakeIgcNetwork"/>. A <see cref="FakeIgc"/>
         /// will be allocated from the network and injected into this script's
         /// <c>Program</c> during <see cref="Boot"/>. After boot, the script is
         /// automatically cross-registered in every other booted script's Almanac
         /// under the grid name supplied to the constructor (or the derived fallback).
         /// </summary>
-        public Script<TProgram> OnNetwork(MockIGCNetwork network)
+        public Script<TProgram> OnNetwork(FakeIgcNetwork network)
         {
             _network = network;
             return this;
@@ -163,7 +165,7 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>
         /// Sets the programmable block's <c>CustomData</c> before boot.
-        /// Use <see cref="CustomDataBuilder"/> to construct the INI string.
+        /// Use <see cref="CustomDataComposer"/> to construct the INI string.
         /// </summary>
         public Script<TProgram> WithCustomData(string customData)
         {
@@ -220,6 +222,7 @@ namespace MotherCore.Tests.Utilities
         static Mother FindMother(MyGridProgram program)
         {
             var type = program.GetType();
+
             while (type != null && type != typeof(object))
             {
                 foreach (var field in type.GetFields(
@@ -229,8 +232,10 @@ namespace MotherCore.Tests.Utilities
                     if (field.FieldType == typeof(Mother))
                         return (Mother)field.GetValue(program);
                 }
+
                 type = type.BaseType;
             }
+
             throw new System.InvalidOperationException(
                 $"No field of type Mother was found on {program.GetType().Name}. " +
                 "Ensure the Program constructor creates a Mother instance and stores it in a field.");
@@ -238,7 +243,7 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>
         /// Constructs the <typeparamref name="TProgram"/> (injecting a
-        /// <see cref="MockIGC"/> when joined to a network), extracts the
+        /// <see cref="FakeIgc"/> when joined to a network), extracts the
         /// <see cref="Mother"/> the constructor created, applies
         /// <c>CustomData</c>, calls <see cref="OnBeforeBoot"/>, boots all
         /// registered modules, and — if on a network — cross-registers this
@@ -252,15 +257,15 @@ namespace MotherCore.Tests.Utilities
             if (_network != null)
             {
                 NetworkIGC = _network.AllocateEndpoint();
-                program = Gateway.CreateProgram<TProgram>().WithIgc(NetworkIGC).Build();
+                program = ProgramFactory.CreateProgram<TProgram>().WithIgc(NetworkIGC).Build();
             }
             else if (_igc != null)
             {
-                program = Gateway.CreateProgram<TProgram>().WithIgc(_igc).Build();
+                program = ProgramFactory.CreateProgram<TProgram>().WithIgc(_igc).Build();
             }
             else
             {
-                program = Gateway.CreateProgram<TProgram>().Build();
+                program = ProgramFactory.CreateProgram<TProgram>().Build();
             }
 
             Program = program;
@@ -276,12 +281,15 @@ namespace MotherCore.Tests.Utilities
             // RunToIdle() so persistent module coroutines (e.g. BlockCatalogue refresh)
             // are not over-driven and do not interfere with per-test clock assertions.
             _mother.Boot();
+
             var clock = _mother.GetModule<Clock>();
+
             for (int i = 0; i < 500 && _mother.SystemState != Mother.SystemStates.WORKING; i++)
                 clock.Run();
 
             if (!string.IsNullOrEmpty(_gridName))
                 _mother.Name = _gridName;
+
             else if (string.IsNullOrEmpty(_mother.Name))
                 _mother.Name = $"grid-{_mother.Id}";
 
@@ -292,8 +300,7 @@ namespace MotherCore.Tests.Utilities
             Bus = _mother.GetModule<CommandBus>();
             Clock = new ClockDriver(clock);
 
-            if (_network != null)
-                _network.RegisterSession(this, _mother.Name);
+            _network?.RegisterSession(this, _mother.Name);
 
             return this;
         }
@@ -301,9 +308,9 @@ namespace MotherCore.Tests.Utilities
 
     /// <summary>
     /// Convenience alias for <see cref="Script{TProgram}"/> that targets the
-    /// built-in MotherCore test <see cref="TestProgram"/>.
+    /// built-in MotherCore test <see cref="CoreTestProgram"/>.
     /// </summary>
-    public class Script : Script<TestProgram>
+    public class Script : Script<CoreTestProgram>
     {
         /// <inheritdoc cref="Script{TProgram}(string)"/>
         public Script(string gridName = null) : base(gridName) { }
@@ -316,7 +323,7 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <inheritdoc cref="Script{TProgram}.OnNetwork"/>
-        public new Script OnNetwork(MockIGCNetwork network)
+        public new Script OnNetwork(FakeIgcNetwork network)
         {
             base.OnNetwork(network);
             return this;

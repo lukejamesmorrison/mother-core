@@ -13,7 +13,7 @@ namespace MotherCore.Tests.Integration.Script
     /// management. These tests are critical for verifying safe list mutation
     /// during iteration and correct timing behavior.
     /// </summary>
-    public class ClockTests : ScriptTestBase<TestProgram>
+    public class ClockTests : ScriptTestBase<CoreTestProgram>
     {
         // --- Construction and reset ---
 
@@ -167,7 +167,7 @@ namespace MotherCore.Tests.Integration.Script
             clock.AddCoroutine(routine());
 
             clock.Run(); // step 1, then encounters wait
-            clock.Run(); // Still waiting (deltaTime ˜ 0 in tests)
+            clock.Run(); // Still waiting (deltaTime ï¿½ 0 in tests)
 
             Assert.That(step, Is.EqualTo(1),
                 "Coroutine should be paused during the wait period.");

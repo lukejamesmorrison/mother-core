@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Runtime.Serialization;
 using FakeItEasy;
-using MotherCore.Tests;
-using MotherCore.Tests.TestUtilities;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 
 
-namespace MotherCore.Tests.Utilities
+namespace MotherCore.Tests.Utilities.Factories
 {
     /// <summary>
     /// Provides utility methods for setting up and testing Space Engineers' programmable block scripts.
     /// </summary>
-    public static class Gateway
+    public static class ProgramFactory
     {
         /// <summary>
         /// Sets the storage value for a given program instance.
@@ -37,7 +36,7 @@ namespace MotherCore.Tests.Utilities
         /// <example>
         /// The following example demonstrates how to create an instance of a script with specific dependencies:
         /// <code lang="csharp">
-        /// var program = Gateway.CreateProgram&lt;MyScript&gt;()
+        /// var program = ProgramFactory.CreateProgram&lt;MyScript&gt;()
         ///     .WithGridTerminalSystem(myGridSystem)
         ///     .WithRuntime(myRuntime)
         ///     .WithEcho(Console.WriteLine)
@@ -142,13 +141,13 @@ namespace MotherCore.Tests.Utilities
             {
                 if (_igc != null) return () => _igc;
 
-                // Use a real MockIGC rather than a partial FakeItEasy stub so that
+                // Use a real FakeIgc rather than a partial FakeItEasy stub so that
                 // IntergridMessageService.Boot() gets functioning UnicastListener and
                 // RegisterBroadcastListener implementations. The private network is only
                 // used to allocate the endpoint; messages sent to it are silently dropped
                 // since no Deliver() is called. For multi-script tests, supply a shared
-                // MockIGCNetwork via Script.OnNetwork().
-                var standaloneIgc = new MockIGCNetwork().AllocateEndpoint();
+                // FakeIgcNetwork via Script.OnNetwork().
+                var standaloneIgc = new FakeIgcNetwork().AllocateEndpoint();
                 return () => standaloneIgc;
             }
 
@@ -157,7 +156,7 @@ namespace MotherCore.Tests.Utilities
 
             private string GetStorage() => _storage ?? string.Empty;
 
-            // Delegates to ProgrammableBlockFactory so CustomData is properly mutable
+            // Delegates to FakeProgrammableBlockFactory so CustomData is properly mutable
             // and EntityId is unique, matching the same contract used across all tests.
             private IMyProgrammableBlock GetMe() =>
                 _me ?? ProgrammableBlockFactory.Create();

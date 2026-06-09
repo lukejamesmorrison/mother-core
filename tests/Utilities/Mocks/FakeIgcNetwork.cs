@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MotherCore.Tests.Utilities
+namespace MotherCore.Tests.Utilities.Mocks
 {
     /// <summary>
     /// A simulated intergrid communication network that connects multiple
@@ -12,17 +12,17 @@ namespace MotherCore.Tests.Utilities
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Each script on the network gets a unique <see cref="MockIGC"/> that routes
+    /// Each script on the network gets a unique <see cref="FakeIgc"/> that routes
     /// outbound messages through the network. Pending messages are buffered until
     /// <see cref="Deliver"/> is called, giving tests precise control over when
     /// each message is processed.
     /// </para>
     /// <code>
-    /// var network = new MockIGCNetwork();
+    /// var network = new FakeIgcNetwork();
     ///
     /// var shipA = new Script("ShipA")
     ///     .OnNetwork(network)
-    ///     .WithCustomData(new CustomDataBuilder().WithCommand("attack", "@ShipB weapons/fire").Build())
+    ///     .WithCustomData(new CustomDataComposer().WithCommand("attack", "@ShipB weapons/fire").Build())
     ///     .Boot();
     ///
     /// var shipB = new Script("ShipB").OnNetwork(network).Boot();
@@ -36,13 +36,28 @@ namespace MotherCore.Tests.Utilities
     /// network.Deliver();
     /// </code>
     /// </remarks>
-    public class MockIGCNetwork
+    public class FakeIgcNetwork
     {
+        /// <summary>
+        /// The next ID to allocate for a new endpoint. Initialized to a large number
+        /// </summary>
         static long _nextId = 100_000_000_000L;
 
-        readonly List<MockIGC> _endpoints = new List<MockIGC>();
-        readonly List<(IScript Session, string GridName)> _sessions
-            = new List<(IScript, string)>();
+        /// <summary>
+        /// All endpoints allocated on this network. Used for routing messages and verifying reachability.
+        /// </summary>
+        readonly List<FakeIgc> _endpoints = new List<FakeIgc>();
+
+        /// <summary>
+        /// All scripts that have registered on this network via <see cref="Script{TProgram}.Boot"/>, 
+        /// paired with their grid names for Almanac cross-registration.
+        /// </summary>
+        readonly List<(IScript Session, string GridName)> _sessions = new List<(IScript, string)>();
+
+        /// <summary>
+        /// All messages sent through the network that have not yet been delivered. Cleared on 
+        /// each call to <see cref="Deliver"/>.
+        /// </summary>
         readonly List<PendingDelivery> _pending = new List<PendingDelivery>();
 
         /// <summary>
@@ -55,18 +70,19 @@ namespace MotherCore.Tests.Utilities
         /// All scripts that have registered on this network via
         /// <see cref="Script{TProgram}.Boot"/>. Ordered by registration time.
         /// </summary>
-        public IReadOnlyList<IScript> Sessions =>
-            _sessions.Select(s => s.Session).ToList();
+        public IReadOnlyList<IScript> Sessions => _sessions.Select(s => s.Session).ToList();
 
         /// <summary>
-        /// Allocates a new <see cref="MockIGC"/> endpoint on this network.
+        /// Allocates a new <see cref="FakeIgc"/> endpoint on this network.
         /// Called internally by <see cref="Script.Boot"/> when the script
         /// has been joined via <see cref="Script.OnNetwork"/>.
         /// </summary>
-        public MockIGC AllocateEndpoint()
+        public FakeIgc AllocateEndpoint()
         {
-            var igc = new MockIGC(this, _nextId++);
+            var igc = new FakeIgc(this, _nextId++);
+
             _endpoints.Add(igc);
+
             return igc;
         }
 
@@ -87,15 +103,26 @@ namespace MotherCore.Tests.Utilities
             _sessions.Add((session, gridName));
         }
 
+        /// <summary>
+        /// Adds or updates an Almanac record on the recipient script for the given subject script, using the provided grid name.
+        /// </summary>
+        /// <param name="recipient">The script that will receive the Almanac update.</param>
+        /// <param name="subject">The script that is the subject of the Almanac update.</param>
+        /// <param name="subjectName">The grid name of the subject script.</param>
         static void SyncToAlmanac(IScript recipient, IScript subject, string subjectName)
         {
             var almanac = recipient.Mother.GetModule<Almanac>();
+
             if (almanac == null) return;
 
             almanac.UpdateOrCreateFromMessage(
                 subjectName, subject.IGC.Me, subjectName,
                 new VRageMath.Vector3D(0, 0, 0), 0f,
-                new HashSet<string>(), true, null, null);
+                new HashSet<string>(), 
+                true, 
+                null, 
+                null
+            );
         }
 
         /// <summary>
@@ -103,7 +130,7 @@ namespace MotherCore.Tests.Utilities
         /// <c>HandleIncomingIGCMessages</c> on every script that has pending input.
         /// Returns <c>this</c> for chaining.
         /// </summary>
-        public MockIGCNetwork Deliver()
+        public FakeIgcNetwork Deliver()
         {
             foreach (var delivery in _pending.ToList())
             {
@@ -111,6 +138,7 @@ namespace MotherCore.Tests.Utilities
                 if (target == null) continue;
 
                 var msg = new MyIGCMessage(delivery.Data, delivery.Tag, delivery.SourceId);
+
                 if (delivery.IsBroadcast)
                     target.EnqueueBroadcast(delivery.Tag, msg);
                 else
@@ -120,17 +148,23 @@ namespace MotherCore.Tests.Utilities
 
             foreach (var (session, _) in _sessions)
             {
-                if (session.NetworkIGC?.HasPendingMessages == true)
+                var igc = session.IGC as FakeIgc;
+
+                if (igc?.HasPendingMessages == true)
                     session.Mother.GetModule<IntergridMessageService>()?.HandleIncomingIGCMessages();
             }
 
             return this;
         }
 
-        /// <summary>Clears the <see cref="SentMessages"/> capture list.</summary>
-        public MockIGCNetwork ClearSentMessages()
+        /// <summary>
+        /// Clears the <see cref="SentMessages"/> log. Useful for isolating messages sent during specific test phases.
+        /// </summary>
+        /// <returns></returns>
+        public FakeIgcNetwork ClearSentMessages()
         {
             SentMessages.Clear();
+
             return this;
         }
 
@@ -140,19 +174,40 @@ namespace MotherCore.Tests.Utilities
         /// Preferred alias for <see cref="Deliver"/> that aligns with the
         /// <see cref="TestWorld"/> API naming.
         /// </summary>
-        public MockIGCNetwork DispatchIgc() => Deliver();
+        public FakeIgcNetwork DispatchIgc() => Deliver();
 
+        /// <summary>
+        /// Returns <c>true</c> if the given ID matches any endpoint registered on this network. 
+        /// Used to verify reachability in <see cref="FakeIgc.IsEndpointReachable"/>.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         internal bool HasEndpoint(long id) => _endpoints.Any(e => e.Me == id);
 
+        /// <summary>
+        /// Enqueues a unicast message for delivery. Called internally by <see cref="FakeIgc.SendUnicastMessage{TData}"/>.
+        /// </summary>
+        /// <param name="targetId"></param>
+        /// <param name="tag"></param>
+        /// <param name="data"></param>
+        /// <param name="sourceId"></param>
         internal void EnqueueUnicast(long targetId, string tag, object data, long sourceId)
         {
             SentMessages.Add(new SentMessage(sourceId, targetId, tag, data, isBroadcast: false));
             _pending.Add(new PendingDelivery(targetId, tag, data, sourceId, isBroadcast: false));
         }
 
+        /// <summary>
+        /// Enqueues a broadcast message for delivery to all endpoints except the sender. Called internally 
+        /// by <see cref="FakeIgc.SendBroadcastMessage{TData}"/>.
+        /// </summary>
+        /// <param name="tag"></param>
+        /// <param name="data"></param>
+        /// <param name="sourceId"></param>
         internal void EnqueueBroadcast(string tag, object data, long sourceId)
         {
             SentMessages.Add(new SentMessage(sourceId, targetId: -1, tag, data, isBroadcast: true));
+
             foreach (var endpoint in _endpoints)
                 if (endpoint.Me != sourceId)
                     _pending.Add(new PendingDelivery(endpoint.Me, tag, data, sourceId, isBroadcast: true));
@@ -162,7 +217,10 @@ namespace MotherCore.Tests.Utilities
         // Captured message record
         // =====================================================================
 
-        /// <summary>A message that was sent through the network.</summary>
+        /// <summary>
+        /// A record of a message sent through the network, captured in the <see cref="SentMessages"/> 
+        /// log for lightweight assertions.
+        /// </summary>
         public class SentMessage
         {
             /// <summary>The <c>IGC.Me</c> of the sending script.</summary>
@@ -180,6 +238,14 @@ namespace MotherCore.Tests.Utilities
             /// <summary><c>true</c> if this was a broadcast; <c>false</c> for unicast.</summary>
             public bool IsBroadcast { get; }
 
+            /// <summary>
+            /// Constructor.
+            /// </summary>
+            /// <param name="sourceId"></param>
+            /// <param name="targetId"></param>
+            /// <param name="tag"></param>
+            /// <param name="data"></param>
+            /// <param name="isBroadcast"></param>
             internal SentMessage(long sourceId, long targetId, string tag, object data, bool isBroadcast)
             {
                 SourceId = sourceId;
@@ -214,19 +280,19 @@ namespace MotherCore.Tests.Utilities
     }
 
     // =========================================================================
-    // MockIGC — IMyIntergridCommunicationSystem implementation
+    // FakeIgc — IMyIntergridCommunicationSystem implementation
     // =========================================================================
 
     /// <summary>
     /// A test double for <see cref="IMyIntergridCommunicationSystem"/> that routes
-    /// messages through a <see cref="MockIGCNetwork"/> rather than the game engine.
+    /// messages through a <see cref="FakeIgcNetwork"/> rather than the game engine.
     /// </summary>
-    public class MockIGC : IMyIntergridCommunicationSystem
+    public class FakeIgc : IMyIntergridCommunicationSystem
     {
-        readonly MockIGCNetwork _network;
-        readonly MockUnicastListener _unicastListener;
-        readonly Dictionary<string, MockBroadcastListener> _broadcastListeners
-            = new Dictionary<string, MockBroadcastListener>();
+        readonly FakeIgcNetwork _network;
+        readonly FakeUnicastListener _unicastListener;
+        readonly Dictionary<string, FakeBroadcastListener> _broadcastListeners
+            = new Dictionary<string, FakeBroadcastListener>();
 
         /// <inheritdoc/>
         public long Me { get; }
@@ -234,18 +300,18 @@ namespace MotherCore.Tests.Utilities
         /// <inheritdoc/>
         public IMyUnicastListener UnicastListener => _unicastListener;
 
-        internal MockIGC(MockIGCNetwork network, long id)
+        internal FakeIgc(FakeIgcNetwork network, long id)
         {
             _network = network;
             Me = id;
-            _unicastListener = new MockUnicastListener();
+            _unicastListener = new FakeUnicastListener();
         }
 
         /// <inheritdoc/>
         public IMyBroadcastListener RegisterBroadcastListener(string tag)
         {
             if (!_broadcastListeners.ContainsKey(tag))
-                _broadcastListeners[tag] = new MockBroadcastListener(tag);
+                _broadcastListeners[tag] = new FakeBroadcastListener(tag);
             return _broadcastListeners[tag];
         }
 
@@ -271,7 +337,7 @@ namespace MotherCore.Tests.Utilities
         /// <inheritdoc/>
         public void DisableBroadcastListener(IMyBroadcastListener listener)
         {
-            if (listener is MockBroadcastListener mockListener) mockListener.Disable();
+            if (listener is FakeBroadcastListener fakeListener) fakeListener.Disable();
         }
 
         /// <inheritdoc/>
@@ -297,11 +363,11 @@ namespace MotherCore.Tests.Utilities
     }
 
     // =========================================================================
-    // MockUnicastListener
+    // FakeUnicastListener
     // =========================================================================
 
     /// <summary>Test double for <see cref="IMyUnicastListener"/>.</summary>
-    public class MockUnicastListener : IMyUnicastListener
+    public class FakeUnicastListener : IMyUnicastListener
     {
         readonly Queue<MyIGCMessage> _messages = new Queue<MyIGCMessage>();
 
@@ -324,11 +390,11 @@ namespace MotherCore.Tests.Utilities
     }
 
     // =========================================================================
-    // MockBroadcastListener
+    // FakeBroadcastListener
     // =========================================================================
 
     /// <summary>Test double for <see cref="IMyBroadcastListener"/>.</summary>
-    public class MockBroadcastListener : IMyBroadcastListener
+    public class FakeBroadcastListener : IMyBroadcastListener
     {
         readonly Queue<MyIGCMessage> _messages = new Queue<MyIGCMessage>();
 
@@ -353,10 +419,15 @@ namespace MotherCore.Tests.Utilities
         /// <inheritdoc/>
         public void DisableMessageCallback() { }
 
-        internal MockBroadcastListener(string tag) { Tag = tag; }
+        internal FakeBroadcastListener(string tag) { Tag = tag; }
 
         internal void Enqueue(MyIGCMessage message) => _messages.Enqueue(message);
 
+        /// <summary>
+        /// Disables this listener, preventing it from receiving any future messages. Messages 
+        /// already enqueued will still be delivered, but no new messages will be added 
+        /// to the queue after this is called.
+        /// </summary>
         internal void Disable() => IsActive = false;
     }
 }

@@ -1,8 +1,8 @@
 ﻿using Sandbox.ModAPI.Ingame;
 using System;
-using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Mocks;
 
-namespace MotherCore.Tests
+namespace MotherCore.Tests.Utilities.Factories
 {
     /// <summary>
     /// Creates <see cref="IMyProgrammableBlock"/> test doubles for use in tests.
@@ -24,7 +24,7 @@ namespace MotherCore.Tests
             var resolvedId = entityId ?? ((long)_rng.Next(100000, 1000000) * 10000000000L
                 + _rng.Next(0, 1000000000));
 
-            return new TestProgrammableBlock(customData, customName, resolvedId);
+            return new FakeProgrammableBlock(customData, customName, resolvedId);
         }
     }
 }

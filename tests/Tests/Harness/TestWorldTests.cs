@@ -1,9 +1,10 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 
-namespace MotherCore.Tests.Framework
+namespace MotherCore.Tests.Harness
 {
     /// <summary>
     /// Verifies <see cref="TestWorld"/>: script creation, IGC dispatch,
@@ -17,13 +18,13 @@ namespace MotherCore.Tests.Framework
         // =====================================================================
 
         [Test]
-        public void CreateScript_Returns_Bootable_Script()
+        public void CreateScript_Returns_Booted_Script()
         {
             var world = new TestWorld();
 
-            var script = world.CreateScript<TestProgram>().Boot();
+            var script = world.CreateScript<CoreTestProgram>().Boot();
 
-            Assert.That(script.Mother, Is.Not.Null);
+            Assert.That(script.Mother.SystemState, Is.EqualTo(Mother.SystemStates.WORKING));
         }
 
         [Test]
@@ -31,7 +32,7 @@ namespace MotherCore.Tests.Framework
         {
             var world = new TestWorld();
 
-            var script = world.CreateScript<TestProgram>("Flagship").Boot();
+            var script = world.CreateScript<CoreTestProgram>("Flagship").Boot();
 
             Assert.That(script.Mother.Name, Is.EqualTo("Flagship"));
         }
@@ -41,8 +42,8 @@ namespace MotherCore.Tests.Framework
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<TestProgram>("ShipA").Boot();
-            var shipB = world.CreateScript<TestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
 
             var almanacA = shipA.Mother.GetModule<Almanac>();
             var almanacB = shipB.Mother.GetModule<Almanac>();
@@ -60,9 +61,9 @@ namespace MotherCore.Tests.Framework
         {
             var world = new TestWorld();
 
-            var tracker = new TrackingCommand("probe");
-            var shipA = world.CreateScript<TestProgram>("ShipA").Boot();
-            var shipB = world.CreateScript<TestProgram>("ShipB").WithCommands(tracker).Boot();
+            var tracker = new CommandSpy("probe");
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").WithCommands(tracker).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB probe");
             shipA.Clock.RunToIdle();
@@ -93,13 +94,14 @@ namespace MotherCore.Tests.Framework
         {
             var world = new TestWorld();
 
-            var trackerA = new TrackingCommand("go");
-            var trackerB = new TrackingCommand("go");
+            var trackerA = new CommandSpy("go");
+            var trackerB = new CommandSpy("go");
 
-            var shipA = world.CreateScript<TestProgram>("ShipA").WithCommands(trackerA).Boot();
-            var shipB = world.CreateScript<TestProgram>("ShipB").WithCommands(trackerB).Boot();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").WithCommands(trackerA).Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").WithCommands(trackerB).Boot();
 
             world.Run(UpdateType.Terminal, "go");
+
             shipA.Clock.RunToIdle();
             shipB.Clock.RunToIdle();
 
@@ -111,7 +113,7 @@ namespace MotherCore.Tests.Framework
         public void Run_Does_Not_Throw_For_Update10()
         {
             var world = new TestWorld();
-            world.CreateScript<TestProgram>("ShipA").Boot();
+            world.CreateScript<CoreTestProgram>("ShipA").Boot();
 
             Assert.DoesNotThrow(() => world.Run(UpdateType.Update10));
         }
@@ -133,10 +135,11 @@ namespace MotherCore.Tests.Framework
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<TestProgram>("ShipA").Boot();
-            world.CreateScript<TestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            world.CreateScript<CoreTestProgram>("ShipB").Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
+
             shipA.Clock.RunToIdle();
             world.DispatchIgc();
 
@@ -152,8 +155,8 @@ namespace MotherCore.Tests.Framework
         {
             var world = new TestWorld();
 
-            var tracker = new TrackingCommand("go");
-            var shipA = world.CreateScript<TestProgram>("ShipA").WithCommands(tracker).Boot();
+            var tracker = new CommandSpy("go");
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").WithCommands(tracker).Boot();
 
             // Queue the command directly — this adds a coroutine to the clock.
             shipA.Bus.RunTerminalCommand("go");
@@ -165,7 +168,6 @@ namespace MotherCore.Tests.Framework
             Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
 
             //world.RunMany(20, UpdateType.Update10);
-
             //Assert.That(tracker.ExecutionCount, Is.EqualTo(2));
         }
 
@@ -173,7 +175,7 @@ namespace MotherCore.Tests.Framework
         public void RunMany_Does_Not_Throw_For_Zero_Cycles()
         {
             var world = new TestWorld();
-            world.CreateScript<TestProgram>("ShipA").Boot();
+            world.CreateScript<CoreTestProgram>("ShipA").Boot();
 
             Assert.DoesNotThrow(() => world.RunMany(0, UpdateType.Update10));
         }

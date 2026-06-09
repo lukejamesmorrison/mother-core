@@ -1,18 +1,19 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Mocks;
 using System.Linq;
 
-namespace MotherCore.Tests.Framework
+namespace MotherCore.Tests.Harness
 {
     /// <summary>
-    /// Verifies <see cref="MockIGCNetwork"/>: endpoint allocation, Almanac
-    /// cross-registration, <see cref="MockIGCNetwork.SentMessages"/> capture,
-    /// message delivery via <see cref="MockIGCNetwork.Deliver"/> and
-    /// <see cref="MockIGCNetwork.DispatchIgc"/>, and the
-    /// <see cref="MockIGCNetwork.Sessions"/> roster.
+    /// Verifies <see cref="FakeIgcNetwork"/>: endpoint allocation, Almanac
+    /// cross-registration, <see cref="FakeIgcNetwork.SentMessages"/> capture,
+    /// message delivery via <see cref="FakeIgcNetwork.Deliver"/> and
+    /// <see cref="FakeIgcNetwork.DispatchIgc"/>, and the
+    /// <see cref="FakeIgcNetwork.Sessions"/> roster.
     /// </summary>
-    public class MockIGCNetworkTests
+    public class FakeIgcNetworkTests
     {
         // =====================================================================
         // Endpoint allocation
@@ -21,7 +22,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Two_Scripts_On_Same_Network_Have_Different_IGC_Ids()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).Boot();
@@ -32,7 +33,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void NetworkIGC_Is_Non_Null_After_Boot_On_Network()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             var script = new Script("ShipA").OnNetwork(network).Boot();
 
@@ -54,7 +55,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Almanac_Record_Contains_Correct_UnicastId_For_Remote_Script()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).Boot();
@@ -69,7 +70,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Three_Scripts_Are_All_Cross_Registered_With_Each_Other()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).Boot();
@@ -94,7 +95,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Remote_Command_SentMessage_Targets_Correct_Recipient()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).Boot();
@@ -109,7 +110,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void ClearSentMessages_Empties_The_Capture_List()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             new Script("ShipB").OnNetwork(network).Boot();
@@ -129,9 +130,9 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Deliver_Executes_Remote_Command_On_Recipient()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
-            var tracker = new TrackingCommand("probe");
+            var tracker = new CommandSpy("probe");
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).WithCommands(tracker).Boot();
 
@@ -151,16 +152,18 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Deliver_Does_Not_Execute_Command_On_Sender()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
-            var trackerA = new TrackingCommand("probe");
-            var trackerB = new TrackingCommand("probe");
+            var trackerA = new CommandSpy("probe");
+            var trackerB = new CommandSpy("probe");
             var shipA = new Script("ShipA").OnNetwork(network).WithCommands(trackerA).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).WithCommands(trackerB).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB probe");
             shipA.Clock.RunToIdle();
+
             network.Deliver();
+
             shipA.Clock.RunToIdle();
             shipB.Clock.RunToIdle();
 
@@ -173,7 +176,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Deliver_On_Empty_Pending_Queue_Does_Not_Throw()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
             new Script("ShipA").OnNetwork(network).Boot();
 
             Assert.DoesNotThrow(() => network.Deliver());
@@ -186,9 +189,9 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void DispatchIgc_Delivers_Messages_Like_Deliver()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
-            var tracker = new TrackingCommand("probe");
+            var tracker = new CommandSpy("probe");
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).WithCommands(tracker).Boot();
 
@@ -204,7 +207,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void DispatchIgc_Returns_Network_For_Chaining()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
             new Script("ShipA").OnNetwork(network).Boot();
 
             Assert.That(network.DispatchIgc(), Is.SameAs(network));
@@ -217,7 +220,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Sessions_Is_Empty_Before_Any_Script_Boots()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             Assert.That(network.Sessions, Is.Empty);
         }
@@ -225,7 +228,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Sessions_Contains_Script_After_Boot()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             new Script("ShipA").OnNetwork(network).Boot();
 
@@ -235,7 +238,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Sessions_Contains_All_Booted_Scripts_In_Registration_Order()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).Boot();
@@ -250,7 +253,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Scripts_Not_On_Network_Do_Not_Appear_In_Sessions()
         {
-            var network = new MockIGCNetwork();
+            var network = new FakeIgcNetwork();
 
             new Script("ShipA").OnNetwork(network).Boot();
             new Script("Standalone").Boot(); // not on the network

@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace IngameScript
 {
     /// <summary>
-    /// A minimal Program class for testing purposes.
+    /// A minimal Program class for MotherCore testing purposes.
     /// </summary>
-    public partial class TestProgram : MyGridProgram
+    public partial class CoreTestProgram : MyGridProgram
     {
         /// <summary>
         /// The Mother instance is the core service of the Mother script.
@@ -16,7 +16,7 @@ namespace IngameScript
         /// <summary>
         /// Program constructor. Creates a minimal Mother instance for testing.
         /// </summary>
-        public TestProgram()
+        public CoreTestProgram()
         {
             // Create the Mother instance
             mother = new Mother(this)

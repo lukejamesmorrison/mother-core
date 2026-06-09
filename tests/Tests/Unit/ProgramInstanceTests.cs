@@ -1,13 +1,15 @@
 ﻿using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Factories;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 //using static Sandbox.ModAPI.Ingame.MyGridProgram as Program;
 
 namespace MotherCore.Tests.Tests.Unit
 {
     /// <summary>
-    ///     Sample tests for the <see cref="TestProgram" /> class.
+    ///     Sample tests for the <see cref="CoreTestProgram" /> class.
     /// </summary>
     /// <remarks>
     ///     You will need to add a reference to your Space Engineers script project before these tests will pass. You should
@@ -28,7 +30,7 @@ namespace MotherCore.Tests.Tests.Unit
         public void NewProgram_WhenCalled_ShouldNotThrow()
         {
             // Act
-            var program = Gateway.CreateProgram<TestProgram>()
+            var program = ProgramFactory.CreateProgram<CoreTestProgram>()
                 .Build();
 
             // Assert
@@ -43,7 +45,7 @@ namespace MotherCore.Tests.Tests.Unit
         {
             // Arrange
             string echoMessage = null;
-            var program = Gateway.CreateProgram<TestProgram>()
+            var program = ProgramFactory.CreateProgram<CoreTestProgram>()
                 .WithEcho(message => echoMessage = message)
                 .Build();
 
@@ -61,13 +63,13 @@ namespace MotherCore.Tests.Tests.Unit
         public void NewProgram_WithCustomPbFake_HasMeInstance()
         {
             // Arrange
-            var me = new TestProgrammableBlock(
+            var me = new FakeProgrammableBlock(
                 customName: "Test PB",
                 gridName: "Grid A");
             me.IsRunning = true;
 
             // Act
-            var program = Gateway.CreateProgram<TestProgram>()
+            var program = ProgramFactory.CreateProgram<CoreTestProgram>()
                 .WithMe(me)
                 .Build();
 

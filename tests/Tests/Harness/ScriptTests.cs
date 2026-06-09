@@ -1,9 +1,10 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 
-namespace MotherCore.Tests.Framework
+namespace MotherCore.Tests.Harness
 {
     /// <summary>
     /// Verifies the <see cref="Script{TProgram}"/> test harness: boot lifecycle,
@@ -64,7 +65,7 @@ namespace MotherCore.Tests.Framework
         public void WithCustomData_Makes_Config_Command_Available_After_Boot()
         {
             var script = new Script()
-                .WithCustomData(new CustomDataBuilder()
+                .WithCustomData(new CustomDataComposer()
                     .WithCommand("openDoor", "track")
                     .Build())
                 .Boot();
@@ -79,7 +80,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void WithCommands_Registers_Command_With_Bus()
         {
-            var tracker = new TrackingCommand("myCmd");
+            var tracker = new CommandSpy("myCmd");
             var script = new Script().WithCommands(tracker).Boot();
 
             script.Bus.RunTerminalCommand("myCmd");
@@ -91,8 +92,8 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void WithCommands_Accepts_Multiple_Commands()
         {
-            var trackerA = new TrackingCommand("cmdA");
-            var trackerB = new TrackingCommand("cmdB");
+            var trackerA = new CommandSpy("cmdA");
+            var trackerB = new CommandSpy("cmdB");
             var script = new Script().WithCommands(trackerA, trackerB).Boot();
 
             script.Bus.RunTerminalCommand("cmdA");
@@ -120,7 +121,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Run_Terminal_Dispatches_Argument_To_CommandBus()
         {
-            var tracker = new TrackingCommand("go");
+            var tracker = new CommandSpy("go");
             var script = new Script().WithCommands(tracker).Boot();
 
             script.Run(UpdateType.Terminal, "go");
@@ -148,7 +149,7 @@ namespace MotherCore.Tests.Framework
         [Test]
         public void Run_Can_Be_Called_Multiple_Times()
         {
-            var tracker = new TrackingCommand("go");
+            var tracker = new CommandSpy("go");
             var script = new Script().WithCommands(tracker).Boot();
 
             script.Run(UpdateType.Terminal, "go");

@@ -14,7 +14,7 @@ The `MyGridProgram` runtime contract that matters for tests is still the same:
 - `Echo`
 - `World`
 
-MotherCore already injects most of this through `Gateway.ProgramBuilder<T>`. The design question is not whether we need a test seam. It is where that seam should live.
+MotherCore already injects most of this through `ProgramFactory.ProgramBuilder<T>`. The design question is not whether we need a test seam. It is where that seam should live.
 
 The current answer is:
 
@@ -141,11 +141,11 @@ The right split is:
 
 MotherCore already has the beginning of this model:
 
-- `Gateway.CreateProgram<T>()` builds a script with injected `MyGridProgram` state
+- `ProgramFactory.CreateProgram<T>()` builds a script with injected `MyGridProgram` state
 - `Script<TProgram>` boots a real script instance with very little setup
-- `MockIGCNetwork` provides shared IGC transport for multiple scripts
+- `FakeIgcNetwork` provides shared IGC transport for multiple scripts
 - `ClockDriver` makes coroutine and scheduling tests easier
-- `TestProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block
+- `FakeProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block
 
 The current implementation is still closer to "standalone scripts plus a network" than to a first-class `World`, but it already points in the right direction.
 
@@ -201,7 +201,7 @@ Suggested role:
 
 Current closest type:
 
-- `MockIGCNetwork` for remote communication only
+- `FakeIgcNetwork` for remote communication only
 
 Suggested future type:
 
@@ -235,7 +235,7 @@ The user should think in terms of scripts inside a world, not in terms of manual
 Today, `Script<TProgram>` exposes this minimal fluent surface:
 
 - `WithIGC(IMyIntergridCommunicationSystem igc)`
-- `OnNetwork(MockIGCNetwork network)`
+- `OnNetwork(FakeIgcNetwork network)`
 - `WithCustomData(string customData)`
 - `WithCommands(params BaseModuleCommand[] commands)`
 - `Boot()`
@@ -431,7 +431,7 @@ world.DispatchIgc();
 world.RunIGC();
 ```
 
-This is the world-based version of what `MockIGCNetwork` already does in a narrower form.
+This is the world-based version of what `FakeIgcNetwork` already does in a narrower form.
 
 The naming matters here. `Deliver()` is too vague because it mixes at least two different concerns:
 
@@ -465,10 +465,11 @@ This should remain first-class because it is how users naturally configure Mothe
 Current helper:
 
 - `WithCustomData(string)`
+- `CustomDataComposer` in `Utilities/Factories/`, treated as a factory for the full `Program.Me.CustomData` payload rather than a runtime object.
 
 Likely next helpers:
 
-- `WithCustomData(Action<CustomDataBuilder>)`
+- `WithCustomData(Action<CustomDataComposer>)`
 - `ReloadConfiguration()`
 
 ### Terminal block registration
@@ -624,7 +625,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 |---|---|---|
 | `Boot()` | ✅ Done | Boots program, extracts Mother, runs module Boot |
 | `WithIGC(igc)` | ✅ Done | Injects custom IGC before boot |
-| `OnNetwork(network)` | ✅ Done | Joins `MockIGCNetwork` before boot |
+| `OnNetwork(network)` | ✅ Done | Joins `FakeIgcNetwork` before boot |
 | `WithCustomData(string)` | ✅ Done | Sets custom data before boot |
 | `WithCommands(params ...)` | ✅ Done | Registers extra commands after boot |
 | `OnBeforeBoot(mother)` hook | ✅ Done | Override to inject test-only modules |
@@ -641,11 +642,11 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | `Clear()` | ✅ Done | Empties captured lines |
 | `ShouldHavePrinted(string)` | ✅ Done | NUnit assertion helper |
 
-### MockIGCNetwork
+### FakeIgcNetwork
 
 | Feature | Status | Notes |
 |---|---|---|
-| `AllocateEndpoint()` | ✅ Done | Creates `MockIGC` on the network |
+| `AllocateEndpoint()` | ✅ Done | Creates `FakeIgc` on the network |
 | `RegisterSession(session, name)` | ✅ Done | Cross-populates Almanac on boot |
 | `Deliver()` | ✅ Done | Routes pending messages + triggers IGC processing |
 | `SentMessages` | ✅ Done | Capture list for lightweight assertions |
@@ -658,7 +659,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | Feature | Status | Notes |
 |---|---|---|
 | `CreateScript<T>(name)` | ✅ Done | Returns `Script<T>` joined to world network |
-| `DispatchIgc()` | ✅ Done | Delegates to `MockIGCNetwork.Deliver()` |
+| `DispatchIgc()` | ✅ Done | Delegates to `FakeIgcNetwork.Deliver()` |
 | `Run(UpdateType, string)` | ✅ Done | Runs all booted scripts one cycle |
 | `RunIGC()` | ✅ Done | Convenience for `Run(UpdateType.IGC)` |
 | `RunMany(count, UpdateType, string)` | ✅ Done | Advances multiple cycles |
@@ -684,7 +685,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | Feature | Status | Notes |
 |---|---|---|
 | `WithCustomData(string)` | ✅ Done | |
-| `WithCustomData(Action<CustomDataBuilder>)` | ⬜ Pending | Fluent builder overload |
+| `WithCustomData(Action<CustomDataComposer>)` | ⬜ Pending | Fluent composer overload |
 | `ReloadConfiguration()` | ⬜ Pending | Hot-reload config in test |
 | `TerminalBlockFactory` / `GridTerminalSystemBuilder` | ⬜ Pending | Block registration helpers |
 | `WithBlock(IMyTerminalBlock)` / `WithBlocks(...)` | ⬜ Pending | Convenience block injection |

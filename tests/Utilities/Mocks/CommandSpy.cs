@@ -1,13 +1,13 @@
 using IngameScript;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Utilities
+namespace MotherCore.Tests.Utilities.Mocks
 {
     /// <summary>
     /// A test command that counts how many times Execute() is called and records call order.
     /// Used to verify coroutine execution order and count across test files.
     /// </summary>
-    public class TrackingCommand : BaseModuleCommand
+    public class CommandSpy : BaseModuleCommand
     {
         static int _globalCallIndex = 0;
 
@@ -15,7 +15,7 @@ namespace MotherCore.Tests.Utilities
         /// The name used to match this command when it is dispatched by the <see cref="CommandBus"/>.
         /// Settable so a single test can register multiple trackers under different names.
         /// </summary>
-        public string CommandName;
+        public string CommandName { get; set; }
         public override string Name => CommandName;
 
         /// <summary>How many times <see cref="Execute"/> has been called on this instance.</summary>
@@ -23,15 +23,15 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>
         /// Records the global call index at each invocation, allowing tests to assert
-        /// relative ordering across multiple TrackingCommand instances.
+        /// relative ordering across multiple <see cref="CommandSpy"/> instances.
         /// </summary>
         public List<int> ExecutionOrder { get; } = new List<int>();
 
         /// <summary>
-        /// Initializes a new <see cref="TrackingCommand"/> with an optional command name.
+        /// Initializes a new <see cref="CommandSpy"/> with an optional command name.
         /// </summary>
         /// <param name="name">The command name to register under. Defaults to <c>"track"</c>.</param>
-        public TrackingCommand(string name = "track")
+        public CommandSpy(string name = "track")
         {
             CommandName = name;
         }

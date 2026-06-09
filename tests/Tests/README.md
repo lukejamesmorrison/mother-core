@@ -1,5 +1,11 @@
 # MotherCore Tests
 
+Test files are grouped into three buckets:
+
+- `Unit/`: narrow tests for isolated core behavior.
+- `Integration/`: booted-script tests that exercise real module interaction.
+- `Harness/`: tests for the reusable test runtime itself (`Script`, `TestWorld`, `FakeIgcNetwork`, and related helpers).
+
 Examples for the three most common test scenarios, using real modules from
 **MotherOS** and **MotherGUI**. All examples use the utilities in
 `TestUtilities/` — no manual wiring of IGC, runtime, or grid terminal system
@@ -29,7 +35,7 @@ alias was parsed, resolved, and dispatched correctly.
 public void OpenAirlock_Alias_Resolves_And_Dispatches_To_door_open()
 {
     var session = new Script<Program>()
-        .WithCustomData(new CustomDataBuilder()
+        .WithCustomData(new CustomDataComposer()
             .WithCommand("openAirlock", "door/open AirlockDoor")
             .Build())
         .Boot();
@@ -149,11 +155,11 @@ one tick, so you can stop at any boundary:
 [Test]
 public void Multi_Step_Routine_Executes_Commands_One_Per_Tick()
 {
-    var lights = new TrackingCommand("light/color");
-    var blink  = new TrackingCommand("light/blink");
+    var lights = new CommandSpy("light/color");
+    var blink  = new CommandSpy("light/blink");
 
     var session = new Script()
-        .WithCustomData(new CustomDataBuilder()
+        .WithCustomData(new CustomDataComposer()
             .WithCommand("dockReady", "light/color DockLight 0,255,0; light/blink DockLight fast")
             .Build())
         .WithCommands(lights, blink)
@@ -250,7 +256,7 @@ In a typical ship build, MotherOS runs on one programmable block and
 MotherGUI on another. They discover each other through the Almanac and
 exchange commands over IGC.
 
-This example boots both programs on a `MockIGCNetwork`. The network
+This example boots both programs on a `FakeIgcNetwork`. The network
 cross-registers each grid in the other's Almanac automatically, so
 `@GUI view/go` resolves without any manual wiring.
 
@@ -263,7 +269,7 @@ cross-registers each grid in the other's Almanac automatically, so
 [Test]
 public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
 {
-    var network = new MockIGCNetwork();
+    var network = new FakeIgcNetwork();
 
     // Boot MotherOS as the ship controller
     var ship = new Script<MotherOSProgram>("Ship")

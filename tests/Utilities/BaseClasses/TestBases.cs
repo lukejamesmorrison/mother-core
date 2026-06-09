@@ -14,7 +14,7 @@ namespace MotherCore.Tests.Utilities
     /// Use this base for Tests/Integration/Script/ tests that exercise module
     /// behaviour, event firing, and command handling within one script instance.
     /// <code>
-    /// public class MyModuleTests : ScriptTestBase&lt;TestProgram&gt;
+    /// public class MyModuleTests : ScriptTestBase&lt;CoreTestProgram&gt;
     /// {
     ///     [Test]
     ///     public void SomeCommand_DoesExpectedThing()
@@ -30,7 +30,7 @@ namespace MotherCore.Tests.Utilities
     /// custom data, extra commands, or other per-test configuration.
     /// </remarks>
     /// <typeparam name="TProgram">
-    /// The script's <c>Program</c> type. Use <see cref="TestProgram"/> for
+    /// The script's <c>Program</c> type. Use <see cref="CoreTestProgram"/> for
     /// MotherCore-only tests; use a real script's <c>Program</c> for targeted
     /// module tests inside that script.
     /// </typeparam>
@@ -69,7 +69,7 @@ namespace MotherCore.Tests.Utilities
     /// Use this base for Tests/Integration/Script/ tests that need to assert on
     /// terminal output (e.g. help text, status messages).
     /// <code>
-    /// public class MyFeatureTests : ScriptFeatureTestBase&lt;TestProgram&gt;
+    /// public class MyFeatureTests : ScriptFeatureTestBase&lt;CoreTestProgram&gt;
     /// {
     ///     [Test]
     ///     public void Command_PrintsExpectedOutput()
@@ -82,7 +82,7 @@ namespace MotherCore.Tests.Utilities
     /// </code>
     /// </remarks>
     /// <typeparam name="TProgram">
-    /// The script's <c>Program</c> type. Use <see cref="TestProgram"/> for
+    /// The script's <c>Program</c> type. Use <see cref="CoreTestProgram"/> for
     /// MotherCore-only tests; use a real script's <c>Program</c> for feature tests.
     /// </typeparam>
     public abstract class ScriptFeatureTestBase<TProgram>
@@ -132,8 +132,8 @@ namespace MotherCore.Tests.Utilities
     ///     [Test]
     ///     public void ShipA_Can_Send_Command_To_ShipB()
     ///     {
-    ///         var shipA = World.CreateScript&lt;TestProgram&gt;("ShipA").Boot();
-    ///         var shipB = World.CreateScript&lt;TestProgram&gt;("ShipB").Boot();
+    ///         var shipA = World.CreateScript&lt;CoreTestProgram&gt;("ShipA").Boot();
+    ///         var shipB = World.CreateScript&lt;CoreTestProgram&gt;("ShipB").Boot();
     ///
     ///         shipA.Bus.RunTerminalCommand("@ShipB help");
     ///         shipA.Clock.RunToIdle();

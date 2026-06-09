@@ -10,7 +10,7 @@ using VRage.Game.ModAPI.Ingame;
 using VRage.ObjectBuilders;
 using VRageMath;
 
-namespace MotherCore.Tests.Utilities
+namespace MotherCore.Tests.Utilities.Mocks
 {
     /// <summary>
     /// Lightweight concrete programmable block for tests.
@@ -18,12 +18,12 @@ namespace MotherCore.Tests.Utilities
     /// for the remaining inherited in-game surface.
     /// </summary>
     /// <see href="https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.IMyProgrammableBlock.html"/>
-    internal class TestProgrammableBlock : IMyProgrammableBlock
+    internal class FakeProgrammableBlock : IMyProgrammableBlock
     {
         readonly List<IMyInventory> _inventories = new List<IMyInventory>();
         readonly List<IMyTextSurface> _surfaces = new List<IMyTextSurface>();
 
-        public TestProgrammableBlock(
+        public FakeProgrammableBlock(
             string customData = "",
             string customName = "Mother Core PB",
             long? entityId = null,
@@ -254,13 +254,13 @@ namespace MotherCore.Tests.Utilities
             return WorldMatrix.Translation;
         }
 
-        public TestProgrammableBlock AddSurface(IMyTextSurface surface)
+        public FakeProgrammableBlock AddSurface(IMyTextSurface surface)
         {
             _surfaces.Add(surface);
             return this;
         }
 
-        public TestProgrammableBlock AddInventory(IMyInventory inventory)
+        public FakeProgrammableBlock AddInventory(IMyInventory inventory)
         {
             _inventories.Add(inventory);
             return this;

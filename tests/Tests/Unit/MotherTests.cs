@@ -2,6 +2,7 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Factories;
 using Sandbox.ModAPI.Ingame;
 using System;
 
@@ -9,12 +10,12 @@ namespace MotherCore.Tests.Tests.Unit
 {
     public class MotherTests
     {
-        private TestProgram _program;
+        private CoreTestProgram _program;
 
         [SetUp]
         public void Setup()
         {
-            _program = Gateway.CreateProgram<TestProgram>().Build();
+            _program = ProgramFactory.CreateProgram<CoreTestProgram>().Build();
         }
 
         [Test]

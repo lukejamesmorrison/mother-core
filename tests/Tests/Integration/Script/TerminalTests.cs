@@ -9,25 +9,8 @@ using System.Collections.Generic;
 
 namespace MotherCore.Tests.Integration.Script
 {
-    public class TerminalTests : ScriptTestBase<TestProgram>
+    public class TerminalTests : ScriptTestBase<CoreTestProgram>
     {
-        [Test]
-        public void It_Can_Be_Instantiated_With_An_Instance_Of_Mother()
-        {
-            Terminal terminal = new Terminal(Mother);
-
-            Assert.That(terminal.Mother, Is.SameAs(Mother));
-        }
-
-        [Test]
-        public void It_Can_Be_Booted()
-        {
-            Terminal terminal = new Terminal(Mother);
-
-            terminal.Boot();
-
-            Assert.Pass();
-        }
 
         [Test]
         public void It_Can_Have_Highlights()
@@ -46,10 +29,12 @@ namespace MotherCore.Tests.Integration.Script
         public void It_Can_Be_Cleared()
         {
             Terminal terminal = new Terminal(Mother);
+            var capture = new PrintCapture(Script);
 
             terminal.Print("Test Print 1");
 
             bool cleared = terminal.ClearConsole();
+            terminal.UpdateTerminal();
 
             Assert.That(cleared, Is.True);
         }

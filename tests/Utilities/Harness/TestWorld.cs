@@ -1,4 +1,5 @@
 using IngameScript;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities
@@ -28,16 +29,16 @@ namespace MotherCore.Tests.Utilities
     /// </remarks>
     public class TestWorld
     {
-        readonly MockIGCNetwork _network = new MockIGCNetwork();
+        readonly FakeIgcNetwork _network = new FakeIgcNetwork();
 
         /// <summary>
         /// Creates a new <see cref="Script{TProgram}"/> joined to this world's IGC
         /// network. Call <see cref="Script{TProgram}.Boot"/> to complete construction.
         /// </summary>
-        public Script<TProgram> CreateScript<TProgram>(string gridName = null)
+        public Script<TProgram> CreateScript<TProgram>(string scriptName = null)
             where TProgram : MyGridProgram, new()
         {
-            return new Script<TProgram>(gridName).OnNetwork(_network);
+            return new Script<TProgram>(scriptName).OnNetwork(_network);
         }
 
         /// <summary>

@@ -9,8 +9,14 @@ namespace MotherCore.Tests.Utilities
     /// </summary>
     public class ClockDriver
     {
+        /// <summary>
+        /// The Clock core module.
+        /// </summary>
         readonly Clock _clock;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         /// <param name="clock">The Clock module instance to drive.</param>
         public ClockDriver(Clock clock)
         {

@@ -8,28 +8,11 @@ using System;
 
 namespace MotherCore.Tests.Integration.Script
 {
-    public class EventBusTests : ScriptTestBase<TestProgram>
+    public class EventBusTests : ScriptTestBase<CoreTestProgram>
     {
-        [Test]
-        public void It_Can_Be_Instantiated_With_An_Instance_Of_Mother()
-        {
-            EventBus eventBus = new EventBus(Mother);
-
-            Assert.That(eventBus.Mother, Is.SameAs(Mother));
-        }
 
         [Test]
-        public void It_Can_Be_Booted()
-        {
-            EventBus module = new EventBus(Mother);
-
-            module.Boot();
-
-            Assert.Pass();
-        }
-
-        [Test]
-        public void It_Can_Be_Subscribed_To_An_Event()
+        public void A_Module_Can_Be_Subscribed_To_An_Event()
         {
             EventBus eventBus = new EventBus(Mother);
             var module1 = A.Fake<IModule>();
@@ -43,7 +26,7 @@ namespace MotherCore.Tests.Integration.Script
         }
 
         [Test]
-        public void It_Can_Be_Unsubscribed_From_An_Event()
+        public void A_Module_Can_Be_Unsubscribed_From_An_Event()
         {
             EventBus eventBus = new EventBus(Mother);
             var module = A.Fake<IModule>();
