@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MotherCore.Tests.Integration.Script
+namespace MotherCore.Tests.Integration
 {
     public class CommandBusTests : ScriptTestBase<CoreTestProgram>
     {

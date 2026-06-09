@@ -3,7 +3,7 @@ using NUnit.Framework;
 using MotherCore.Tests.Utilities;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Integration.Script
+namespace MotherCore.Tests.Integration
 {
     public class IntergridMessageServiceTests : ScriptTestBase<CoreTestProgram>
     {

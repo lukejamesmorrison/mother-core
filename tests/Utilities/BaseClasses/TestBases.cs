@@ -11,7 +11,7 @@ namespace MotherCore.Tests.Utilities
     /// <see cref="Mother"/>, <see cref="Bus"/>, and <see cref="Clock"/> for direct access.
     /// </summary>
     /// <remarks>
-    /// Use this base for Tests/Integration/Script/ tests that exercise module
+    /// Use this base for Tests/Integration/ tests that exercise module
     /// behaviour, event firing, and command handling within one script instance.
     /// <code>
     /// public class MyModuleTests : ScriptTestBase&lt;CoreTestProgram&gt;
@@ -66,7 +66,7 @@ namespace MotherCore.Tests.Utilities
     /// before each test and wires up <see cref="Echo"/> capture automatically.
     /// </summary>
     /// <remarks>
-    /// Use this base for Tests/Integration/Script/ tests that need to assert on
+    /// Use this base for Tests/Integration/ tests that need to assert on
     /// terminal output (e.g. help text, status messages).
     /// <code>
     /// public class MyFeatureTests : ScriptFeatureTestBase&lt;CoreTestProgram&gt;

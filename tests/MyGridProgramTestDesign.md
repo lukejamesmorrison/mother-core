@@ -737,8 +737,8 @@ This plan reflects the current MotherCore source and the executable suite as it 
 
 ### Phase 2: untested stateful core modules
 
-- [ ] Add integration coverage for `Modules/LocalStorage`.
-    Cover set, get, clear, boot from `Program.Storage`, save-data serialization, and the `set` and `get` commands.
+- [x] Add integration coverage for `Modules/LocalStorage`.
+    Covered set, get, clear, boot from `Program.Storage`, save-data serialization, and the `set` and `get` commands through the script harness.
 
 - [ ] Add module boot and event coverage for `ConnectorModule`, `MechanicalBlockModule`, and `MergeBlockModule`.
     Reuse the test patterns documented in `Tests/README.md`: verify command registration, event subscription, state-transition behavior, and deferred hook behavior after construct refresh.
@@ -775,7 +775,7 @@ This plan reflects the current MotherCore source and the executable suite as it 
 ### Notes for implementation
 
 - Prefer `Unit/` for pure helpers and deterministic parsing behavior.
-- Prefer `Integration/Script/` for module boot, event, command, and cross-module behavior inside one booted `Script`.
+- Prefer `Integration/` for module boot, event, command, and cross-module behavior inside one booted `Script`.
 - Prefer `WorldTestBase` and `TestWorld` for remote IGC scenarios that require more than one script.
 - Reuse the examples in `Tests/README.md` as the canonical style guide for new tests.
 

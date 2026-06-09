@@ -82,6 +82,7 @@ namespace MotherCore.Tests.Utilities
     {
         Mother _mother;
         string _customData;
+        string _storage;
         IMyIntergridCommunicationSystem _igc;
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
         FakeIgcNetwork _network;
@@ -174,6 +175,17 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Sets the programmable block's <c>Storage</c> before boot.
+        /// Use this to verify persistence and module boot behavior that depends on
+        /// previously saved state.
+        /// </summary>
+        public Script<TProgram> WithStorage(string storage)
+        {
+            _storage = storage;
+            return this;
+        }
+
+        /// <summary>
         /// Registers one or more commands with the <see cref="CommandBus"/> after boot.
         /// </summary>
         public Script<TProgram> WithCommands(params BaseModuleCommand[] commands)
@@ -252,21 +264,22 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         public Script<TProgram> Boot()
         {
-            TProgram program;
+            var builder = ProgramFactory.CreateProgram<TProgram>();
 
             if (_network != null)
             {
                 NetworkIGC = _network.AllocateEndpoint();
-                program = ProgramFactory.CreateProgram<TProgram>().WithIgc(NetworkIGC).Build();
+                builder = builder.WithIgc(NetworkIGC);
             }
             else if (_igc != null)
             {
-                program = ProgramFactory.CreateProgram<TProgram>().WithIgc(_igc).Build();
+                builder = builder.WithIgc(_igc);
             }
-            else
-            {
-                program = ProgramFactory.CreateProgram<TProgram>().Build();
-            }
+
+            if (_storage != null)
+                builder = builder.WithStorage(_storage);
+
+            TProgram program = builder.Build();
 
             Program = program;
             _mother = FindMother(program);
@@ -333,6 +346,13 @@ namespace MotherCore.Tests.Utilities
         public new Script WithCustomData(string customData)
         {
             base.WithCustomData(customData);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithStorage"/>
+        public new Script WithStorage(string storage)
+        {
+            base.WithStorage(storage);
             return this;
         }
 

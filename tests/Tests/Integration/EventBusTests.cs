@@ -6,7 +6,7 @@ using Sandbox.ModAPI.Ingame;
 using System.Net.NetworkInformation;
 using System;
 
-namespace MotherCore.Tests.Integration.Script
+namespace MotherCore.Tests.Integration
 {
     public class EventBusTests : ScriptTestBase<CoreTestProgram>
     {

@@ -7,7 +7,7 @@ using System.Net.NetworkInformation;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Integration.Script
+namespace MotherCore.Tests.Integration
 {
     public class TerminalTests : ScriptTestBase<CoreTestProgram>
     {

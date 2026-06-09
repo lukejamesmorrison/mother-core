@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using VRageMath;
 
-namespace MotherCore.Tests.Integration.Script
+namespace MotherCore.Tests.Integration
 {
     public class AlmanacTests : ScriptTestBase<CoreTestProgram>
     {

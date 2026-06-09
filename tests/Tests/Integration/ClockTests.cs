@@ -6,7 +6,7 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Integration.Script
+namespace MotherCore.Tests.Integration
 {
     /// <summary>
     /// Tests for the Clock module's coroutine, scheduled task, and queued task

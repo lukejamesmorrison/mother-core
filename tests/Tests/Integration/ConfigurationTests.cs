@@ -6,7 +6,7 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Integration.Script
+namespace MotherCore.Tests.Integration
 {
     public class ConfigurationTests : ScriptTestBase<CoreTestProgram>
     {
