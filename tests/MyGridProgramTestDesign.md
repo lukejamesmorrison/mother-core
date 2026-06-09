@@ -726,17 +726,14 @@ This plan reflects the current MotherCore source and the executable suite as it 
 
 ### Phase 1: correctness-critical gaps
 
-- [ ] Expand `Unit/SerializerTests.cs` to cover list-heavy payloads.
-    Add round-trips for flat lists, nested lists, list-of-dictionaries, dictionary-with-list payloads, escaping for quotes and backslashes, empty collections, and malformed input fallback. The serializer is central to storage and intergrid messaging, so this gives broad protection.
+- [x] Expand `Unit/SerializerTests.cs` to cover list-heavy payloads.
+    Added round-trips for flat lists, nested lists, list-of-dictionaries, dictionary-with-list payloads, escaping for quotes and backslashes, empty collections, and malformed input fallback. The serializer now has the Phase 1 baseline coverage planned here.
 
 - [x] Add focused tests for intergrid message envelope parsing.
     Cover `IntergridMessageObject`, `Request`, `Response`, and `Router` with missing-tag, empty-tag, malformed-envelope, unmatched-route, and response-code cases. This closes an important gap in IGC message handling.
 
-- [ ] Extend `Unit/SecurityTests.cs` with edge cases.
-    Cover empty strings, empty passcodes, unencrypted input checks, and wrong-passcode decrypt behavior so current behavior is pinned explicitly.
-
-- [ ] Deferred: add dedicated coverage for `Utilities/PID.cs`.
-    Cover unchanged timestep behavior, changed timestep behavior, zero-timestep handling, reset behavior, and NaN or infinity clamping when we decide to invest in currently unused control logic.
+- [x] Extend `Unit/SecurityTests.cs` with edge cases.
+    Covered empty-string round-trips, empty-passcode encrypt behavior, empty-passcode decrypt failure on encrypted payloads, unencrypted-input checks, and wrong-passcode decrypt behavior so current behavior is pinned explicitly.
 
 ### Phase 2: untested stateful core modules
 
