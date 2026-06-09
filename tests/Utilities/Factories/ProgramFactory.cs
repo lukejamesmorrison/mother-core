@@ -80,12 +80,15 @@ namespace MotherCore.Tests.Utilities.Factories
                 if (!(program is Sandbox.ModAPI.IMyGridProgram backend))
                     throw new InvalidOperationException("No IMyGridProgram interface found.");
 
+                var me = GetMe();
+                var gridTerminalSystem = GetGridTerminalSystem(me);
+
                 // Assign dependencies
                 backend.Runtime = GetRuntime();
                 backend.Echo = GetEcho();
-                backend.Me = GetMe();
+                backend.Me = me;
                 backend.Storage = GetStorage();
-                backend.GridTerminalSystem = GetGridTerminalSystem();
+                backend.GridTerminalSystem = gridTerminalSystem;
                 backend.IGC_ContextGetter = GetIgcContextGetter();
 
                 // Run constructor
@@ -151,8 +154,18 @@ namespace MotherCore.Tests.Utilities.Factories
                 return () => standaloneIgc;
             }
 
-            private IMyGridTerminalSystem GetGridTerminalSystem() =>
-                _gridTerminalSystem ?? A.Fake<IMyGridTerminalSystem>();
+            private IMyGridTerminalSystem GetGridTerminalSystem(IMyProgrammableBlock me)
+            {
+                if (_gridTerminalSystem != null)
+                    return _gridTerminalSystem;
+
+                var gridTerminalSystem = new FakeGridTerminalSystem(
+                    me.CubeGrid == null ? "Test Grid" : me.CubeGrid.CustomName);
+
+                gridTerminalSystem.AddBlock(me, me.CubeGrid ?? gridTerminalSystem.PrimaryGrid);
+
+                return gridTerminalSystem;
+            }
 
             private string GetStorage() => _storage ?? string.Empty;
 

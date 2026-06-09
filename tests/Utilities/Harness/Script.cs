@@ -3,8 +3,10 @@ using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
 using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
+using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities
 {
@@ -87,6 +89,7 @@ namespace MotherCore.Tests.Utilities
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
         FakeIgcNetwork _network;
         readonly string _gridName;
+        readonly FakeGridTerminalSystem _gridTerminalSystem;
         PrintCapture _printCapture;
 
         /// <param name="gridName">
@@ -98,6 +101,7 @@ namespace MotherCore.Tests.Utilities
         public Script(string gridName = null)
         {
             _gridName = gridName;
+            _gridTerminalSystem = new FakeGridTerminalSystem(gridName ?? "Test Grid");
         }
 
         /// <summary>The booted <see cref="CommandBus"/>. Available after <see cref="Boot"/> is called.</summary>
@@ -138,6 +142,19 @@ namespace MotherCore.Tests.Utilities
         /// via <see cref="OnNetwork"/>.
         /// </summary>
         public FakeIgc NetworkIGC { get; private set; }
+
+        /// <summary>
+        /// The script-local grid terminal system used during boot.
+        /// Tests can populate it before boot with block and group fixtures.
+        /// </summary>
+        public IMyGridTerminalSystem GridTerminalSystem => _gridTerminalSystem;
+
+        /// <summary>
+        /// The primary grid that owns the programmable block for this script.
+        /// Additional grids created through <see cref="CreateGrid"/> are automatically
+        /// connected to this grid as part of the same construct.
+        /// </summary>
+        public IMyCubeGrid PrimaryGrid => _gridTerminalSystem.PrimaryGrid;
 
         /// <summary>
         /// Injects a pre-created IGC into this script's program. Use this when you
@@ -182,6 +199,70 @@ namespace MotherCore.Tests.Utilities
         public Script<TProgram> WithStorage(string storage)
         {
             _storage = storage;
+            return this;
+        }
+
+        /// <summary>
+        /// Creates an additional grid for this script's construct and automatically
+        /// links it back to the primary grid through a synthetic mechanical block.
+        /// </summary>
+        public IMyCubeGrid CreateGrid(
+            string gridName = null,
+            long? entityId = null,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            return _gridTerminalSystem.CreateGrid(gridName, entityId, connectionKind);
+        }
+
+        /// <summary>
+        /// Explicitly connects two grids in this script's construct through a
+        /// fake rotor, hinge, or piston base block.
+        /// </summary>
+        public IMyMechanicalConnectionBlock ConnectGrids(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid topGrid,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            return _gridTerminalSystem.ConnectGrids(baseGrid, topGrid, connectionKind);
+        }
+
+        /// <summary>
+        /// Registers a block on the script's primary grid.
+        /// </summary>
+        public Script<TProgram> WithBlock(IMyTerminalBlock block)
+        {
+            return WithBlock(block, PrimaryGrid);
+        }
+
+        /// <summary>
+        /// Registers a block on a specific grid within the script's construct.
+        /// </summary>
+        public Script<TProgram> WithBlock(IMyTerminalBlock block, IMyCubeGrid grid)
+        {
+            _gridTerminalSystem.AddBlock(block, grid);
+            return this;
+        }
+
+        /// <summary>
+        /// Registers multiple blocks on the script's primary grid.
+        /// </summary>
+        public Script<TProgram> WithBlocks(params IMyTerminalBlock[] blocks)
+        {
+            if (blocks == null)
+                throw new ArgumentNullException(nameof(blocks));
+
+            foreach (var block in blocks)
+                WithBlock(block);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Registers a named block group in the script-local terminal system.
+        /// </summary>
+        public Script<TProgram> WithBlockGroup(string groupName, params IMyTerminalBlock[] blocks)
+        {
+            _gridTerminalSystem.AddBlockGroup(groupName, blocks);
             return this;
         }
 
@@ -265,6 +346,12 @@ namespace MotherCore.Tests.Utilities
         public Script<TProgram> Boot()
         {
             var builder = ProgramFactory.CreateProgram<TProgram>();
+            var programmableBlock = ProgrammableBlockFactory.Create(cubeGrid: PrimaryGrid);
+
+            _gridTerminalSystem.AddBlock(programmableBlock, PrimaryGrid);
+            builder = builder
+                .WithMe(programmableBlock)
+                .WithGridTerminalSystem(_gridTerminalSystem);
 
             if (_network != null)
             {
@@ -353,6 +440,52 @@ namespace MotherCore.Tests.Utilities
         public new Script WithStorage(string storage)
         {
             base.WithStorage(storage);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.CreateGrid"/>
+        public new IMyCubeGrid CreateGrid(
+            string gridName = null,
+            long? entityId = null,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            return base.CreateGrid(gridName, entityId, connectionKind);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ConnectGrids"/>
+        public new IMyMechanicalConnectionBlock ConnectGrids(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid topGrid,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            return base.ConnectGrids(baseGrid, topGrid, connectionKind);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithBlock(IMyTerminalBlock)"/>
+        public new Script WithBlock(IMyTerminalBlock block)
+        {
+            base.WithBlock(block);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithBlock(IMyTerminalBlock, IMyCubeGrid)"/>
+        public new Script WithBlock(IMyTerminalBlock block, IMyCubeGrid grid)
+        {
+            base.WithBlock(block, grid);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithBlocks"/>
+        public new Script WithBlocks(params IMyTerminalBlock[] blocks)
+        {
+            base.WithBlocks(blocks);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithBlockGroup"/>
+        public new Script WithBlockGroup(string groupName, params IMyTerminalBlock[] blocks)
+        {
+            base.WithBlockGroup(groupName, blocks);
             return this;
         }
 

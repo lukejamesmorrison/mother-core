@@ -28,18 +28,21 @@ namespace MotherCore.Tests.Utilities.Mocks
             string customName = "Mother Core PB",
             long? entityId = null,
             string gridName = "Test Grid",
-            long? gridEntityId = null)
+            long? gridEntityId = null,
+            IMyCubeGrid cubeGrid = null)
         {
             EntityId = entityId ?? CreateEntityId();
             CustomData = customData;
             CustomName = customName;
             Name = customName;
-            CubeGrid = CreateCubeGrid(gridName, gridEntityId ?? EntityId + 1);
+            CubeGrid = cubeGrid ?? CreateCubeGrid(gridName, gridEntityId ?? EntityId + 1);
         }
 
         public bool IsRunning { get; set; }
 
         public string TerminalRunArgument { get; private set; }
+
+        public Func<IMyTerminalBlock, bool> SameConstructEvaluator { get; set; }
 
         public bool Enabled { get; set; } = true;
 
@@ -188,6 +191,9 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public bool IsSameConstructAs(IMyTerminalBlock other)
         {
+            if (SameConstructEvaluator != null)
+                return SameConstructEvaluator(other);
+
             return other != null && Equals(other.CubeGrid, CubeGrid);
         }
 

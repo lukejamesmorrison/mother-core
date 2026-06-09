@@ -240,6 +240,11 @@ Today, `Script<TProgram>` exposes this fluent surface:
 - `WithIGC(IMyIntergridCommunicationSystem igc)`
 - `OnNetwork(FakeIgcNetwork network)`
 - `WithCustomData(string customData)`
+- `CreateGrid(string name = null, long? entityId = null, MechanicalConnectionKind connectionKind = Rotor)`
+- `ConnectGrids(IMyCubeGrid baseGrid, IMyCubeGrid topGrid, MechanicalConnectionKind connectionKind = Rotor)`
+- `WithBlock(IMyTerminalBlock block, IMyCubeGrid grid = null)`
+- `WithBlocks(params IMyTerminalBlock[] blocks)`
+- `WithBlockGroup(string groupName, params IMyTerminalBlock[] blocks)`
 - `WithCommands(params BaseModuleCommand[] commands)`
 - `Boot()`
 - `Run(UpdateType updateType, string argument = "")`
@@ -270,7 +275,7 @@ The next wave of helpers should grow from the `Script` plus `World` model, not f
 Likely additions:
 
 - construct-topology support such as `CreateConstruct()` and construct-local dispatch
-- block-registration helpers such as `WithBlock(...)` and grid-terminal builders
+- richer construct-topology control beyond the default primary-grid mechanical links
 - configuration ergonomics such as `WithCustomData(Action<CustomDataComposer>)` and `ReloadConfiguration()`
 
 The core run and world-delivery helpers already exist; the remaining work is mostly in convenience APIs and broader topology modeling.
