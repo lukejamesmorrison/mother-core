@@ -139,15 +139,18 @@ The right split is:
 
 ## Current Implementation
 
-MotherCore already has the beginning of this model:
+MotherCore now has a working version of most of this model in the test utilities:
 
-- `ProgramFactory.CreateProgram<T>()` builds a script with injected `MyGridProgram` state
-- `Script<TProgram>` boots a real script instance with very little setup
-- `FakeIgcNetwork` provides shared IGC transport for multiple scripts
-- `ClockDriver` makes coroutine and scheduling tests easier
-- `FakeProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block
+- `ProgramFactory.CreateProgram<T>()` builds a script with injected `MyGridProgram` state.
+- `Script<TProgram>` boots a real script instance, exposes `Mother`, `Bus`, `Clock`, `Config`, `IGC`, and `Program`, and supports pre-boot customization.
+- `Script` is a convenience alias over `Script<CoreTestProgram>` for MotherCore-focused tests.
+- `FakeIgcNetwork` provides shared IGC transport, message capture, and automatic Almanac cross-registration for booted scripts.
+- `TestWorld` is now present as the shared multi-script environment for remote-network tests.
+- `ClockDriver` provides assertion-friendly tick control for coroutine-driven behavior.
+- `PrintCapture` provides reusable output capture over `Program.Echo`.
+- `FakeProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block.
 
-The current implementation is still closer to "standalone scripts plus a network" than to a first-class `World`, but it already points in the right direction.
+The main gap is no longer the absence of a world abstraction. The larger remaining gaps are construct-topology support, richer block registration helpers, and a few ergonomics items such as composer overloads and config reload helpers.
 
 ## Recommended Shape
 
@@ -201,11 +204,11 @@ Suggested role:
 
 Current closest type:
 
-- `FakeIgcNetwork` for remote communication only
-
-Suggested future type:
-
 - `TestWorld`
+
+Supporting transport:
+
+- `FakeIgcNetwork` for remote communication, message capture, and Almanac synchronization
 
 ## Default Mental Model
 
@@ -232,13 +235,15 @@ The user should think in terms of scripts inside a world, not in terms of manual
 
 ### What exists today
 
-Today, `Script<TProgram>` exposes this minimal fluent surface:
+Today, `Script<TProgram>` exposes this fluent surface:
 
 - `WithIGC(IMyIntergridCommunicationSystem igc)`
 - `OnNetwork(FakeIgcNetwork network)`
 - `WithCustomData(string customData)`
 - `WithCommands(params BaseModuleCommand[] commands)`
 - `Boot()`
+- `Run(UpdateType updateType, string argument = "")`
+- `CaptureEcho()`
 
 And after boot:
 
@@ -250,16 +255,25 @@ And after boot:
 - `IGC`
 - `NetworkIGC`
 
+`TestWorld` also exists today and provides:
+
+- `CreateScript<TProgram>(string name = null)`
+- `DispatchIgc()`
+- `Run(UpdateType updateType, string argument = "")`
+- `RunIGC()`
+- `RunMany(int count, UpdateType updateType, string argument = "")`
+
 ### What should come next
 
 The next wave of helpers should grow from the `Script` plus `World` model, not from a detached host abstraction.
 
 Likely additions:
 
-- `Run(UpdateType updateType)` or `Run(string argument, UpdateType updateType)`
-- transport-specific helpers such as `DispatchIgc()` or `DispatchConstructMessages()`
+- construct-topology support such as `CreateConstruct()` and construct-local dispatch
+- block-registration helpers such as `WithBlock(...)` and grid-terminal builders
+- configuration ergonomics such as `WithCustomData(Action<CustomDataComposer>)` and `ReloadConfiguration()`
 
-Not all of these exist yet.
+The core run and world-delivery helpers already exist; the remaining work is mostly in convenience APIs and broader topology modeling.
 
 ## Generic Test Scenarios
 
@@ -517,6 +531,12 @@ Current helper:
 
 - `new PrintCapture(script)`
 
+Current assertion helpers:
+
+- `PrintCapture.Contains(string)`
+- `PrintCapture.ShouldHavePrinted(string)`
+- `PrintCapture.Clear()`
+
 Likely next helpers:
 
 - `script.CaptureEcho()`
@@ -532,19 +552,18 @@ This likely belongs on a focused test helper or event recorder, not directly on 
 
 To reduce barrier to entry further, provide a small number of obvious base classes.
 
-### `ModuleUnitTestBase<TProgram>`
+### `ScriptTestBase<TProgram>`
 
 Purpose:
 
-- unit tests for commands and module methods inside one script
+- integration-style tests for commands, module behavior, and event flow inside one booted script
 
 Defaults:
 
 - boots one script per test
-- exposes `Script`, `Mother`, and `Program`
-- provides any repeated accessors that are truly common
+- exposes `Script`, `Mother`, `Program`, `Bus`, and `Clock`
 
-### `ProgramFeatureTestBase<TProgram>`
+### `ScriptFeatureTestBase<TProgram>`
 
 Purpose:
 
@@ -553,19 +572,20 @@ Purpose:
 Defaults:
 
 - boots one real script instance
-- exposes clock, output capture, config helpers, and block registration helpers
+- wires `Echo` capture automatically
+- exposes `Script`, `Mother`, `Program`, `Bus`, `Clock`, and `Echo`
 
-### `MultiProgramFeatureTestBase`
+### `WorldTestBase`
 
 Purpose:
 
-- same-construct and remote-network tests inside one shared world
+- remote-network tests inside one shared world
 
 Defaults:
 
 - creates a shared world
-- provides named scripts
-- provides delivery helpers for world, construct, and network traffic
+- exposes `World`
+- provides world-level delivery and run helpers
 
 ## Proposed Mental Model For Users
 
@@ -596,7 +616,6 @@ var world = new TestWorld();
 var script = world.CreateScript<Program>().Boot();
 
 world.Run(UpdateType.Terminal, "rename Frigate");
-world.RunMany(5, UpdateType.Update10);
 ```
 
 This keeps tests aligned with the actual `Program.Main(...)` and `Mother.Run(...)` model rather than only with lower-level coroutine helpers.
@@ -669,9 +688,9 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 
 | Class | Status | Notes |
 |---|---|---|
-| `ModuleUnitTestBase<TProgram>` | ✅ Done | Exposes `Script`, `Mother`, `Program`, `Bus`, `Clock` |
-| `ProgramFeatureTestBase<TProgram>` | ✅ Done | Adds `Echo` capture; `SetUp` wires it automatically |
-| `MultiProgramFeatureTestBase` | ✅ Done | Exposes `World`; `SetUp` creates a fresh `TestWorld` |
+| `ScriptTestBase<TProgram>` | ✅ Done | Exposes `Script`, `Mother`, `Program`, `Bus`, `Clock` |
+| `ScriptFeatureTestBase<TProgram>` | ✅ Done | Adds `Echo` capture; `SetUp` wires it automatically |
+| `WorldTestBase` | ✅ Done | Exposes `World`; `SetUp` creates a fresh `TestWorld` |
 
 ### Script partial layer (script-specific seams)
 
@@ -698,4 +717,68 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | `world.CreateConstruct()` | ⬜ Pending | Same-construct messaging topology |
 | Script runtime inspection helpers | ⬜ Pending | Instruction count, update frequency per script |
 | Event recorder / spy module | ⬜ Pending | For narrower event assertion |
+
+---
+
+## Test Coverage Plan
+
+This plan reflects the current MotherCore source and the executable suite as it exists now. The current baseline is green, but coverage is concentrated around parsers, configuration, command routing, clock behavior, Almanac, and a small number of harness and terminal flows. The next steps should close the highest-risk gaps in core logic first.
+
+### Phase 1: correctness-critical gaps
+
+- [ ] Expand `Unit/SerializerTests.cs` to cover list-heavy payloads.
+    Add round-trips for flat lists, nested lists, list-of-dictionaries, dictionary-with-list payloads, escaping for quotes and backslashes, empty collections, and malformed input fallback. The serializer is central to storage and intergrid messaging, so this gives broad protection.
+
+- [x] Add focused tests for intergrid message envelope parsing.
+    Cover `IntergridMessageObject`, `Request`, `Response`, and `Router` with missing-tag, empty-tag, malformed-envelope, unmatched-route, and response-code cases. This closes an important gap in IGC message handling.
+
+- [ ] Extend `Unit/SecurityTests.cs` with edge cases.
+    Cover empty strings, empty passcodes, unencrypted input checks, and wrong-passcode decrypt behavior so current behavior is pinned explicitly.
+
+- [ ] Deferred: add dedicated coverage for `Utilities/PID.cs`.
+    Cover unchanged timestep behavior, changed timestep behavior, zero-timestep handling, reset behavior, and NaN or infinity clamping when we decide to invest in currently unused control logic.
+
+### Phase 2: untested stateful core modules
+
+- [ ] Add integration coverage for `Modules/LocalStorage`.
+    Cover set, get, clear, boot from `Program.Storage`, save-data serialization, and the `set` and `get` commands.
+
+- [ ] Add module boot and event coverage for `ConnectorModule`, `MechanicalBlockModule`, and `MergeBlockModule`.
+    Reuse the test patterns documented in `Tests/README.md`: verify command registration, event subscription, state-transition behavior, and deferred hook behavior after construct refresh.
+
+- [ ] Add focused integration coverage for `BlockCatalogue`.
+    Cover state-monitor registration, change detection, block-group reload behavior, and construct refresh handling because multiple modules depend on it as a coordination point.
+
+- [ ] Add tests for `ActivityMonitor`.
+    Cover block registration, terminal-condition satisfaction, one-time callback execution, and automatic unregister after completion.
+
+- [ ] Add targeted coverage for `DisplayModule`, `Display`, and `SpriteFactory`.
+    Keep this focused on surface registration, source filtering, viewport math, and render-scale calculations. Parsing of display configuration is already covered separately.
+
+### Phase 3: lower-risk pure utilities and migrations
+
+- [ ] Add unit coverage for `ColorHelper`, `Geometry`, `NumberHelper`, and `MessageFormatter`.
+    These are low-cost tests that improve confidence and prevent regressions in shared helper logic.
+
+- [ ] Add migration coverage for `Configuration/VersionManager.cs`.
+    Cover the `Commands` to `commands` rewrite and the security-to-channels migration path so legacy config upgrades are pinned.
+
+- [ ] Revisit parser tests that currently document broken behavior as a baseline.
+    Where appropriate, convert those into desired-behavior tests once the underlying implementation is ready to change.
+
+### Recommended execution order
+
+1. Serializer and intergrid message parsing
+2. LocalStorage
+3. Merge, Mechanical, Connector, and BlockCatalogue
+4. ActivityMonitor and DisplayModule
+5. Remaining pure utilities and migration helpers
+6. PID if that utility becomes active again
+
+### Notes for implementation
+
+- Prefer `Unit/` for pure helpers and deterministic parsing behavior.
+- Prefer `Integration/Script/` for module boot, event, command, and cross-module behavior inside one booted `Script`.
+- Prefer `WorldTestBase` and `TestWorld` for remote IGC scenarios that require more than one script.
+- Reuse the examples in `Tests/README.md` as the canonical style guide for new tests.
 
