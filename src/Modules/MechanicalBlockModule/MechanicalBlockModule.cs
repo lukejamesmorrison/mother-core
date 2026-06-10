@@ -28,10 +28,38 @@ namespace IngameScript
             // Modules
             BlockCatalogue = Mother.GetModule<BlockCatalogue>();
 
+            Subscribe<ConstructRefreshedEvent>();
+
             // State Monitoring - Monitor IsAttached state for all mechanical blocks
+            RegisterMechanicalBlocksForStateMonitoring();
+        }
+
+        /// <summary>
+        /// Re-register mechanical blocks discovered after a construct refresh so
+        /// newly attached grids participate in ongoing state monitoring.
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="eventData"></param>
+        public override void HandleEvent(IEvent e, object eventData)
+        {
+            if (e is ConstructRefreshedEvent)
+                RegisterMechanicalBlocksForStateMonitoring(true);
+        }
+
+        /// <summary>
+        /// Registers all currently discovered mechanical blocks for attachment-state monitoring.
+        /// </summary>
+        /// <param name="preserveState">
+        /// When <c>true</c>, existing state history for already known blocks is kept so
+        /// construct refreshes can add newly discovered mechanical blocks without losing
+        /// in-flight transition history.
+        /// </param>
+        void RegisterMechanicalBlocksForStateMonitoring(bool preserveState = false)
+        {
             RegisterBlockTypeForStateMonitoring<IMyMechanicalConnectionBlock>(
                 mechanicalBlock => mechanicalBlock.IsAttached,
-                (block, state) => HandleMechanicalBlockStateChange(block as IMyMechanicalConnectionBlock, state)
+                (block, state) => HandleMechanicalBlockStateChange(block as IMyMechanicalConnectionBlock, state),
+                preserveState
             );
         }
 
