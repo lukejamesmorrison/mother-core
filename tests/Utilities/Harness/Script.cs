@@ -93,8 +93,6 @@ namespace MotherCore.Tests.Utilities
         readonly string _gridName;
         readonly FakeGridTerminalSystem _gridTerminalSystem;
         PrintCapture _printCapture;
-        EventEmissionTracker _eventEmissionTracker;
-
         /// <param name="gridName">
         /// Optional grid name for this script. Sets <see cref="Mother.Name"/> before boot
         /// and is used as the address other scripts use to reach this one on a
@@ -404,10 +402,8 @@ namespace MotherCore.Tests.Utilities
         public void AssertEventEmitted<TEvent>(IModule module, int expectedCount = 1)
             where TEvent : IEvent
         {
-            Assert.That(_eventEmissionTracker, Is.Not.Null,
-                "Expected the script to install an event emission tracker during boot.");
-
-            var emissionCount = _eventEmissionTracker.Emissions.Count(emission =>
+            var eventBus = _mother.GetModule<EventBus>();
+            var emissionCount = eventBus.Emissions.Count(emission =>
                 emission.Event is TEvent
                 && (module == null || emission.Recipients.Contains(module)));
 
@@ -493,8 +489,6 @@ namespace MotherCore.Tests.Utilities
 
             Program = program;
             _mother = FindMother(program);
-            _eventEmissionTracker = new EventEmissionTracker(_mother, _mother.GetModule<EventBus>());
-            _eventEmissionTracker.SubscribeToKnownEvents();
             _printCapture = new PrintCapture(this);
 
             if (_customData != null)

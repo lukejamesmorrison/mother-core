@@ -641,7 +641,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 
 ## Implementation Progress
 
-> Last updated: 2026-06-09
+> Last updated: 2026-06-10
 
 ### Script layer (`Script<TProgram>`)
 
@@ -748,8 +748,8 @@ This plan reflects the current MotherCore source and the executable suite as it 
 - [ ] Add module boot and event coverage for `ConnectorModule`, `MechanicalBlockModule`, and `MergeBlockModule`.
     Reuse the test patterns documented in `Tests/README.md`: verify command registration, event subscription, state-transition behavior, and deferred hook behavior after construct refresh.
 
-- [ ] Add focused integration coverage for `BlockCatalogue`.
-    Cover state-monitor registration, change detection, block-group reload behavior, and construct refresh handling because multiple modules depend on it as a coordination point.
+- [x] Add focused integration coverage for `BlockCatalogue`.
+    Covered state-monitor registration and change detection, tag and block-configuration loading, block-group lookup and reload behavior, multi-grid construct membership, mechanical attach and detach refresh flows, construct refresh events, and custom-data hook execution.
 
 - [ ] Add tests for `ActivityMonitor`.
     Cover block registration, terminal-condition satisfaction, one-time callback execution, and automatic unregister after completion.
@@ -772,7 +772,7 @@ This plan reflects the current MotherCore source and the executable suite as it 
 
 1. Serializer and intergrid message parsing
 2. LocalStorage
-3. Merge, Mechanical, Connector, and BlockCatalogue
+3. Merge, Mechanical, and Connector
 4. ActivityMonitor and DisplayModule
 5. Remaining pure utilities and migration helpers
 6. PID if that utility becomes active again
