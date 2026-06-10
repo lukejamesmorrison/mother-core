@@ -483,13 +483,20 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// Asserts that an invocation observer ran the expected number of times.
+        /// Asserts that the booted <see cref="CommandBus"/> processed a concrete command
+        /// with the expected outcome the specified number of times.
         /// </summary>
-        public void AssertCommandExecuted(IInvocationObserver observer, int expectedCount = 1)
+        public void AssertCommandExecuted(
+            string commandName,
+            int expectedCount = 1,
+            CommandExecutionOutcome outcome = CommandExecutionOutcome.ModuleExecuted)
         {
-            Assert.That(observer, Is.Not.Null);
-            Assert.That(observer.InvocationCount, Is.EqualTo(expectedCount),
-                $"Expected command observer to be invoked {expectedCount} time(s), but saw {observer.InvocationCount}.");
+            Assert.That(Bus, Is.Not.Null);
+
+            var matchCount = Bus.GetExecutionCount(commandName, outcome);
+
+            Assert.That(matchCount, Is.EqualTo(expectedCount),
+                $"Expected command '{commandName}' with outcome '{outcome}' to appear {expectedCount} time(s), but saw {matchCount}.");
         }
 
         /// <summary>
@@ -796,10 +803,13 @@ namespace MotherCore.Tests.Utilities
             base.AssertEventEmitted<TEvent>(module, expectedCount);
         }
 
-        /// <inheritdoc cref="Script{TProgram}.AssertCommandExecuted"/>
-        public new void AssertCommandExecuted(IInvocationObserver observer, int expectedCount = 1)
+        /// <inheritdoc cref="Script{TProgram}.AssertCommandExecuted(string, int, CommandExecutionOutcome)"/>
+        public new void AssertCommandExecuted(
+            string commandName,
+            int expectedCount = 1,
+            CommandExecutionOutcome outcome = CommandExecutionOutcome.ModuleExecuted)
         {
-            base.AssertCommandExecuted(observer, expectedCount);
+            base.AssertCommandExecuted(commandName, expectedCount, outcome);
         }
 
         /// <inheritdoc cref="Script{TProgram}.AssertPrinted"/>

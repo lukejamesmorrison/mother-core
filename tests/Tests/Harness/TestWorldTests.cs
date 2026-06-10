@@ -1,7 +1,6 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
-using MotherCore.Tests.Utilities.Mocks;
 using MotherCore.Tests.Utilities.Factories;
 using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -96,20 +95,19 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var tracker = new CommandSpy("probe");
             var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").WithCommands(tracker).Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB probe");
+            shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(0),
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(0),
                 "Message should not be delivered before DispatchIgc().");
 
             world.DispatchIgc();
             shipB.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
         }
 
         [Test]
@@ -129,19 +127,16 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var trackerA = new CommandSpy("go");
-            var trackerB = new CommandSpy("go");
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").WithCommands(trackerA).Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").WithCommands(trackerB).Boot();
-
-            world.Run(UpdateType.Terminal, "go");
+            world.Run(UpdateType.Terminal, "help");
 
             shipA.Clock.RunToIdle();
             shipB.Clock.RunToIdle();
 
-            Assert.That(trackerA.ExecutionCount, Is.EqualTo(1));
-            Assert.That(trackerB.ExecutionCount, Is.EqualTo(1));
+            Assert.That(shipA.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
         }
 
         [Test]
@@ -190,17 +185,16 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var tracker = new CommandSpy("go");
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").WithCommands(tracker).Boot();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
 
             // Queue the command directly — this adds a coroutine to the clock.
-            shipA.Bus.RunTerminalCommand("go");
+            shipA.Bus.RunTerminalCommand("help");
 
             // world.Run(Update10) → mother.Run(Update10) → RunModules() → Clock.Run()
             // which advances coroutines. 5 ticks is sufficient for any simple command.
             world.RunMany(5, UpdateType.Update10);
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
+            Assert.That(shipA.Bus.GetExecutionCount("help"), Is.EqualTo(1));
 
             //world.RunMany(20, UpdateType.Update10);
             //Assert.That(tracker.ExecutionCount, Is.EqualTo(2));

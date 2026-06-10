@@ -155,8 +155,8 @@ one tick, so you can stop at any boundary:
 [Test]
 public void Multi_Step_Routine_Executes_Commands_One_Per_Tick()
 {
-    var lights = new CommandSpy("light/color");
-    var blink  = new CommandSpy("light/blink");
+    var lights = new MyCountingCommand("light/color");
+    var blink  = new MyCountingCommand("light/blink");
 
     var session = new Script()
         .WithCustomData(new CustomDataComposer()

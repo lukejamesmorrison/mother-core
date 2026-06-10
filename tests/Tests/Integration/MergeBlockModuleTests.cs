@@ -1,7 +1,6 @@
 using IngameScript;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
-using MotherCore.Tests.Utilities.Mocks;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -11,27 +10,9 @@ namespace MotherCore.Tests.Integration
 {
     public class MergeBlockModuleTests
     {
-        static CommandSpy CreateCatalogueLookupProbe(System.Func<Mother> motherAccessor, System.Action<bool> captureLookupResult)
-        {
-            return new CommandSpy("probe", command =>
-            {
-                var blockName = command.Arguments.Count > 0
-                    ? command.Arguments[0]
-                    : string.Empty;
-
-                var lookupSucceeded = motherAccessor()
-                    .GetModule<BlockCatalogue>()
-                    .GetBlocksByName<IMyBatteryBlock>(blockName)
-                    .Count > 0;
-
-                captureLookupResult(lookupSucceeded);
-                return string.Empty;
-            });
-        }
-
         static (Script Script, IMyShipMergeBlock MergeBlock) BootHookedMergeScript(
             string hookName,
-            CommandSpy probe,
+            string hookAction,
             IMyCubeGrid cargoGrid,
             IMyBatteryBlock cargoBattery)
         {
@@ -39,11 +20,10 @@ namespace MotherCore.Tests.Integration
             var mergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
 
             mergeBlock.CustomData = new CustomDataComposer()
-                .With("hooks", hookName, "probe CargoBattery")
+                .With("hooks", hookName, hookAction)
                 .Build();
 
-            script.WithCommands(probe)
-                .WithBlock(cargoBattery, cargoGrid)
+            script.WithBlock(cargoBattery, cargoGrid)
                 .Boot();
 
             return (script, mergeBlock);
@@ -62,15 +42,12 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Merge_Block_Locks_Emits_Event_Refreshes_Construct_And_Defers_OnMerge_Hook()
         {
-            Script script = null;
-            bool? lastLookupSucceeded = null;
-            var probe = CreateCatalogueLookupProbe(() => script.Mother, result => lastLookupSucceeded = result);
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "CargoBattery");
 
-            var arrangement = BootHookedMergeScript("onMerge", probe, cargoGrid, cargoBattery);
+            var arrangement = BootHookedMergeScript("onMerge", "rename CarrierMerged", cargoGrid, cargoBattery);
 
-            script = arrangement.Script;
+            var script = arrangement.Script;
             var mergeBlock = arrangement.MergeBlock;
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
@@ -84,8 +61,8 @@ namespace MotherCore.Tests.Integration
 
             script.AssertEventEmitted<MergeBlockLockedEvent>();
             script.AssertEventEmitted<ConstructRefreshedEvent>();
-            script.AssertCommandExecuted(probe);
-            Assert.That(lastLookupSucceeded, Is.True);
+            script.AssertCommandExecuted("rename");
+            Assert.That(script.Mother.Name, Is.EqualTo("CarrierMerged"));
             Assert.That(catalogue.ConstructGridIds, Has.Count.EqualTo(1));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("CargoBattery"), Has.Count.EqualTo(1));
         }
@@ -93,14 +70,11 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Merge_Block_Turns_Off_Emits_Event_Prunes_The_Construct_And_Defers_OnUnmerge_Hook()
         {
-            Script script = null;
-            bool? lastLookupSucceeded = null;
-            var probe = CreateCatalogueLookupProbe(() => script.Mother, result => lastLookupSucceeded = result);
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "CargoBattery");
 
-            var arrangement = BootHookedMergeScript("onUnmerge", probe, cargoGrid, cargoBattery);
-            script = arrangement.Script;
+            var arrangement = BootHookedMergeScript("onUnmerge", "rename CarrierDetached", cargoGrid, cargoBattery);
+            var script = arrangement.Script;
             var mergeBlock = arrangement.MergeBlock;
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
@@ -118,8 +92,8 @@ namespace MotherCore.Tests.Integration
 
             script.AssertEventEmitted<MergeBlockOffEvent>(2);
             script.AssertEventEmitted<ConstructRefreshedEvent>();
-            script.AssertCommandExecuted(probe);
-            Assert.That(lastLookupSucceeded, Is.False);
+            script.AssertCommandExecuted("rename");
+            Assert.That(script.Mother.Name, Is.EqualTo("CarrierDetached"));
             Assert.That(cargoBattery.CubeGrid.EntityId, Is.EqualTo(cargoGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("CargoBattery"), Is.Empty);
         }

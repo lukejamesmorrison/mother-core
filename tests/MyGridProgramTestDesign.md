@@ -149,6 +149,7 @@ MotherCore now has a working version of most of this model in the test utilities
 
 - `ProgramFactory.CreateProgram<T>()` builds a script with injected `MyGridProgram` state.
 - `Script<TProgram>` boots a real script instance, exposes `Mother`, `Bus`, `Clock`, `Config`, `IGC`, `NetworkIGC`, `GridTerminalSystem`, `PrimaryGrid`, and `Program`, and supports pre-boot customization.
+- `CommandBus` exposes compact execution counters through `GetExecutionCount(commandName, outcome)` so tests can assert command and routine processing against real commands without shared spy helpers.
 - `Script` is a convenience alias over `Script<CoreTestProgram>` for MotherCore-focused tests.
 - `FakeIgcNetwork` provides shared IGC transport, message capture, and automatic Almanac cross-registration for booted scripts.
 - `TestWorld` is now present as the shared multi-script environment for remote-network and world-topology tests.
@@ -270,6 +271,7 @@ And after boot:
 - `Program`
 - `Mother`
 - `Bus` which is just a convenience accessor for `Mother.GetModule<CommandBus>()`
+- compact command execution counters through `Bus.GetExecutionCount(commandName, outcome)`
 - `Config`
 - `Clock`
 - `IGC`
@@ -411,7 +413,7 @@ Examples:
 - a record was updated
 - output was printed
 
-If you need a narrower assertion, subscribe a spy module and verify that its `HandleEvent(...)` method was invoked when the event is emitted.
+If you need a narrower assertion, prefer a purpose-built test module or recorder local to that fixture rather than a shared global spy helper.
 
 One subtlety: if the event is emitted inside a command coroutine, the event dispatch itself is still synchronous at the moment of emission, but the test still needs to advance the script to the point where that command runs. That is why `script.Clock.RunToIdle()` or explicit tick control still matters for some event tests.
 
@@ -602,9 +604,9 @@ Likely next helpers:
 
 ### Event inspection
 
-The harness should support both real event flow and event spying.
+The harness should support real event flow by default.
 
-This likely belongs on a focused test helper or event recorder, not directly on the low-level world abstraction.
+If a narrower assertion is needed, prefer a purpose-built local recorder or test module for that fixture, not a shared cross-suite spy helper. This likely belongs on a focused test helper, not directly on the low-level world abstraction.
 
 ## Recommended Base Classes
 
@@ -709,9 +711,9 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | `ConnectGrids(...)` / `ConnectGridsViaConnector(...)` / `ConnectGridsViaMergeBlock(...)` | ✅ Done | Supports mechanical, connector, and merge topology helpers |
 | `MergeBlocks(...)` / `UnmergeBlocks(...)` | ✅ Done | Drives merge-block state transitions through the script harness |
 | `WithBlock(...)` / `WithBlocks(...)` / `WithBlockGroup(...)` | ✅ Done | Registers blocks and groups into the script-local terminal system |
-| `WithCommands(params ...)` | ✅ Done | Registers extra commands after boot |
+| `WithCommands(params ...)` | ✅ Done | Registers extra concrete commands after boot; useful for harness-specific tests |
 | `OnBeforeBoot(mother)` hook | ✅ Done | Override to inject test-only modules |
-| `Program`, `Mother`, `Bus`, `Config`, `Clock`, `IGC`, `NetworkIGC`, `GridTerminalSystem`, `PrimaryGrid` | ✅ Done | Post-boot accessors |
+| `Program`, `Mother`, `Bus`, `Config`, `Clock`, `IGC`, `NetworkIGC`, `GridTerminalSystem`, `PrimaryGrid` | ✅ Done | Post-boot accessors; `Bus` also exposes `GetExecutionCount(...)` for concrete command assertions |
 | `Run(UpdateType, string)` | ✅ Done | Drives one real `Mother.Run` cycle |
 | `CaptureEcho()` | ✅ Done | Returns `PrintCapture`; wires up Echo redirect |
 
@@ -786,7 +788,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | World-level shared clock / time advance | ⬜ Pending | Per-script `ClockDriver` exists today |
 | `world.CreateConstruct()` | ⬜ Pending | Same-construct messaging topology |
 | Script runtime inspection helpers | ⬜ Pending | Instruction count, update frequency per script |
-| Event recorder / spy module | ⬜ Pending | For narrower event assertion |
+| Focused event recorder helper | ⬜ Pending | Only if fixture-local effects are not sufficient for narrower event assertions |
 
 ---
 

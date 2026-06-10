@@ -132,20 +132,19 @@ namespace MotherCore.Tests.Harness
         {
             var network = new FakeIgcNetwork();
 
-            var tracker = new CommandSpy("probe");
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).WithCommands(tracker).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB probe");
+            shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(0),
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(0),
                 "Command should not execute on ShipB before Deliver() is called.");
 
             network.Deliver();
             shipB.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1),
                 "Command should execute on ShipB after Deliver() and the clock runs.");
         }
 
@@ -154,12 +153,10 @@ namespace MotherCore.Tests.Harness
         {
             var network = new FakeIgcNetwork();
 
-            var trackerA = new CommandSpy("probe");
-            var trackerB = new CommandSpy("probe");
-            var shipA = new Script("ShipA").OnNetwork(network).WithCommands(trackerA).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).WithCommands(trackerB).Boot();
+            var shipA = new Script("ShipA").OnNetwork(network).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB probe");
+            shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
 
             network.Deliver();
@@ -167,9 +164,9 @@ namespace MotherCore.Tests.Harness
             shipA.Clock.RunToIdle();
             shipB.Clock.RunToIdle();
 
-            Assert.That(trackerA.ExecutionCount, Is.EqualTo(0),
+            Assert.That(shipA.Bus.GetExecutionCount("help"), Is.EqualTo(0),
                 "The remote command should not execute locally on the sender.");
-            Assert.That(trackerB.ExecutionCount, Is.EqualTo(1),
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1),
                 "The remote command should execute once on the recipient.");
         }
 
@@ -191,17 +188,16 @@ namespace MotherCore.Tests.Harness
         {
             var network = new FakeIgcNetwork();
 
-            var tracker = new CommandSpy("probe");
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).WithCommands(tracker).Boot();
+            var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB probe");
+            shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
 
             network.DispatchIgc();
             shipB.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
         }
 
         [Test]

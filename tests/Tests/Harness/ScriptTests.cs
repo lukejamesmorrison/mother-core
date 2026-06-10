@@ -1,7 +1,6 @@
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
-using MotherCore.Tests.Utilities.Mocks;
 using MotherCore.Tests.Utilities.Factories;
 using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -17,6 +16,25 @@ namespace MotherCore.Tests.Harness
     /// </summary>
     public class ScriptTests
     {
+        class CountingCommand : BaseModuleCommand
+        {
+            readonly string _name;
+
+            public override string Name => _name;
+            public int ExecutionCount { get; private set; }
+
+            public CountingCommand(string name)
+            {
+                _name = name;
+            }
+
+            public override string Execute(TerminalCommand command)
+            {
+                ExecutionCount++;
+                return string.Empty;
+            }
+        }
+
         // =====================================================================
         // Boot lifecycle
         // =====================================================================
@@ -106,7 +124,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void WithCommands_Registers_Command_With_Bus()
         {
-            var tracker = new CommandSpy("myCmd");
+            var tracker = new CountingCommand("myCmd");
             var script = new Script().WithCommands(tracker).Boot();
 
             script.Bus.RunTerminalCommand("myCmd");
@@ -118,8 +136,8 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void WithCommands_Accepts_Multiple_Commands()
         {
-            var trackerA = new CommandSpy("cmdA");
-            var trackerB = new CommandSpy("cmdB");
+            var trackerA = new CountingCommand("cmdA");
+            var trackerB = new CountingCommand("cmdB");
             var script = new Script().WithCommands(trackerA, trackerB).Boot();
 
             script.Bus.RunTerminalCommand("cmdA");
@@ -374,13 +392,12 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Run_Terminal_Dispatches_Argument_To_CommandBus()
         {
-            var tracker = new CommandSpy("go");
-            var script = new Script().WithCommands(tracker).Boot();
+            var script = new Script().Boot();
 
-            script.Run(UpdateType.Terminal, "go");
+            script.Run(UpdateType.Terminal, "help");
             script.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
+            script.AssertCommandExecuted("help");
         }
 
         [Test]
@@ -402,15 +419,14 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Run_Can_Be_Called_Multiple_Times()
         {
-            var tracker = new CommandSpy("go");
-            var script = new Script().WithCommands(tracker).Boot();
+            var script = new Script().Boot();
 
-            script.Run(UpdateType.Terminal, "go");
+            script.Run(UpdateType.Terminal, "help");
             script.Clock.RunToIdle();
-            script.Run(UpdateType.Terminal, "go");
+            script.Run(UpdateType.Terminal, "help");
             script.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(2));
+            script.AssertCommandExecuted("help", 2);
         }
 
         // =====================================================================

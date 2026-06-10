@@ -1,7 +1,6 @@
 using IngameScript;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
-using MotherCore.Tests.Utilities.Mocks;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 
@@ -12,7 +11,6 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Mechanical_Block_Detaches_Emits_Event_Runs_Hook_And_Prunes_The_Construct()
         {
-            var tracker = new CommandSpy("probe");
             var primaryGrid = GridFactory.Create("Carrier");
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
@@ -22,11 +20,10 @@ namespace MotherCore.Tests.Integration
             var connection = script.ConnectGrids(primaryGrid, cargoGrid);
 
             connection.CustomData = new CustomDataComposer()
-                .With("hooks", "onDetach", "probe")
+                .With("hooks", "onDetach", "rename CarrierDetached")
                 .Build();
 
             script
-                .WithCommands(tracker)
                 .WithBlock(battery, cargoGrid)
                 .Boot();
 
@@ -38,7 +35,8 @@ namespace MotherCore.Tests.Integration
 
             script.AssertEventEmitted<MechanicalBlockDetachedEvent>();
             script.AssertEventEmitted<MechanicalBlockDetachedEvent>(catalogue);
-            script.AssertCommandExecuted(tracker);
+            script.AssertCommandExecuted("rename");
+            Assert.That(script.Mother.Name, Is.EqualTo("CarrierDetached"));
             Assert.That(catalogue.ConstructGridIds, Does.Not.Contain(cargoGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Is.Empty);
         }
@@ -46,7 +44,6 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Mechanical_Block_Attaches_Emits_Event_Runs_Hook_And_Adds_The_Grid_To_The_Construct()
         {
-            var tracker = new CommandSpy("probe");
             var primaryGrid = GridFactory.Create("Carrier");
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
@@ -54,11 +51,10 @@ namespace MotherCore.Tests.Integration
             var script = new Script(primaryGrid, "Carrier");
             var connection = script.ConnectGrids(primaryGrid, cargoGrid);
             connection.CustomData = new CustomDataComposer()
-                .With("hooks", "onAttach", "probe")
+                .With("hooks", "onAttach", "rename CarrierAttached")
                 .Build();
 
             script
-                .WithCommands(tracker)
                 .WithBlock(battery, cargoGrid)
                 .Boot();
 
@@ -74,7 +70,8 @@ namespace MotherCore.Tests.Integration
 
             script.AssertEventEmitted<MechanicalBlockAttachedEvent>();
             script.AssertEventEmitted<MechanicalBlockAttachedEvent>(catalogue);
-            script.AssertCommandExecuted(tracker);
+            script.AssertCommandExecuted("rename");
+            Assert.That(script.Mother.Name, Is.EqualTo("CarrierAttached"));
             Assert.That(catalogue.ConstructGridIds, Contains.Item(cargoGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Has.Count.EqualTo(1));
         }

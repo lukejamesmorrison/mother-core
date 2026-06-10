@@ -318,14 +318,12 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void RunHook_Executes_A_Command_From_Block_Custom_Data_Hooks()
         {
-            var tracker = new CommandSpy("probe");
             var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
             door.CustomData = new CustomDataComposer()
-                .With("hooks", "opened", "probe")
+                .With("hooks", "opened", "rename HangarOpen")
                 .Build();
 
             var script = new Script()
-                .WithCommands(tracker)
                 .WithBlock(door)
                 .Boot();
 
@@ -334,7 +332,8 @@ namespace MotherCore.Tests.Integration
             catalogue.RunHook(door, "opened");
             script.Clock.RunToIdle();
 
-            script.AssertCommandExecuted(tracker);
+            script.AssertCommandExecuted("rename");
+            Assert.That(script.Mother.Name, Is.EqualTo("HangarOpen"));
         }
 
         [Test]
@@ -361,24 +360,23 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void HandleEvent_For_SystemConfigChanged_Reloads_Programmable_Block_Hooks()
         {
-            var tracker = new CommandSpy("probe");
             var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
 
             var script = new Script()
-                .WithCommands(tracker)
                 .WithBlock(door)
                 .Boot();
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
             var configuration = script.Mother.GetModule<Configuration>();
 
-            configuration.Ini.Set("hooks", "\"Hangar Door\".opened", "probe");
+            configuration.Ini.Set("hooks", "\"Hangar Door\".opened", "rename HangarConfigured");
 
             catalogue.HandleEvent(new SystemConfigChangedEvent(), null);
             catalogue.RunHook(door, "opened");
             script.Clock.RunToIdle();
 
-            script.AssertCommandExecuted(tracker);
+            script.AssertCommandExecuted("rename");
+            Assert.That(script.Mother.Name, Is.EqualTo("HangarConfigured"));
         }
     }
 }

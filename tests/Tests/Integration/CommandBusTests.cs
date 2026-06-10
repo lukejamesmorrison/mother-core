@@ -2,7 +2,6 @@ using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
-using MotherCore.Tests.Utilities.Mocks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -404,18 +403,17 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Single_Command_Creates_Exactly_One_Coroutine()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
-            script.Bus.RunTerminalCommand("track");
+            script.Bus.RunTerminalCommand("help");
 
             Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 1),
                 "A single command should add exactly one coroutine.");
 
             script.Clock.Tick(2);
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1));
+            script.AssertCommandExecuted("help");
         }
 
         /// <summary>
@@ -427,25 +425,27 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Semicolon_Commands_Run_Sequentially_In_One_Coroutine()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
-            script.Bus.RunTerminalCommand("track; track; track");
+            script.Bus.RunTerminalCommand("help; help; help");
 
             Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 1),
                 "Semicolon-separated commands should share a single coroutine.");
 
             script.Clock.Tick();
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
+            script.AssertCommandExecuted("help", 1);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),
                 "First tick: only the first command should have executed.");
 
             script.Clock.Tick();
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
+            script.AssertCommandExecuted("help", 2);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(2),
                 "Second tick: the second command should have executed.");
 
             script.Clock.Tick();
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(3),
+            script.AssertCommandExecuted("help", 3);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(3),
                 "Third tick: the third command should have executed.");
         }
 
@@ -455,18 +455,18 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Parallel_Groups_Launch_One_Coroutine_Per_Group()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
-            script.Bus.RunTerminalCommand("{ track; } { track; } { track; }");
+            script.Bus.RunTerminalCommand("{ help; } { help; } { help; }");
 
             Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 3),
                 "Three parallel groups should launch three coroutines.");
 
             script.Clock.Tick();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(3),
+            script.AssertCommandExecuted("help", 3);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(3),
                 "All three parallel groups should execute on the same tick.");
         }
 
@@ -483,30 +483,28 @@ namespace MotherCore.Tests.Integration
         [Test]  // C1
         public void Force_Local_Bypasses_Important_Construct_Command()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
 
-            // Register "track" as an important command on a remote construct instance.
+            // Register "help" as an important command on a remote construct instance.
             long remoteId = script.Mother.Id + 1;
-            script.Bus.RegisterRemoteCommands(remoteId, new List<string> { "!track" });
+            script.Bus.RegisterRemoteCommands(remoteId, new List<string> { "!help" });
 
-            // Without force-local the important construct command takes priority:
-            // ExecutePrimitiveCommand delegates to the remote script and the local
-            // tracker is never invoked.
-            script.Bus.RunTerminalCommand("track");
+            // Without force-local the important construct command takes priority.
+            script.Bus.RunTerminalCommand("help");
             script.Clock.Tick();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(0),
-                "Plain 'track' should be delegated to the remote important construct command, " +
-                "leaving the local tracker un-executed.");
+            script.AssertCommandExecuted("help", 1, CommandExecutionOutcome.DelegatedToImportantConstruct);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(0),
+                "Plain 'help' should be delegated to the remote important construct command, leaving the local command un-executed.");
 
             // With !! force-local prefix the important construct check is skipped and
             // the locally registered module command runs instead.
-            script.Bus.RunTerminalCommand("!!track");
+            script.Bus.RunTerminalCommand("!!help");
             script.Clock.Tick();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
-                "Force-local '!!track' should execute the local command regardless of the " +
+            script.AssertCommandExecuted("help", 1);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),
+                "Force-local '!!help' should execute the local command regardless of the " +
                 "important construct command registered on the remote script.");
         }
 
@@ -519,13 +517,10 @@ namespace MotherCore.Tests.Integration
         [Test]  // C2
         public void Underscore_Prefix_Resolves_Local_Config_Command()
         {
-            var tracker = new CommandSpy();
-
             var script = new Script<CoreTestProgram>()
                 .WithCustomData(new CustomDataComposer()
-                    .WithCommand("myAction", "track")
+                    .WithCommand("myAction", "help")
                     .Build())
-                .WithCommands(tracker)
                 .Boot();
 
             // Register "myAction" as an important command on a remote construct instance.
@@ -537,7 +532,8 @@ namespace MotherCore.Tests.Integration
             script.Bus.RunTerminalCommand("myAction");
             script.Clock.Tick();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(0),
+            script.AssertCommandExecuted("myAction", 1, CommandExecutionOutcome.DelegatedToImportantConstruct);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(0),
                 "Plain 'myAction' should be delegated to the remote important construct command.");
 
             // With the _ prefix the local config command is resolved regardless of
@@ -545,7 +541,8 @@ namespace MotherCore.Tests.Integration
             script.Bus.RunTerminalCommand("_myAction");
             script.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
+            script.AssertCommandExecuted("help", 1);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),
                 "Underscore-prefixed '_myAction' should resolve and execute the local config command.");
         }
 
@@ -619,13 +616,12 @@ namespace MotherCore.Tests.Integration
         [Test]  // C8
         public void Halt_Command_Clears_All_Coroutines()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
             var clock = script.Mother.GetModule<Clock>();
 
             // Start long-running coroutines so there is something to clear.
-            script.Bus.RunTerminalCommand("track; wait 100; track");
-            script.Bus.RunTerminalCommand("track; wait 100; track");
+            script.Bus.RunTerminalCommand("help; wait 100; rename HaltedAlpha");
+            script.Bus.RunTerminalCommand("help; wait 100; rename HaltedBeta");
             script.Clock.Tick(2); // advance past first command into wait state
 
             Assert.That(script.Clock.CoroutineCount, Is.GreaterThan(0),
@@ -692,33 +688,35 @@ namespace MotherCore.Tests.Integration
         [Test]  // C5
         public void Wait_Blocks_Subsequent_Commands_In_Same_Coroutine()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
             var fakeRuntime = script.Mother.Program.Runtime;
 
-            script.Bus.RunTerminalCommand("track; wait 2; track");
+            script.Bus.RunTerminalCommand("help; wait 2; rename CarrierRenamed");
 
-            // Tick 1: first "track" executes.
+            // Tick 1: first "help" executes.
             script.Clock.Tick();
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
-                "Tick 1: first 'track' should have executed.");
+            script.AssertCommandExecuted("help", 1);
+            Assert.That(script.Mother.Name, Is.Not.EqualTo("CarrierRenamed"),
+                "Tick 1: rename should not have executed yet.");
 
             // Tick 2: wait 2 starts � coroutine yields 2.0s, no new execution.
             script.Clock.Tick();
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
-                "Tick 2: wait started, second 'track' must not execute yet.");
+            script.AssertCommandExecuted("wait", 1, CommandExecutionOutcome.WaitScheduled);
+            Assert.That(script.Mother.Name, Is.Not.EqualTo("CarrierRenamed"),
+                "Tick 2: wait started, rename must not execute yet.");
 
             // Tick 3 (delta=0): wait still active � still blocked.
             script.Clock.Tick();
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
-                "Tick 3: wait still active (deltaTime=0), second 'track' must not execute.");
+            Assert.That(script.Mother.Name, Is.Not.EqualTo("CarrierRenamed"),
+                "Tick 3: wait still active (deltaTime=0), rename must not execute.");
 
             // Advance simulated time past the 2-second wait threshold.
             A.CallTo(() => fakeRuntime.TimeSinceLastRun).Returns(TimeSpan.FromSeconds(2.1));
             script.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
-                "After the 2s wait expires, the second 'track' should execute.");
+            script.AssertCommandExecuted("rename", 1);
+            Assert.That(script.Mother.Name, Is.EqualTo("CarrierRenamed"),
+                "After the 2s wait expires, the rename command should execute.");
         }
 
         /// <summary>
@@ -729,12 +727,11 @@ namespace MotherCore.Tests.Integration
         [Test]  // C6
         public void Config_Command_Expanding_To_Parallel_Groups_Launches_Multiple_Coroutines()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
             // Config command whose value is a parallel-group routine.
-            script.Mother.ConfigCommands["par"] = "{ track; } { track; }";
+            script.Mother.ConfigCommands["par"] = "{ help; } { help; }";
 
             script.Bus.RunTerminalCommand("par");
 
@@ -752,8 +749,9 @@ namespace MotherCore.Tests.Integration
             // Tick 2: both group coroutines run.
             script.Clock.Tick();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
-                "Both parallel groups should have each executed their 'track' command.");
+            script.AssertCommandExecuted("help", 2);
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(2),
+                "Both parallel groups should have each executed their 'help' command.");
         }
 
         /// <summary>
@@ -764,14 +762,13 @@ namespace MotherCore.Tests.Integration
         [Test]  // C12
         public void Wait_In_Parallel_Group_Does_Not_Block_Other_Parallel_Group()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
             int bootCount = script.Clock.CoroutineCount;
             var fakeRuntime = script.Mother.Program.Runtime;
 
-            // Group 1: wait 2 seconds, then track.
-            // Group 2: track immediately.
-            script.Bus.RunTerminalCommand("{ wait 2; track; } { track; }");
+            // Group 1: wait 2 seconds, then rename.
+            // Group 2: help immediately.
+            script.Bus.RunTerminalCommand("{ wait 2; rename ParallelLate; } { help; }");
 
             // Both coroutines are launched before any tick.
             Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 2),
@@ -780,8 +777,9 @@ namespace MotherCore.Tests.Integration
             // Tick 1: group 1 hits 'wait 2' and yields; group 2 runs 'track' and yields 0.
             script.Clock.Tick();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
-                "Tick 1: only group 2's 'track' should have run; group 1 is blocked by its wait.");
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),
+                "Tick 1: only group 2's 'help' should have run; group 1 is blocked by its wait.");
+            Assert.That(script.Mother.Name, Is.Not.EqualTo("ParallelLate"));
 
             // Group 2 yielded 0 this tick, so the clock needs one more MoveNext() to
             // confirm it is exhausted.  Both coroutines are still in the list.
@@ -791,7 +789,7 @@ namespace MotherCore.Tests.Integration
             // Tick 2 (delta=0): group 2 drains and is removed; group 1 is still waiting.
             script.Clock.Tick();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),
                 "Tick 2: group 2 is being collected; group 1's wait is still active.");
 
             Assert.That(script.Clock.CoroutineCount, Is.EqualTo(bootCount + 1),
@@ -801,8 +799,10 @@ namespace MotherCore.Tests.Integration
             A.CallTo(() => fakeRuntime.TimeSinceLastRun).Returns(TimeSpan.FromSeconds(2.1));
             script.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(2),
-                "After the 2s wait expires, group 1's 'track' should execute, bringing the total to 2.");
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),
+                "After the 2s wait expires, the immediate parallel branch should still only have run once.");
+            Assert.That(script.Mother.Name, Is.EqualTo("ParallelLate"),
+                "After the 2s wait expires, group 1's rename should execute.");
         }
 
         // =====================================================================
@@ -818,16 +818,15 @@ namespace MotherCore.Tests.Integration
         [Test]  // C3
         public void Important_Config_Command_Is_Resolved_When_No_Construct_Owner()
         {
-            var tracker = new CommandSpy();
-            var script = new Script<CoreTestProgram>().WithCommands(tracker).Boot();
+            var script = new Script<CoreTestProgram>().Boot();
 
             // Register the important config command directly � no construct owner for "dock".
-            script.Mother.ConfigCommands["!dock"] = "track";
+            script.Mother.ConfigCommands["!dock"] = "help";
 
             script.Bus.RunTerminalCommand("dock");
             script.Clock.RunToIdle();
 
-            Assert.That(tracker.ExecutionCount, Is.EqualTo(1),
+            Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),
                 "'dock' should resolve via the '!dock' config command entry when no construct instance owns it.");
         }
 

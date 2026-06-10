@@ -5,6 +5,19 @@ using System.Linq;
 namespace IngameScript
 {
     /// <summary>
+    /// Named execution outcomes used for command-bus observability in tests.
+    /// </summary>
+    public enum CommandExecutionOutcome
+    {
+        ModuleExecuted,
+        WaitScheduled,
+        DelegatedToImportantConstruct,
+        DelegatedToConstruct,
+        RemoteRoutineSent,
+        CommandNotFound,
+    }
+
+    /// <summary>
     /// The CommandBus is responsible for handling and executing commands for Mother's modules. 
     /// It can handle commands queued in time, as well as within a flight plan using the 
     /// Clock module. It is able to interpret a command/routine and execute it
@@ -65,6 +78,11 @@ namespace IngameScript
         public readonly Dictionary<long, HashSet<string>> ImportantConstructCommands = new Dictionary<long, HashSet<string>>();
 
         /// <summary>
+        /// Execution counts for each command.
+        /// </summary>
+        readonly Dictionary<string, int> ExecutionCounts = new Dictionary<string, int>();
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="mother"></param>
@@ -85,6 +103,7 @@ namespace IngameScript
             // Clear remote commands on boot
             ConstructCommands.Clear();
             ImportantConstructCommands.Clear();
+            ExecutionCounts.Clear();
 
             // Commands
             RegisterCommand(new HelpCommand(this));
@@ -232,6 +251,8 @@ namespace IngameScript
                 terminalRoutine.Unpack(Mother.ConfigCommands);
                 var printString = $"> @{target} {terminalRoutine.UnpackedRoutineString}";
 
+                CountExecution(CommandExecutionOutcome.RemoteRoutineSent, string.Empty);
+
                 if (target == "*")
                     IMS.SendRequestToAllFromRoutine(terminalRoutine);
                 else
@@ -303,6 +324,7 @@ namespace IngameScript
                 if (double.TryParse(command.Arguments[0], out waitTime))
                 {
                     Mother.Print($"> wait {waitTime}");
+                    CountExecution(CommandExecutionOutcome.WaitScheduled, command.Name);
                     yield return waitTime;
                 }
 
@@ -405,6 +427,7 @@ namespace IngameScript
                 long importantScriptId = FindInstanceWithImportantCommand(command.Name);
                 if (importantScriptId != 0)
                 {
+                    CountExecution(CommandExecutionOutcome.DelegatedToImportantConstruct, command.Name);
                     IMS.SendConstructCommand(importantScriptId, commandString);
                     return;
                 }
@@ -421,6 +444,8 @@ namespace IngameScript
 
                     string output = moduleCommand.Execute(command);
 
+                    CountExecution(CommandExecutionOutcome.ModuleExecuted, command.Name);
+
                     Mother.Print(output, false);
 
                     return;
@@ -433,12 +458,56 @@ namespace IngameScript
                 long remoteScriptId = FindInstanceWithCommand(command.Name);
                 if (remoteScriptId != 0)
                 {
+                    CountExecution(CommandExecutionOutcome.DelegatedToConstruct, command.Name);
                     IMS.SendConstructCommand(remoteScriptId, commandString);
                     return;
                 }
             }
 
+            CountExecution(CommandExecutionOutcome.CommandNotFound, command.Name);
             Mother.Print(MessageFormatter.Format(Messages.CommandNotFound, command.CommandString), false);
+        }
+
+        /// <summary>
+        /// Get the execution count of a specific command.
+        /// </summary>
+        /// <param name="commandName"></param>
+        /// <param name="outcome"></param>
+        /// <returns></returns>
+        public int GetExecutionCount(
+            string commandName,
+            CommandExecutionOutcome outcome = CommandExecutionOutcome.ModuleExecuted)
+        {
+            int count;
+            return ExecutionCounts.TryGetValue(GetExecutionKey(outcome, commandName), out count)
+                ? count
+                : 0;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="outcome"></param>
+        /// <param name="commandName"></param>
+        void CountExecution(CommandExecutionOutcome outcome, string commandName)
+        {
+            string key = GetExecutionKey(outcome, commandName);
+
+            if (ExecutionCounts.ContainsKey(key))
+                ExecutionCounts[key]++;
+            else
+                ExecutionCounts[key] = 1;
+        }
+
+        /// <summary>
+        /// Get the execution key based on the command name and outcome.
+        /// </summary>
+        /// <param name="outcome"></param>
+        /// <param name="commandName"></param>
+        /// <returns></returns>
+        string GetExecutionKey(CommandExecutionOutcome outcome, string commandName)
+        {
+            return (int)outcome + "|" + (commandName ?? string.Empty);
         }
 
         /// <summary>
