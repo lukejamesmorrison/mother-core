@@ -157,7 +157,14 @@ MotherCore now has a working version of most of this model in the test utilities
 - `MergePair` is a deferred merge-topology descriptor returned by `TestWorld.AddMergeBlockPair(...)` when a test wants merge blocks pre-registered before boot.
 - `ClockDriver` provides assertion-friendly tick control for coroutine-driven behavior.
 - `PrintCapture` provides reusable output capture over `Program.Echo`.
+- `TextSurfaceFactory` provides lightweight `IMyTextSurface` and `IMyTextPanel` doubles with captured `WriteText(...)`, `ContentType`, `SurfaceSize`, and `TextureSize` state for display-focused tests.
 - `FakeProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block.
+
+Display-related coverage is now also in place for the current harness shape:
+
+- `DisplayModuleTests` covers surface registration, log-source filtering, and reload through the module's `BlockConfigChangedEvent` path.
+- `DisplayTests` covers viewport and font-size math, scaling, text-line formatting, and the current public drawing surface of `Display`, including sprite primitives, text helpers, debug output, and the Mother badge renderer.
+- `SpriteFactoryTests` pins the `MySprite` construction contract used by the display helpers.
 
 The main gap is no longer the absence of a world abstraction. The larger remaining gaps are construct-topology support, richer block registration helpers, and a few ergonomics items such as composer overloads and config reload helpers.
 
@@ -555,6 +562,7 @@ Expected pieces:
 - `TerminalBlockFactory`
 - `BlockGroupFactory`
 - `GridTerminalSystemBuilder`
+- `TextSurfaceFactory` for display-oriented unit and integration tests that need lightweight text-surface doubles
 
 Likely helpers:
 
@@ -777,6 +785,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | `WithCustomData(Action<CustomDataComposer>)` | ⬜ Pending | Fluent composer overload |
 | `ReloadConfiguration()` | ⬜ Pending | Hot-reload config in test |
 | `TerminalBlockFactory` | ✅ Done | Lightweight block creation helpers for harness tests |
+| `TextSurfaceFactory` | ✅ Done | Lightweight text-surface doubles for `DisplayModule` / `Display` tests |
 | `GridTerminalSystemBuilder` | ⬜ Pending | A higher-level builder still does not exist |
 | `WithBlock(IMyTerminalBlock)` / `WithBlocks(...)` | ✅ Done | Convenience block injection on the script harness |
 | `TestGrid.AddBlock(...)` | ✅ Done | Convenience block injection on the world harness |
@@ -821,8 +830,8 @@ This plan reflects the current MotherCore source and the executable suite as it 
 - [ ] Add tests for `ActivityMonitor`.
     Cover block registration, terminal-condition satisfaction, one-time callback execution, and automatic unregister after completion.
 
-- [ ] Add targeted coverage for `DisplayModule`, `Display`, and `SpriteFactory`.
-    Keep this focused on surface registration, source filtering, viewport math, and render-scale calculations. Parsing of display configuration is already covered separately.
+- [x] Add targeted coverage for `DisplayModule`, `Display`, and `SpriteFactory`.
+    Added focused coverage for `DisplayModule` surface registration, source filtering, and reload behavior; `Display` viewport math, scaling, text-line formatting, and the current public drawing methods; and `SpriteFactory` sprite construction. Parsing of display configuration remains covered separately.
 
 ### Phase 3: lower-risk pure utilities and migrations
 
@@ -840,7 +849,7 @@ This plan reflects the current MotherCore source and the executable suite as it 
 1. Serializer and intergrid message parsing
 2. LocalStorage
 3. Merge, Mechanical, and Connector
-4. ActivityMonitor and DisplayModule
+4. ActivityMonitor
 5. Remaining pure utilities and migration helpers
 6. PID if that utility becomes active again
 

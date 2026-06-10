@@ -8,7 +8,7 @@ Test files are grouped into three buckets:
 
 Examples for the three most common test scenarios, using real modules from
 **MotherOS** and **MotherGUI**. All examples use the utilities in
-`TestUtilities/` — no manual wiring of IGC, runtime, or grid terminal system
+`Utilities/` — no manual wiring of IGC, runtime, or grid terminal system
 is required.
 
 > **Test project setup**  
@@ -203,7 +203,34 @@ The same pattern applies to any method that takes a block and modifies it —
 captures the property write and replays it on the getter, so no real block
 or game runtime is needed.
 
-### 2.4 Handling an event
+### 2.4 Testing display helpers
+
+Display-focused tests usually need a fake `IMyTextSurface` or `IMyTextPanel`
+plus a way to observe `WriteText(...)`, `ContentType`, and surface sizing.
+Use `TextSurfaceFactory` for that instead of hand-building FakeItEasy setup in
+each test:
+
+```csharp
+[Test]
+public void Display_Uses_Viewport_Width_To_Calculate_Font_Size()
+{
+    var surface = TextSurfaceFactory.Create(
+        surfaceSize: new Vector2(400f, 200f),
+        textureSize: new Vector2(400f, 200f));
+
+    var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Bridge LCD");
+    var display = new Display(surface.Surface, block, new MyIni());
+
+    Assert.That(display.IsWidescreen, Is.True);
+    Assert.That(display.FontSize, Is.GreaterThan(0f));
+}
+```
+
+For `DisplayModule` integration tests, `TextSurfaceFactory.CreatePanel(...)`
+is the cheapest way to register a configurable LCD panel with `[surfaces]`
+custom data and then assert on captured writes after boot.
+
+### 2.5 Handling an event
 
 `HandleEvent` is called by the EventBus on every module subscribed to a given
 event. There are two complementary ways to test it.
@@ -288,8 +315,8 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
     // Message is queued — GUI hasn't processed it yet
     Assert.That(network.SentMessages.Any(m => m.TargetId == gui.IGC.Me), Is.True);
 
-    // Deliver routes the IGC message and triggers processing on MotherGUI
-    network.Deliver();
+    // DispatchIgc routes the pending IGC message to MotherGUI
+    network.DispatchIgc();
     gui.Clock.RunToIdle();
 
     // Assert on whatever MotherGUI state the view navigation produces.
@@ -302,8 +329,8 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
   network is cross-registered in every other session's Almanac under its grid
   name, so `@GUI` resolves without any extra setup.
 
-- **`Deliver()` is explicit.** Messages are buffered until you call
-  `network.Deliver()`, giving precise control over when each message lands.
+- **`DispatchIgc()` is explicit.** Messages are buffered until you call
+    `network.DispatchIgc()`, giving precise control over when each message lands.
   This lets you assert on the outbound queue before it is processed.
 
 - **`SentMessages` for lightweight assertions.** If you only need to verify
