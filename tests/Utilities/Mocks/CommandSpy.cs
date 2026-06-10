@@ -7,7 +7,7 @@ namespace MotherCore.Tests.Utilities.Mocks
     /// A test command that counts how many times Execute() is called and records call order.
     /// Used to verify coroutine execution order and count across test files.
     /// </summary>
-    public class CommandSpy : BaseModuleCommand
+    public class CommandSpy : BaseModuleCommand, IInvocationObserver
     {
         static int _globalCallIndex = 0;
 
@@ -20,6 +20,11 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         /// <summary>How many times <see cref="Execute"/> has been called on this instance.</summary>
         public int ExecutionCount { get; private set; }
+
+        /// <summary>
+        /// Shared observer-facing alias for the number of invocations captured by this spy.
+        /// </summary>
+        public int InvocationCount => ExecutionCount;
 
         /// <summary>
         /// Records the global call index at each invocation, allowing tests to assert

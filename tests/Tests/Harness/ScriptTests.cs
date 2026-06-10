@@ -59,6 +59,25 @@ namespace MotherCore.Tests.Harness
             Assert.That(script.Mother, Is.Not.Null);
         }
 
+        [Test]
+        public void Boot_Reaches_Working_System_State()
+        {
+            var script = new Script().Boot();
+
+            Assert.That(script.Mother.SystemState, Is.EqualTo(Mother.SystemStates.WORKING));
+        }
+
+        [Test]
+        public void Boot_Can_Assign_The_Programmable_Block_To_A_Supplied_Primary_Grid()
+        {
+            var grid = GridFactory.Create("Carrier Grid");
+            var script = new Script(grid).Boot();
+
+            Assert.That(script.Mother.SystemState, Is.EqualTo(Mother.SystemStates.WORKING));
+            Assert.That(script.PrimaryGrid, Is.SameAs(grid));
+            Assert.That(script.Mother.ProgrammableBlock.CubeGrid, Is.SameAs(grid));
+        }
+
         // =====================================================================
         // WithCustomData
         // =====================================================================
@@ -129,8 +148,9 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void CreateGrid_And_WithBlock_Build_A_MultiGrid_Construct_For_BlockCatalogue()
         {
-            var script = new Script("Carrier");
-            var cargoGrid = script.CreateGrid("Cargo Pod");
+            var cargoGrid = GridFactory.Create("Cargo Pod");
+            var script = new Script("Carrier")
+                .WithGrid(cargoGrid);
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
             script.WithBlock(battery, cargoGrid)
@@ -150,45 +170,75 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void CreateGrid_Uses_RotorConnection_By_Default()
         {
-            var script = new Script("Carrier");
-            var cargoGrid = script.CreateGrid("Cargo Pod");
+            var cargoGrid = GridFactory.Create("Cargo Pod");
+            var script = new Script("Carrier")
+                .WithGrid(cargoGrid)
+                .Boot();
 
-            script.Boot();
+            var rotor = script.GetMechanicalConnectionTo(cargoGrid) as IMyMotorStator;
 
-            var rotors = new System.Collections.Generic.List<IMyMotorStator>();
-            script.Mother.GridTerminalSystem.GetBlocksOfType(rotors);
-
-            Assert.That(rotors, Has.Count.EqualTo(1));
-            Assert.That(rotors[0].CubeGrid.EntityId, Is.EqualTo(script.PrimaryGrid.EntityId));
-            Assert.That(rotors[0].TopGrid.EntityId, Is.EqualTo(cargoGrid.EntityId));
-            Assert.That(rotors[0].IsAttached, Is.True);
+            Assert.That(rotor, Is.Not.Null);
+            Assert.That(rotor.CubeGrid.EntityId, Is.EqualTo(script.PrimaryGrid.EntityId));
+            Assert.That(rotor.TopGrid.EntityId, Is.EqualTo(cargoGrid.EntityId));
+            Assert.That(rotor.IsAttached, Is.True);
         }
 
         [Test]
         public void CreateGrid_Can_Use_A_PistonConnection_When_Requested()
         {
-            var script = new Script("Carrier");
-            var cargoGrid = script.CreateGrid("Cargo Pod", connectionKind: MechanicalConnectionKind.Piston);
+            var cargoGrid = GridFactory.Create("Cargo Pod");
+            var script = new Script("Carrier")
+                .WithGrid(cargoGrid, connectionKind: MechanicalConnectionKind.Piston);
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
             script.WithBlock(battery, cargoGrid)
                 .Boot();
 
-            var pistons = new System.Collections.Generic.List<IMyPistonBase>();
-            script.Mother.GridTerminalSystem.GetBlocksOfType(pistons);
+            var piston = script.GetMechanicalConnectionTo(cargoGrid) as IMyPistonBase;
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
-            Assert.That(pistons, Has.Count.EqualTo(1));
-            Assert.That(pistons[0].TopGrid.EntityId, Is.EqualTo(cargoGrid.EntityId));
+            Assert.That(piston, Is.Not.Null);
+            Assert.That(piston.TopGrid.EntityId, Is.EqualTo(cargoGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void DetachGrid_Detaches_The_Mechanical_Connection_For_A_Subgrid()
+        {
+            var cargoGrid = GridFactory.Create("Cargo Pod");
+
+            var script = new Script("Carrier")
+                .WithGrid(cargoGrid)
+                .Boot();
+
+            var connection = script.GetMechanicalConnectionTo(cargoGrid);
+
+            script.DetachGrid(cargoGrid);
+
+            Assert.That(connection.IsAttached, Is.False);
+        }
+
+        [Test]
+        public void WithGrid_Can_Create_And_Attach_A_Named_Subgrid_Without_Keeping_A_Reference()
+        {
+            var script = new Script("Carrier")
+                .WithGrid("Cargo Pod")
+                .Boot();
+
+            var mechanicalBlocks = new System.Collections.Generic.List<IMyMechanicalConnectionBlock>();
+            script.Mother.GridTerminalSystem.GetBlocksOfType(mechanicalBlocks);
+
+            Assert.That(mechanicalBlocks, Has.Count.EqualTo(1));
+            Assert.That(mechanicalBlocks[0].TopGrid.CustomName, Is.EqualTo("Cargo Pod"));
+            Assert.That(mechanicalBlocks[0].IsAttached, Is.True);
         }
 
         [Test]
         public void ConnectGrids_Can_Create_A_HingeStyle_Connection_Explicitly()
         {
             var script = new Script("Carrier");
-            var armGrid = TerminalBlockFactory.CreateCubeGrid("Arm Grid");
+            var armGrid = GridFactory.Create("Arm Grid");
             var hinge = script.ConnectGrids(script.PrimaryGrid, armGrid, MechanicalConnectionKind.Hinge);
 
             script.Boot();
@@ -273,7 +323,7 @@ namespace MotherCore.Tests.Harness
         }
 
         // =====================================================================
-        // CaptureEcho and ShouldHavePrinted
+        // Echo capture and AssertPrinted
         // =====================================================================
 
         [Test]
@@ -299,44 +349,39 @@ namespace MotherCore.Tests.Harness
         public void CaptureEcho_Captures_Output_Written_Via_Terminal_Echo()
         {
             var script = new Script().Boot();
-            var capture = script.CaptureEcho();
 
             // Terminal.Echo() calls Program.Echo() directly, which PrintCapture intercepts.
             // Mother.Print() routes through Terminal.Print() (a buffer), not through Echo.
             script.Mother.GetModule<Terminal>().Echo("hello from test");
 
-            Assert.That(capture.Contains("hello from test"), Is.True);
+            Assert.That(script.CaptureEcho().Contains("hello from test"), Is.True);
         }
 
         [Test]
-        public void CaptureEcho_Does_Not_Contain_Output_Written_Before_Capture_Was_Set_Up()
+        public void CaptureEcho_Starts_Empty_After_Boot()
         {
             var script = new Script().Boot();
-
-            script.Mother.GetModule<Terminal>().Echo("before capture");
             var capture = script.CaptureEcho();
 
             Assert.That(capture.Lines.Count, Is.EqualTo(0));
         }
 
         [Test]
-        public void ShouldHavePrinted_Passes_When_Fragment_Is_Present()
+        public void AssertPrinted_Passes_When_Fragment_Is_Present()
         {
             var script = new Script().Boot();
-            var capture = script.CaptureEcho();
-
+            
             script.Mother.GetModule<Terminal>().Echo("expected output");
 
-            Assert.DoesNotThrow(() => capture.ShouldHavePrinted("expected output"));
+            Assert.DoesNotThrow(() => script.AssertPrinted("expected output"));
         }
 
         [Test]
-        public void ShouldHavePrinted_Throws_When_Fragment_Is_Absent()
+        public void AssertPrinted_Throws_When_Fragment_Is_Absent()
         {
             var script = new Script().Boot();
-            var capture = script.CaptureEcho();
 
-            Assert.Throws<AssertionException>(() => capture.ShouldHavePrinted("was never printed"));
+            Assert.Throws<AssertionException>(() => script.AssertPrinted("was never printed"));
         }
     }
 }

@@ -4,6 +4,7 @@ using Sandbox.ModAPI.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using MotherCore.Tests.Utilities.Factories;
 using VRage.Game;
 using VRage.Game.Components.Interfaces;
 using VRage.Game.ModAPI.Ingame;
@@ -35,7 +36,7 @@ namespace MotherCore.Tests.Utilities.Mocks
             CustomData = customData;
             CustomName = customName;
             Name = customName;
-            CubeGrid = cubeGrid ?? CreateCubeGrid(gridName, gridEntityId ?? EntityId + 1);
+            CubeGrid = cubeGrid ?? GridFactory.Create(gridName, gridEntityId ?? EntityId + 1);
         }
 
         public bool IsRunning { get; set; }
@@ -278,12 +279,5 @@ namespace MotherCore.Tests.Utilities.Mocks
             return ((long)random.Next(100000, 1000000) * 10000000000L) + random.Next(0, 1000000000);
         }
 
-        static IMyCubeGrid CreateCubeGrid(string customName, long entityId)
-        {
-            var grid = A.Fake<IMyCubeGrid>();
-            A.CallTo(() => grid.CustomName).Returns(customName);
-            A.CallTo(() => grid.EntityId).Returns(entityId);
-            return grid;
-        }
     }
 }

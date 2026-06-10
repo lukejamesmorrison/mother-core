@@ -55,16 +55,6 @@ namespace MotherCore.Tests.Utilities.Factories
             return block;
         }
 
-        internal static IMyCubeGrid CreateCubeGrid(string customName = "Test Grid", long? entityId = null)
-        {
-            var grid = A.Fake<IMyCubeGrid>();
-
-            A.CallTo(() => grid.CustomName).Returns(customName ?? "Test Grid");
-            A.CallTo(() => grid.EntityId).Returns(entityId ?? CreateEntityId());
-
-            return grid;
-        }
-
         internal static bool TryAssignCubeGrid(IMyTerminalBlock block, IMyCubeGrid grid)
         {
             if (block == null || grid == null)

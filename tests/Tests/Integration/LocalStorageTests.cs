@@ -96,7 +96,7 @@ namespace MotherCore.Tests.Integration
             script.Clock.RunToIdle();
             terminal.UpdateTerminal();
 
-            echo.ShouldHavePrinted("Frigate");
+            script.AssertPrinted("Frigate");
         }
     }
 }

@@ -39,8 +39,20 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// Optional entity ID for the primary grid. When omitted, a synthetic ID is generated.
         /// </param>
         public FakeGridTerminalSystem(string primaryGridName = "Test Grid", long? primaryGridEntityId = null)
+            : this(GridFactory.Create(primaryGridName, primaryGridEntityId))
         {
-            PrimaryGrid = TerminalBlockFactory.CreateCubeGrid(primaryGridName, primaryGridEntityId);
+        }
+
+        /// <summary>
+        /// Initializes a new in-memory grid terminal system rooted at the supplied
+        /// primary grid.
+        /// </summary>
+        /// <param name="primaryGrid">The grid that should own the programmable block.</param>
+        public FakeGridTerminalSystem(IMyCubeGrid primaryGrid)
+        {
+            PrimaryGrid = primaryGrid 
+                ?? throw new ArgumentNullException(nameof(primaryGrid));
+
             _connectedGridIds.Add(PrimaryGrid.EntityId);
         }
 
@@ -65,7 +77,7 @@ namespace MotherCore.Tests.Utilities.Mocks
             long? entityId = null,
             MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
         {
-            var grid = TerminalBlockFactory.CreateCubeGrid(
+            var grid = GridFactory.Create(
                 gridName ?? $"Grid-{_connectedGridIds.Count + 1}",
                 entityId);
 
@@ -349,7 +361,7 @@ namespace MotherCore.Tests.Utilities.Mocks
                 && _connectedGridIds.Contains(block.CubeGrid.EntityId)
                 && _connectedGridIds.Contains(other.CubeGrid.EntityId);
 
-            var programmableBlock = block as FakeProgrammableBlock;
+            FakeProgrammableBlock programmableBlock = block as FakeProgrammableBlock;
 
             if (programmableBlock != null)
             {

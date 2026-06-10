@@ -10,17 +10,15 @@ namespace MotherCore.Tests.Utilities
     /// on strings printed by <c>Mother.Print</c> without wiring a <c>Terminal</c> module.
     /// </summary>
     /// <remarks>
-    /// Construct one instance per test and pass the <c>Program</c> from a
-    /// <see cref="Script"/> before calling <see cref="Script.Boot"/>, or
-    /// immediately after boot (before any commands run):
+    /// In normal harness usage this is created automatically by
+    /// <see cref="Script.Boot"/> and cleared after boot so tests can assert on
+    /// post-boot output without extra setup:
     /// <code>
     /// var script = new Script().Boot();
-    /// var capture = new PrintCapture(script);
-    ///
     /// script.Bus.RunTerminalCommand("nonexistent");
     /// script.Clock.RunToIdle();
     ///
-    /// Assert.That(capture.Contains("Command not found"), Is.True);
+    /// script.AssertPrinted("Command not found");
     /// </code>
     /// </remarks>
     public class PrintCapture
@@ -48,7 +46,7 @@ namespace MotherCore.Tests.Utilities
         /// Asserts that at least one captured line contains <paramref name="fragment"/>.
         /// Throws an NUnit assertion failure if the fragment is not found.
         /// </summary>
-        public void ShouldHavePrinted(string fragment)
+        public void AssertPrinted(string fragment)
         {
             Assert.That(Contains(fragment), Is.True,
                 $"Expected output to contain \"{fragment}\" but it was not found.\n" +

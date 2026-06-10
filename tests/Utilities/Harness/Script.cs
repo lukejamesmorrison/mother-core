@@ -5,8 +5,10 @@ using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
+using NUnit.Framework;
 using System.Reflection;
 using VRage.Game.ModAPI.Ingame;
+using System.Linq;
 
 namespace MotherCore.Tests.Utilities
 {
@@ -91,6 +93,7 @@ namespace MotherCore.Tests.Utilities
         readonly string _gridName;
         readonly FakeGridTerminalSystem _gridTerminalSystem;
         PrintCapture _printCapture;
+        EventEmissionTracker _eventEmissionTracker;
 
         /// <param name="gridName">
         /// Optional grid name for this script. Sets <see cref="Mother.Name"/> before boot
@@ -102,6 +105,24 @@ namespace MotherCore.Tests.Utilities
         {
             _gridName = gridName;
             _gridTerminalSystem = new FakeGridTerminalSystem(gridName ?? "Test Grid");
+        }
+
+        /// <summary>
+        /// Initializes a new script harness bound to a specific primary grid.
+        /// The harness will attach the programmable block to this grid before boot.
+        /// </summary>
+        /// <param name="primaryGrid">The grid that should own the programmable block.</param>
+        /// <param name="gridName">
+        /// Optional logical script name used for Mother.Name and network addressing.
+        /// When omitted, the supplied grid's CustomName remains the natural label.
+        /// </param>
+        public Script(IMyCubeGrid primaryGrid, string gridName = null)
+        {
+            if (primaryGrid == null)
+                throw new ArgumentNullException(nameof(primaryGrid));
+
+            _gridName = gridName;
+            _gridTerminalSystem = new FakeGridTerminalSystem(primaryGrid);
         }
 
         /// <summary>The booted <see cref="CommandBus"/>. Available after <see cref="Boot"/> is called.</summary>
@@ -215,6 +236,31 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Creates and connects an additional grid for this script's construct.
+        /// Use this overload when the test only cares that the subgrid exists.
+        /// </summary>
+        public Script<TProgram> WithGrid(
+            string gridName,
+            long? entityId = null,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            CreateGrid(gridName, entityId, connectionKind);
+            return this;
+        }
+
+        /// <summary>
+        /// Connects an existing grid instance into this script's construct.
+        /// Use this overload when the test wants to keep a grid variable for later assertions.
+        /// </summary>
+        public Script<TProgram> WithGrid(
+            IMyCubeGrid grid,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            ConnectGrids(PrimaryGrid, grid, connectionKind);
+            return this;
+        }
+
+        /// <summary>
         /// Explicitly connects two grids in this script's construct through a
         /// fake rotor, hinge, or piston base block.
         /// </summary>
@@ -224,6 +270,32 @@ namespace MotherCore.Tests.Utilities
             MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
         {
             return _gridTerminalSystem.ConnectGrids(baseGrid, topGrid, connectionKind);
+        }
+
+        /// <summary>
+        /// Finds the mechanical connection whose top grid matches <paramref name="topGrid"/>.
+        /// This keeps individual tests from querying the grid terminal system directly.
+        /// </summary>
+        public IMyMechanicalConnectionBlock GetMechanicalConnectionTo(IMyCubeGrid topGrid)
+        {
+            if (topGrid == null)
+                throw new ArgumentNullException(nameof(topGrid));
+
+            var mechanicalBlocks = new List<IMyMechanicalConnectionBlock>();
+            _gridTerminalSystem.GetBlocksOfType(mechanicalBlocks);
+
+            return mechanicalBlocks.Single(block =>
+                block.TopGrid != null && block.TopGrid.EntityId == topGrid.EntityId);
+        }
+
+        /// <summary>
+        /// Detaches the mechanical connection whose top grid matches <paramref name="topGrid"/>.
+        /// Returns <c>this</c> for fluent test arrangement.
+        /// </summary>
+        public Script<TProgram> DetachGrid(IMyCubeGrid topGrid)
+        {
+            GetMechanicalConnectionTo(topGrid).Detach();
+            return this;
         }
 
         /// <summary>
@@ -303,7 +375,58 @@ namespace MotherCore.Tests.Utilities
         {
             if (_printCapture == null)
                 _printCapture = new PrintCapture(this);
+
             return _printCapture;
+        }
+
+        /// <summary>
+        /// Asserts that the script printed a line containing <paramref name="fragment"/>.
+        /// Echo capture is provisioned automatically during boot.
+        /// </summary>
+        public void AssertPrinted(string fragment)
+        {
+            CaptureEcho().AssertPrinted(fragment);
+        }
+
+        /// <summary>
+        /// Asserts that an event of type <typeparamref name="TEvent"/> was emitted.
+        /// </summary>
+        public void AssertEventEmitted<TEvent>(int expectedCount = 1)
+            where TEvent : IEvent
+        {
+            AssertEventEmitted<TEvent>(null, expectedCount);
+        }
+
+        /// <summary>
+        /// Asserts that an event of type <typeparamref name="TEvent"/> was emitted
+        /// and delivered to the supplied module.
+        /// </summary>
+        public void AssertEventEmitted<TEvent>(IModule module, int expectedCount = 1)
+            where TEvent : IEvent
+        {
+            Assert.That(_eventEmissionTracker, Is.Not.Null,
+                "Expected the script to install an event emission tracker during boot.");
+
+            var emissionCount = _eventEmissionTracker.Emissions.Count(emission =>
+                emission.Event is TEvent
+                && (module == null || emission.Recipients.Contains(module)));
+
+            var expectation = module == null
+                ? $"Expected {typeof(TEvent).Name} to be emitted {expectedCount} time(s)"
+                : $"Expected {typeof(TEvent).Name} to be emitted to {module.GetModuleName()} {expectedCount} time(s)";
+
+            Assert.That(emissionCount, Is.EqualTo(expectedCount),
+                $"{expectation}, but saw {emissionCount}.");
+        }
+
+        /// <summary>
+        /// Asserts that an invocation observer ran the expected number of times.
+        /// </summary>
+        public void AssertCommandExecuted(IInvocationObserver observer, int expectedCount = 1)
+        {
+            Assert.That(observer, Is.Not.Null);
+            Assert.That(observer.InvocationCount, Is.EqualTo(expectedCount),
+                $"Expected command observer to be invoked {expectedCount} time(s), but saw {observer.InvocationCount}.");
         }
 
         /// <summary>
@@ -370,6 +493,9 @@ namespace MotherCore.Tests.Utilities
 
             Program = program;
             _mother = FindMother(program);
+            _eventEmissionTracker = new EventEmissionTracker(_mother, _mother.GetModule<EventBus>());
+            _eventEmissionTracker.SubscribeToKnownEvents();
+            _printCapture = new PrintCapture(this);
 
             if (_customData != null)
                 _mother.ProgrammableBlock.CustomData = _customData;
@@ -400,6 +526,10 @@ namespace MotherCore.Tests.Utilities
             Bus = _mother.GetModule<CommandBus>();
             Clock = new ClockDriver(clock);
 
+            // Start each test with a clean echo buffer while still capturing
+            // anything printed after boot without extra setup.
+            _printCapture.Clear();
+
             _network?.RegisterSession(this, _mother.Name);
 
             return this;
@@ -414,6 +544,9 @@ namespace MotherCore.Tests.Utilities
     {
         /// <inheritdoc cref="Script{TProgram}(string)"/>
         public Script(string gridName = null) : base(gridName) { }
+
+        /// <inheritdoc cref="Script{TProgram}.Script(IMyCubeGrid, string)"/>
+        public Script(IMyCubeGrid primaryGrid, string gridName = null) : base(primaryGrid, gridName) { }
 
         /// <inheritdoc cref="Script{TProgram}.WithIGC"/>
         public new Script WithIGC(IMyIntergridCommunicationSystem igc)
@@ -452,6 +585,25 @@ namespace MotherCore.Tests.Utilities
             return base.CreateGrid(gridName, entityId, connectionKind);
         }
 
+        /// <inheritdoc cref="Script{TProgram}.WithGrid(string, long?, MechanicalConnectionKind)"/>
+        public new Script WithGrid(
+            string gridName,
+            long? entityId = null,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            base.WithGrid(gridName, entityId, connectionKind);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithGrid(IMyCubeGrid, MechanicalConnectionKind)"/>
+        public new Script WithGrid(
+            IMyCubeGrid grid,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            base.WithGrid(grid, connectionKind);
+            return this;
+        }
+
         /// <inheritdoc cref="Script{TProgram}.ConnectGrids"/>
         public new IMyMechanicalConnectionBlock ConnectGrids(
             IMyCubeGrid baseGrid,
@@ -459,6 +611,19 @@ namespace MotherCore.Tests.Utilities
             MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
         {
             return base.ConnectGrids(baseGrid, topGrid, connectionKind);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.GetMechanicalConnectionTo"/>
+        public new IMyMechanicalConnectionBlock GetMechanicalConnectionTo(IMyCubeGrid topGrid)
+        {
+            return base.GetMechanicalConnectionTo(topGrid);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.DetachGrid"/>
+        public new Script DetachGrid(IMyCubeGrid topGrid)
+        {
+            base.DetachGrid(topGrid);
+            return this;
         }
 
         /// <inheritdoc cref="Script{TProgram}.WithBlock(IMyTerminalBlock)"/>
@@ -509,5 +674,32 @@ namespace MotherCore.Tests.Utilities
             base.Run(updateType, argument);
             return this;
         }
+
+        /// <inheritdoc cref="Script{TProgram}.AssertEventEmitted{TEvent}(int)"/>
+        public new void AssertEventEmitted<TEvent>(int expectedCount = 1)
+            where TEvent : IEvent
+        {
+            base.AssertEventEmitted<TEvent>(expectedCount);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.AssertEventEmitted{TEvent}(IModule, int)"/>
+        public new void AssertEventEmitted<TEvent>(IModule module, int expectedCount = 1)
+            where TEvent : IEvent
+        {
+            base.AssertEventEmitted<TEvent>(module, expectedCount);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.AssertCommandExecuted"/>
+        public new void AssertCommandExecuted(IInvocationObserver observer, int expectedCount = 1)
+        {
+            base.AssertCommandExecuted(observer, expectedCount);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.AssertPrinted"/>
+        public new void AssertPrinted(string fragment)
+        {
+            base.AssertPrinted(fragment);
+        }
+
     }
 }

@@ -76,7 +76,7 @@ namespace MotherCore.Tests.Utilities
     ///     {
     ///         Script.Run(UpdateType.Terminal, "help");
     ///
-    ///         Echo.ShouldHavePrinted("Available commands");
+    ///         Echo.AssertPrinted("Available commands");
     ///     }
     /// }
     /// </code>
@@ -105,12 +105,12 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>
         /// Echo capture for the booted script. Available after <see cref="SetUp"/>.
-        /// Use <c>Echo.Contains("...")</c> or <c>Echo.ShouldHavePrinted("...")</c>
+        /// Use <c>Echo.Contains("...")</c> or <c>Echo.AssertPrinted("...")</c>
         /// to assert on output.
         /// </summary>
         protected PrintCapture Echo { get; private set; }
 
-        /// <summary>Boots a fresh script and wires echo capture before each test.</summary>
+        /// <summary>Boots a fresh script before each test and exposes its baked-in echo capture.</summary>
         [SetUp]
         public virtual void SetUp()
         {

@@ -1,11 +1,9 @@
-using FakeItEasy;
 using IngameScript;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
 using MotherCore.Tests.Utilities.Mocks;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace MotherCore.Tests.Integration
@@ -34,6 +32,52 @@ namespace MotherCore.Tests.Integration
         }
 
         [Test]
+        public void SetBlockWithTag_Adds_Tag_Targeting_And_Updates_Block_Configuration()
+        {
+            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+            var script = new Script()
+                .WithBlock(door)
+                .Boot();
+
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+
+            var taggedBlock = catalogue.SetBlockWithTag(door, "airlock");
+            var blockConfig = catalogue.GetBlockConfiguration(door);
+
+            Assert.That(taggedBlock, Is.SameAs(door));
+            Assert.That(catalogue.GetBlocksByName<IMyDoor>("#airlock"), Is.EqualTo(new[] { door }));
+            Assert.That(blockConfig.Get("general", "tags").ToString(), Is.EqualTo("airlock"));
+        }
+
+        [Test]
+        public void GetBlocks_Returns_Filtered_Construct_Blocks_Of_A_Given_Type()
+        {
+            var primaryBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Primary Battery");
+            var auxBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Aux Battery");
+            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+
+            var script = new Script()
+                .WithBlocks(primaryBattery, auxBattery, door)
+                .Boot();
+
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+            var filteredBlocks = catalogue.GetBlocks<IMyBatteryBlock>(block => block.CustomName.Contains("Primary"));
+
+            Assert.That(filteredBlocks, Is.EqualTo(new[] { primaryBattery }));
+            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Primary Battery"), Is.EqualTo(new[] { primaryBattery }));
+        }
+
+        [Test]
+        public void GetBlockConfiguration_Returns_An_Empty_Ini_For_An_Untracked_Block()
+        {
+            var script = new Script().Boot();
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+            var untrackedDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Loose Door");
+
+            Assert.That(catalogue.GetBlockConfiguration(untrackedDoor).ToString(), Is.EqualTo(string.Empty));
+        }
+
+        [Test]
         public void HandleEvent_For_ConnectorLocked_Preserves_Block_Group_Targeting_Configured_At_Boot()
         {
             var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
@@ -58,14 +102,34 @@ namespace MotherCore.Tests.Integration
         }
 
         [Test]
+        public void LoadBlockGroups_Reloads_Block_Groups_Added_After_Boot()
+        {
+            var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
+            var rightDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Right Door");
+
+            var script = new Script()
+                .WithBlocks(leftDoor, rightDoor)
+                .Boot();
+
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+
+            script.WithBlockGroup("Airlocks", leftDoor, rightDoor);
+
+            // The terminal system has a new block group, but Mother is still unaware of it
+            Assert.That(catalogue.GetBlocksByName<IMyDoor>("Airlocks"), Is.Empty);
+            // so we reload our block groups from the grid terminal system
+            catalogue.LoadBlockGroups();
+
+            Assert.That(
+                catalogue.GetBlocksByName<IMyDoor>("Airlocks").Select(block => block.CustomName).ToList(),
+                Is.EquivalentTo(new[] { "Left Door", "Right Door" }));
+        }
+
+        [Test]
         public void OnMechanicalBlockAttached_Adds_Newly_Connected_Grid_Blocks_To_The_Construct()
         {
             var script = new Script("Carrier").Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
-            var eventBus = script.Mother.GetModule<EventBus>();
-            var observer = A.Fake<IModule>();
-
-            eventBus.Subscribe<ConstructRefreshedEvent>(observer);
 
             var cargoGrid = script.CreateGrid("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
@@ -79,8 +143,8 @@ namespace MotherCore.Tests.Integration
 
             Assert.That(catalogue.ConstructGridIds, Contains.Item(cargoGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Has.Count.EqualTo(1));
-            A.CallTo(() => observer.HandleEvent(A<ConstructRefreshedEvent>._, null))
-                .MustHaveHappenedOnceExactly();
+
+            script.AssertEventEmitted<ConstructRefreshedEvent>();
         }
 
         [Test]
@@ -94,16 +158,11 @@ namespace MotherCore.Tests.Integration
                 .Boot();
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
-            var mechanicalBlocks = new List<IMyMechanicalConnectionBlock>();
-
-            script.Mother.GridTerminalSystem.GetBlocksOfType(mechanicalBlocks);
-
-            var connection = mechanicalBlocks.Single(block => block.TopGrid.EntityId == cargoGrid.EntityId);
 
             Assert.That(catalogue.ConstructGridIds, Contains.Item(cargoGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Has.Count.EqualTo(1));
 
-            connection.Detach();
+            script.DetachGrid(cargoGrid);
             catalogue.OnMechanicalBlockDetached();
             script.Clock.RunToIdle(50);
 
@@ -112,14 +171,36 @@ namespace MotherCore.Tests.Integration
         }
 
         [Test]
+        public void RefreshConstruct_Prunes_Disconnected_Grid_And_Emits_ConstructRefreshedEvent()
+        {
+            var script = new Script("Carrier");
+            var cargoGrid = script.CreateGrid("Cargo Pod");
+            var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
+
+            script.WithBlock(battery, cargoGrid)
+                .Boot();
+
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+
+            Assert.That(catalogue.ConstructGridIds, Contains.Item(cargoGrid.EntityId));
+            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Has.Count.EqualTo(1));
+
+            script.DetachGrid(cargoGrid);
+
+            catalogue.RefreshConstruct();
+
+            script.Clock.RunToIdle();
+
+            Assert.That(catalogue.ConstructGridIds, Does.Not.Contain(cargoGrid.EntityId));
+            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Is.Empty);
+            script.AssertEventEmitted<ConstructRefreshedEvent>();
+        }
+
+        [Test]
         public void RefreshConstruct_Adds_New_Connected_Grid_And_Emits_ConstructRefreshedEvent()
         {
             var script = new Script("Carrier").Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
-            var eventBus = script.Mother.GetModule<EventBus>();
-            var observer = A.Fake<IModule>();
-
-            eventBus.Subscribe<ConstructRefreshedEvent>(observer);
 
             var scoutGrid = script.CreateGrid("Scout Pod");
             var reactor = TerminalBlockFactory.Create<IMyReactor>(customName: "Scout Reactor");
@@ -132,8 +213,70 @@ namespace MotherCore.Tests.Integration
 
             Assert.That(catalogue.ConstructGridIds, Contains.Item(scoutGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyReactor>("Scout Reactor"), Has.Count.EqualTo(1));
-            A.CallTo(() => observer.HandleEvent(A<ConstructRefreshedEvent>._, null))
-                .MustHaveHappenedOnceExactly();
+            script.AssertEventEmitted<ConstructRefreshedEvent>();
+        }
+
+        [Test]
+        public void RunHook_Executes_A_Command_From_Block_Custom_Data_Hooks()
+        {
+            var tracker = new CommandSpy("probe");
+            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+            door.CustomData = "[hooks]\nopened=probe";
+
+            var script = new Script()
+                .WithCommands(tracker)
+                .WithBlock(door)
+                .Boot();
+
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+
+            catalogue.RunHook(door, "opened");
+            script.Clock.RunToIdle();
+
+            script.AssertCommandExecuted(tracker);
+        }
+
+        [Test]
+        public void HandleEvent_For_MergeBlockLocked_Refreshes_Construct_And_Emits_ConstructRefreshedEvent()
+        {
+            var script = new Script("Carrier").Boot();
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+
+            var scoutGrid = script.CreateGrid("Scout Pod");
+            var reactor = TerminalBlockFactory.Create<IMyReactor>(customName: "Scout Reactor");
+            script.WithBlock(reactor, scoutGrid);
+
+            Assert.That(catalogue.GetBlocksByName<IMyReactor>("Scout Reactor"), Is.Empty);
+
+            catalogue.HandleEvent(new MergeBlockLockedEvent(), null);
+            script.Clock.RunToIdle(50);
+
+            Assert.That(catalogue.ConstructGridIds, Contains.Item(scoutGrid.EntityId));
+            Assert.That(catalogue.GetBlocksByName<IMyReactor>("Scout Reactor"), Has.Count.EqualTo(1));
+            script.AssertEventEmitted<ConstructRefreshedEvent>();
+        }
+
+        [Test]
+        public void HandleEvent_For_SystemConfigChanged_Reloads_Programmable_Block_Hooks()
+        {
+            var tracker = new CommandSpy("probe");
+            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+
+            var script = new Script()
+                .WithCommands(tracker)
+                .WithBlock(door)
+                .Boot();
+
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+            var configuration = script.Mother.GetModule<Configuration>();
+
+            configuration.Ini.Set("hooks", "\"Hangar Door\".opened", "probe");
+
+            catalogue.HandleEvent(new SystemConfigChangedEvent(), null);
+            catalogue.RunHook(door, "opened");
+            script.Clock.RunToIdle();
+
+            script.AssertCommandExecuted(tracker);
         }
     }
 }
