@@ -22,6 +22,12 @@ The current answer is:
 - use `Script<TProgram>` as one booted programmable block instance
 - use a shared `World` as the environment for multi-script interaction
 
+In the current MotherCore harness, that world model now includes a small world-owned grid handle:
+
+- `TestWorld` owns shared environment state and topology orchestration
+- `TestGrid` is a world-bound handle used to register blocks onto a specific grid before boot
+- `MergePair` is an optional deferred topology descriptor for pre-registered merge-block pairs
+
 ## Core Model
 
 ### 1. `partial Program` is the script seam
@@ -142,10 +148,12 @@ The right split is:
 MotherCore now has a working version of most of this model in the test utilities:
 
 - `ProgramFactory.CreateProgram<T>()` builds a script with injected `MyGridProgram` state.
-- `Script<TProgram>` boots a real script instance, exposes `Mother`, `Bus`, `Clock`, `Config`, `IGC`, and `Program`, and supports pre-boot customization.
+- `Script<TProgram>` boots a real script instance, exposes `Mother`, `Bus`, `Clock`, `Config`, `IGC`, `NetworkIGC`, `GridTerminalSystem`, `PrimaryGrid`, and `Program`, and supports pre-boot customization.
 - `Script` is a convenience alias over `Script<CoreTestProgram>` for MotherCore-focused tests.
 - `FakeIgcNetwork` provides shared IGC transport, message capture, and automatic Almanac cross-registration for booted scripts.
-- `TestWorld` is now present as the shared multi-script environment for remote-network tests.
+- `TestWorld` is now present as the shared multi-script environment for remote-network and world-topology tests.
+- `TestGrid` is the world-owned grid handle returned by `TestWorld.CreateGrid(...)`; it wraps an `IMyCubeGrid` and provides `AddBlock(...)` for world-owned block registration.
+- `MergePair` is a deferred merge-topology descriptor returned by `TestWorld.AddMergeBlockPair(...)` when a test wants merge blocks pre-registered before boot.
 - `ClockDriver` provides assertion-friendly tick control for coroutine-driven behavior.
 - `PrintCapture` provides reusable output capture over `Program.Echo`.
 - `FakeProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block.
@@ -240,9 +248,15 @@ Today, `Script<TProgram>` exposes this fluent surface:
 - `WithIGC(IMyIntergridCommunicationSystem igc)`
 - `OnNetwork(FakeIgcNetwork network)`
 - `WithCustomData(string customData)`
+- `WithStorage(string storage)`
 - `CreateGrid(string name = null, long? entityId = null, MechanicalConnectionKind connectionKind = Rotor)`
+- `WithGrid(string name, long? entityId = null, MechanicalConnectionKind connectionKind = Rotor)`
+- `WithGrid(IMyCubeGrid grid, MechanicalConnectionKind connectionKind = Rotor)`
 - `ConnectGrids(IMyCubeGrid baseGrid, IMyCubeGrid topGrid, MechanicalConnectionKind connectionKind = Rotor)`
 - `ConnectGridsViaConnector(IMyCubeGrid baseGrid, IMyCubeGrid otherGrid, string baseConnectorName = null, string otherConnectorName = null, MyShipConnectorStatus initialStatus = Connected)`
+- `ConnectGridsViaMergeBlock(IMyCubeGrid baseGrid, IMyCubeGrid otherGrid, string baseMergeBlockName = null, string otherMergeBlockName = null, MergeState initialState = None)`
+- `MergeBlocks(IMyShipMergeBlock mergeBlock)`
+- `UnmergeBlocks(IMyShipMergeBlock mergeBlock)`
 - `WithBlock(IMyTerminalBlock block, IMyCubeGrid grid = null)`
 - `WithBlocks(params IMyTerminalBlock[] blocks)`
 - `WithBlockGroup(string groupName, params IMyTerminalBlock[] blocks)`
@@ -260,14 +274,36 @@ And after boot:
 - `Clock`
 - `IGC`
 - `NetworkIGC`
+- `GridTerminalSystem`
+- `PrimaryGrid`
 
 `TestWorld` also exists today and provides:
 
 - `CreateScript<TProgram>(string name = null)`
+- `CreateGrid(string name = null, long? entityId = null)`
+- `CreateScript<TProgram>(TestGrid primaryGrid, string name = null)`
+- `Merge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)`
+- `Unmerge(IMyShipMergeBlock mergeBlock)`
 - `DispatchIgc()`
 - `Run(UpdateType updateType, string argument = "")`
 - `RunIGC()`
 - `RunMany(int count, UpdateType updateType, string argument = "")`
+
+`TestGrid` currently provides:
+
+- `Grid`
+- `Name`
+- `AddBlock<TBlock>(TBlock block)`
+
+`MergePair` currently provides:
+
+- `BaseGrid`
+- `OtherGrid`
+- `BaseMergeBlockName`
+- `OtherMergeBlockName`
+- `InitialState`
+- `BaseBlock`
+- `OtherBlock`
 
 ### What should come next
 
@@ -449,6 +485,22 @@ var shipB = world.CreateScript<MotherGUI.Program>("ShipB").Boot();
 shipA.Bus.RunTerminalCommand("@ShipB view/go status");
 world.DispatchIgc();
 world.RunIGC();
+```
+
+For world-topology tests that need grids before boot, the intended mental model now also includes grid handles:
+
+```csharp
+var world = new TestWorld();
+var carrierGrid = world.CreateGrid("Carrier");
+var cargoGrid = world.CreateGrid("Cargo Pod");
+
+var carrierMerge = carrierGrid.AddBlock(
+    TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Carrier Merge"));
+var cargoMerge = cargoGrid.AddBlock(
+    TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Cargo Merge"));
+
+var script = world.CreateScript<Program>(carrierGrid, "Carrier").Boot();
+world.Merge(carrierMerge, cargoMerge);
 ```
 
 This is the world-based version of what `FakeIgcNetwork` already does in a narrower form.
@@ -652,9 +704,14 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | `WithIGC(igc)` | ✅ Done | Injects custom IGC before boot |
 | `OnNetwork(network)` | ✅ Done | Joins `FakeIgcNetwork` before boot |
 | `WithCustomData(string)` | ✅ Done | Sets custom data before boot |
+| `WithStorage(string)` | ✅ Done | Sets storage before boot |
+| `CreateGrid(...)` / `WithGrid(...)` | ✅ Done | Adds construct-local grids through the script harness |
+| `ConnectGrids(...)` / `ConnectGridsViaConnector(...)` / `ConnectGridsViaMergeBlock(...)` | ✅ Done | Supports mechanical, connector, and merge topology helpers |
+| `MergeBlocks(...)` / `UnmergeBlocks(...)` | ✅ Done | Drives merge-block state transitions through the script harness |
+| `WithBlock(...)` / `WithBlocks(...)` / `WithBlockGroup(...)` | ✅ Done | Registers blocks and groups into the script-local terminal system |
 | `WithCommands(params ...)` | ✅ Done | Registers extra commands after boot |
 | `OnBeforeBoot(mother)` hook | ✅ Done | Override to inject test-only modules |
-| `Program`, `Mother`, `Bus`, `Config`, `Clock`, `IGC`, `NetworkIGC` | ✅ Done | Post-boot accessors |
+| `Program`, `Mother`, `Bus`, `Config`, `Clock`, `IGC`, `NetworkIGC`, `GridTerminalSystem`, `PrimaryGrid` | ✅ Done | Post-boot accessors |
 | `Run(UpdateType, string)` | ✅ Done | Drives one real `Mother.Run` cycle |
 | `CaptureEcho()` | ✅ Done | Returns `PrintCapture`; wires up Echo redirect |
 
@@ -684,6 +741,11 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | Feature | Status | Notes |
 |---|---|---|
 | `CreateScript<T>(name)` | ✅ Done | Returns `Script<T>` joined to world network |
+| `CreateGrid(name, entityId)` | ✅ Done | Creates a world-owned grid handle before boot |
+| `CreateScript<T>(primaryGrid, name)` | ✅ Done | Binds a script to an existing world grid and topology |
+| `Merge(firstBlock, secondBlock)` / `Unmerge(mergeBlock)` | ✅ Done | Drives world-level merge topology using standalone or paired merge blocks |
+| `TestGrid.AddBlock(...)` | ✅ Done | Registers world-owned blocks through a grid handle |
+| `AddMergeBlockPair(...)` | ✅ Done | Optional deferred merge-pair descriptor for pre-registered topology |
 | `DispatchIgc()` | ✅ Done | Delegates to `FakeIgcNetwork.Deliver()` |
 | `Run(UpdateType, string)` | ✅ Done | Runs all booted scripts one cycle |
 | `RunIGC()` | ✅ Done | Convenience for `Run(UpdateType.IGC)` |
@@ -712,8 +774,10 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | `WithCustomData(string)` | ✅ Done | |
 | `WithCustomData(Action<CustomDataComposer>)` | ⬜ Pending | Fluent composer overload |
 | `ReloadConfiguration()` | ⬜ Pending | Hot-reload config in test |
-| `TerminalBlockFactory` / `GridTerminalSystemBuilder` | ⬜ Pending | Block registration helpers |
-| `WithBlock(IMyTerminalBlock)` / `WithBlocks(...)` | ⬜ Pending | Convenience block injection |
+| `TerminalBlockFactory` | ✅ Done | Lightweight block creation helpers for harness tests |
+| `GridTerminalSystemBuilder` | ⬜ Pending | A higher-level builder still does not exist |
+| `WithBlock(IMyTerminalBlock)` / `WithBlocks(...)` | ✅ Done | Convenience block injection on the script harness |
+| `TestGrid.AddBlock(...)` | ✅ Done | Convenience block injection on the world harness |
 
 ### Future / long-term
 
@@ -746,7 +810,7 @@ This plan reflects the current MotherCore source and the executable suite as it 
 - [x] Add integration coverage for `Modules/LocalStorage`.
     Covered set, get, clear, boot from `Program.Storage`, save-data serialization, and the `set` and `get` commands through the script harness.
 
-- [ ] Add module boot and event coverage for [x] `ConnectorModule`, [x] `MechanicalBlockModule`, and `MergeBlockModule`.
+- [x] Add module boot and event coverage for [x] `ConnectorModule`, [x] `MechanicalBlockModule`, and [x] `MergeBlockModule`.
     Reuse the test patterns documented in `Tests/README.md`: verify command registration, event subscription, state-transition behavior, and deferred hook behavior after construct refresh.
 
 - [x] Add focused integration coverage for `BlockCatalogue`.

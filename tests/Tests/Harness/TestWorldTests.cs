@@ -2,7 +2,9 @@ using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Mocks;
+using MotherCore.Tests.Utilities.Factories;
 using Sandbox.ModAPI.Ingame;
+using SpaceEngineers.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Harness
 {
@@ -35,6 +37,39 @@ namespace MotherCore.Tests.Harness
             var script = world.CreateScript<CoreTestProgram>("Flagship").Boot();
 
             Assert.That(script.Mother.Name, Is.EqualTo("Flagship"));
+        }
+
+        [Test]
+        public void CreateScript_On_Existing_World_Grid_Binds_The_Program_To_That_Grid()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+
+            Assert.That(script.PrimaryGrid, Is.SameAs(carrierGrid.Grid));
+            Assert.That(script.Program.Me.CubeGrid, Is.SameAs(carrierGrid.Grid));
+        }
+
+        [Test]
+        public void Merge_Rewrites_World_Blocks_When_Standalone_Merge_Blocks_Are_Merged()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var cargoGrid = world.CreateGrid("Cargo Pod");
+
+            var carrierMerge = carrierGrid.AddBlock(
+                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Carrier Merge"));
+
+            var cargoMerge = cargoGrid.AddBlock(
+                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Cargo Merge"));
+
+            // create script on one of the grids
+            world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+
+            world.Merge(carrierMerge, cargoMerge);
+
+            Assert.That(cargoMerge.IsSameConstructAs(carrierMerge), Is.True);
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(carrierMerge.CubeGrid.EntityId));
         }
 
         [Test]

@@ -3,6 +3,7 @@ using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
 using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
+using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
@@ -121,6 +122,14 @@ namespace MotherCore.Tests.Utilities
 
             _gridName = gridName;
             _gridTerminalSystem = new FakeGridTerminalSystem(primaryGrid);
+        }
+
+        internal Script(FakeGridTerminalSystem gridTerminalSystem, string gridName = null)
+        {
+            _gridTerminalSystem = gridTerminalSystem
+                ?? throw new ArgumentNullException(nameof(gridTerminalSystem));
+
+            _gridName = gridName;
         }
 
         /// <summary>The booted <see cref="CommandBus"/>. Available after <see cref="Boot"/> is called.</summary>
@@ -286,6 +295,46 @@ namespace MotherCore.Tests.Utilities
                 baseConnectorName,
                 otherConnectorName,
                 initialStatus);
+        }
+
+        /// <summary>
+        /// Connects two grids with a paired merge-block link.
+        /// Locking the returned merge block rewrites the absorbed side's block grid
+        /// references onto the surviving grid; unlocking restores them.
+        /// </summary>
+        public IMyShipMergeBlock ConnectGridsViaMergeBlock(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseMergeBlockName = null,
+            string otherMergeBlockName = null,
+            MergeState initialState = MergeState.None)
+        {
+            return _gridTerminalSystem.ConnectGridsViaMergeBlock(
+                baseGrid,
+                otherGrid,
+                baseMergeBlockName,
+                otherMergeBlockName,
+                initialState);
+        }
+
+        /// <summary>
+        /// Forces a paired merge-block link into the merged state.
+        /// This simulates both sides being powered and close enough to lock.
+        /// </summary>
+        public Script<TProgram> MergeBlocks(IMyShipMergeBlock mergeBlock)
+        {
+            _gridTerminalSystem.MergeBlocks(mergeBlock);
+            return this;
+        }
+
+        /// <summary>
+        /// Forces a paired merge-block link out of the merged state by turning off
+        /// the supplied side of the pair.
+        /// </summary>
+        public Script<TProgram> UnmergeBlocks(IMyShipMergeBlock mergeBlock)
+        {
+            _gridTerminalSystem.UnmergeBlocks(mergeBlock);
+            return this;
         }
 
         /// <summary>
@@ -639,6 +688,36 @@ namespace MotherCore.Tests.Utilities
                 baseConnectorName,
                 otherConnectorName,
                 initialStatus);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ConnectGridsViaMergeBlock"/>
+        public new IMyShipMergeBlock ConnectGridsViaMergeBlock(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseMergeBlockName = null,
+            string otherMergeBlockName = null,
+            MergeState initialState = MergeState.None)
+        {
+            return base.ConnectGridsViaMergeBlock(
+                baseGrid,
+                otherGrid,
+                baseMergeBlockName,
+                otherMergeBlockName,
+                initialState);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.MergeBlocks"/>
+        public new Script MergeBlocks(IMyShipMergeBlock mergeBlock)
+        {
+            base.MergeBlocks(mergeBlock);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.UnmergeBlocks"/>
+        public new Script UnmergeBlocks(IMyShipMergeBlock mergeBlock)
+        {
+            base.UnmergeBlocks(mergeBlock);
+            return this;
         }
 
         /// <inheritdoc cref="Script{TProgram}.GetMechanicalConnectionTo"/>

@@ -4,6 +4,7 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SpaceEngineers.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities.Mocks
@@ -24,10 +25,29 @@ namespace MotherCore.Tests.Utilities.Mocks
     /// </remarks>
     internal class FakeGridTerminalSystem : IMyGridTerminalSystem
     {
+        /// <summary>
+        /// Tracks the mutable topology state for one merge-block pair.
+        /// It remembers the original grids, the live block instances, and which
+        /// blocks must be rebound when the pair merges or unmerges.
+        /// </summary>
+        sealed class MergeConnectionRegistration
+        {
+            public IMyCubeGrid BaseGrid;
+            public IMyCubeGrid OtherGrid;
+            public IMyShipMergeBlock BaseBlock;
+            public IMyShipMergeBlock OtherBlock;
+            public IMyCubeGrid SurvivingGrid;
+            public IMyCubeGrid AbsorbedGrid;
+            public HashSet<long> AbsorbedBlockIds = new HashSet<long>();
+            public bool WasPrimaryGridAbsorbed;
+            public bool IsMerged;
+        }
+
         readonly List<IMyTerminalBlock> _blocks = new List<IMyTerminalBlock>();
         readonly List<IMyBlockGroup> _groups = new List<IMyBlockGroup>();
         readonly HashSet<long> _reachableGridIds = new HashSet<long>();
         readonly HashSet<long> _constructGridIds = new HashSet<long>();
+        readonly List<MergeConnectionRegistration> _mergeConnections = new List<MergeConnectionRegistration>();
 
         /// <summary>
         /// Initializes a new in-memory grid terminal system rooted at a single
@@ -70,6 +90,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// </summary>
         /// <param name="gridName">Optional display name for the new grid.</param>
         /// <param name="entityId">Optional entity ID for the new grid.</param>
+        /// <param name="connectionKind">The synthetic mechanical connection type used to attach the new grid.</param>
         /// <returns>
         /// A synthetic <see cref="IMyCubeGrid"/> that is automatically linked back
         /// to <see cref="PrimaryGrid"/> as part of the same construct.
@@ -171,6 +192,109 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
 
         /// <summary>
+        /// Creates a paired merge-block link between two grids.
+        /// Before the blocks lock, the remote grid stays outside the construct.
+        /// When they lock, blocks on the absorbed side are rebound onto the surviving grid.
+        /// When they unlock, those blocks are restored to their original grid.
+        /// </summary>
+        /// <param name="baseGrid">The grid that owns the base-side merge block.</param>
+        /// <param name="otherGrid">The grid that owns the opposite-side merge block.</param>
+        /// <param name="baseMergeBlockName">Optional custom name for the base-side merge block.</param>
+        /// <param name="otherMergeBlockName">Optional custom name for the opposite-side merge block.</param>
+        /// <param name="initialState">The initial merge state to expose for the pair.</param>
+        /// <returns>The merge block registered on <paramref name="baseGrid"/>.</returns>
+        public IMyShipMergeBlock ConnectGridsViaMergeBlock(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseMergeBlockName = null,
+            string otherMergeBlockName = null,
+            MergeState initialState = MergeState.Locked)
+        {
+            if (baseGrid == null)
+                throw new ArgumentNullException(nameof(baseGrid));
+
+            if (otherGrid == null)
+                throw new ArgumentNullException(nameof(otherGrid));
+
+            _reachableGridIds.Add(baseGrid.EntityId);
+            _reachableGridIds.Add(otherGrid.EntityId);
+            _constructGridIds.Add(baseGrid.EntityId);
+
+            var registration = new MergeConnectionRegistration
+            {
+                BaseGrid = baseGrid,
+                OtherGrid = otherGrid,
+            };
+
+            bool baseEnabled;
+            bool otherEnabled;
+            MergeConnectionFactory.ResolveInitialEnabledStates(initialState, out baseEnabled, out otherEnabled);
+
+            IMyShipMergeBlock otherMergeBlock;
+            var baseMergeBlock = MergeConnectionFactory.Create(
+                baseGrid,
+                otherGrid,
+                out otherMergeBlock,
+                onMerged: () => MergeGrids(registration),
+                onUnmerged: () => UnmergeGrids(registration),
+                baseCustomName: baseMergeBlockName,
+                otherCustomName: otherMergeBlockName,
+                baseEnabled: baseEnabled,
+                otherEnabled: otherEnabled);
+
+            registration.BaseBlock = baseMergeBlock;
+            registration.OtherBlock = otherMergeBlock;
+
+            _mergeConnections.Add(registration);
+
+            AddBlock(baseMergeBlock, baseGrid);
+            AddBlock(otherMergeBlock, otherGrid);
+
+            if (initialState == MergeState.Locked)
+                MergeGrids(registration);
+
+            return baseMergeBlock;
+        }
+
+        /// <summary>
+        /// Forces a paired merge-block link into the merged state by enabling both
+        /// sides of the pair. The second enable transition triggers the topology rewrite.
+        /// </summary>
+        /// <param name="mergeBlock">Either side of the merge-block pair to merge.</param>
+        public void MergeBlocks(IMyShipMergeBlock mergeBlock)
+        {
+            var registration = FindMergeConnection(mergeBlock);
+
+            registration.BaseBlock.Enabled = true;
+            registration.OtherBlock.Enabled = true;
+        }
+
+        /// <summary>
+        /// Forces a paired merge-block link into the merged state after verifying that
+        /// both supplied blocks belong to the same merge pair.
+        /// </summary>
+        /// <param name="firstMergeBlock">One side of the merge-block pair.</param>
+        /// <param name="secondMergeBlock">The opposite side of the merge-block pair.</param>
+        /// <returns>None. The call mutates merge state in place.</returns>
+        public void MergeBlocks(IMyShipMergeBlock firstMergeBlock, IMyShipMergeBlock secondMergeBlock)
+        {
+            var registration = FindOrCreateMergeConnection(firstMergeBlock, secondMergeBlock);
+
+            MergeBlocks(registration.BaseBlock);
+        }
+
+        /// <summary>
+        /// Forces a paired merge-block link out of the merged state by disabling the
+        /// supplied side of the pair. The pair then reports an unlocked state.
+        /// </summary>
+        /// <param name="mergeBlock">The side of the merge-block pair to turn off.</param>
+        public void UnmergeBlocks(IMyShipMergeBlock mergeBlock)
+        {
+            FindMergeConnection(mergeBlock);
+            mergeBlock.Enabled = false;
+        }
+
+        /// <summary>
         /// Registers a terminal block with this grid terminal system.
         /// </summary>
         /// <param name="block">The block to register.</param>
@@ -196,6 +320,17 @@ namespace MotherCore.Tests.Utilities.Mocks
                 throw new ArgumentNullException(nameof(block));
 
             var targetGrid = grid ?? block.CubeGrid ?? PrimaryGrid;
+            var mergedRegistration = _mergeConnections.FirstOrDefault(connection =>
+                connection.IsMerged
+                && connection.AbsorbedGrid != null
+                && targetGrid != null
+                && connection.AbsorbedGrid.EntityId == targetGrid.EntityId);
+
+            if (mergedRegistration != null)
+            {
+                mergedRegistration.AbsorbedBlockIds.Add(block.EntityId);
+                targetGrid = mergedRegistration.SurvivingGrid;
+            }
 
             if (!TerminalBlockFactory.TryAssignCubeGrid(block, targetGrid))
             {
@@ -416,6 +551,225 @@ namespace MotherCore.Tests.Utilities.Mocks
             }
 
             TerminalBlockFactory.TryAssignSameConstructEvaluator(block, evaluator);
+        }
+
+        /// <summary>
+        /// Finds the registered merge-pair state that owns the supplied merge block.
+        /// </summary>
+        /// <param name="mergeBlock">One side of a registered merge-block pair.</param>
+        /// <returns>The matching merge registration.</returns>
+        MergeConnectionRegistration FindMergeConnection(IMyShipMergeBlock mergeBlock)
+        {
+            if (mergeBlock == null)
+                throw new ArgumentNullException(nameof(mergeBlock));
+
+            var registration = _mergeConnections.FirstOrDefault(connection =>
+                connection.BaseBlock?.EntityId == mergeBlock.EntityId
+                || connection.OtherBlock?.EntityId == mergeBlock.EntityId);
+
+            if (registration == null)
+            {
+                throw new InvalidOperationException(
+                    "The supplied merge block is not registered with this fake grid terminal system.");
+            }
+
+            return registration;
+        }
+
+        /// <summary>
+        /// Finds an existing merge registration for the supplied blocks, or creates one
+        /// lazily when two standalone merge blocks are merged for the first time.
+        /// </summary>
+        /// <param name="firstMergeBlock">One side of the merge-block pair.</param>
+        /// <param name="secondMergeBlock">The opposite side of the merge-block pair.</param>
+        /// <returns>The existing or newly created merge registration.</returns>
+        MergeConnectionRegistration FindOrCreateMergeConnection(
+            IMyShipMergeBlock firstMergeBlock,
+            IMyShipMergeBlock secondMergeBlock)
+        {
+            if (firstMergeBlock == null)
+                throw new ArgumentNullException(nameof(firstMergeBlock));
+
+            if (secondMergeBlock == null)
+                throw new ArgumentNullException(nameof(secondMergeBlock));
+
+            if (firstMergeBlock.EntityId == secondMergeBlock.EntityId)
+            {
+                throw new InvalidOperationException(
+                    "A merge pair requires two distinct merge blocks.");
+            }
+
+            var existingRegistration = _mergeConnections.FirstOrDefault(connection =>
+                connection.BaseBlock?.EntityId == firstMergeBlock.EntityId
+                || connection.OtherBlock?.EntityId == firstMergeBlock.EntityId
+                || connection.BaseBlock?.EntityId == secondMergeBlock.EntityId
+                || connection.OtherBlock?.EntityId == secondMergeBlock.EntityId);
+
+            if (existingRegistration != null)
+            {
+                if ((existingRegistration.BaseBlock?.EntityId != firstMergeBlock.EntityId
+                        && existingRegistration.OtherBlock?.EntityId != firstMergeBlock.EntityId)
+                    || (existingRegistration.BaseBlock?.EntityId != secondMergeBlock.EntityId
+                        && existingRegistration.OtherBlock?.EntityId != secondMergeBlock.EntityId))
+                {
+                    throw new InvalidOperationException(
+                        "The supplied merge blocks do not belong to the same merge pair.");
+                }
+
+                return existingRegistration;
+            }
+
+            if (firstMergeBlock.CubeGrid == null || secondMergeBlock.CubeGrid == null)
+            {
+                throw new InvalidOperationException(
+                    "Both merge blocks must be assigned to grids before they can be merged.");
+            }
+
+            var registration = new MergeConnectionRegistration
+            {
+                BaseGrid = firstMergeBlock.CubeGrid,
+                OtherGrid = secondMergeBlock.CubeGrid,
+                BaseBlock = firstMergeBlock,
+                OtherBlock = secondMergeBlock,
+            };
+
+            _reachableGridIds.Add(registration.BaseGrid.EntityId);
+            _reachableGridIds.Add(registration.OtherGrid.EntityId);
+            _constructGridIds.Add(registration.BaseGrid.EntityId);
+
+            MergeConnectionFactory.Configure(
+                registration.BaseBlock,
+                registration.OtherBlock,
+                onMerged: () => MergeGrids(registration),
+                onUnmerged: () => UnmergeGrids(registration),
+                baseEnabled: false,
+                otherEnabled: true);
+
+            _mergeConnections.Add(registration);
+            RebuildTopologyState();
+
+            return registration;
+        }
+
+        /// <summary>
+        /// Gets the opposite side of a registered merge-block pair.
+        /// </summary>
+        /// <param name="mergeBlock">One side of the merge-block pair.</param>
+        /// <returns>The paired merge block on the opposite grid.</returns>
+        public IMyShipMergeBlock GetPairedMergeBlock(IMyShipMergeBlock mergeBlock)
+        {
+            var registration = FindMergeConnection(mergeBlock);
+
+            return registration.BaseBlock?.EntityId == mergeBlock.EntityId
+                ? registration.OtherBlock
+                : registration.BaseBlock;
+        }
+
+            /// <summary>
+            /// Rewrites all absorbed-grid blocks onto the surviving grid for a merge pair
+            /// and rebuilds reachability and construct state afterwards.
+            /// </summary>
+            /// <param name="registration">The merge registration entering the merged state.</param>
+        void MergeGrids(MergeConnectionRegistration registration)
+        {
+            if (registration == null || registration.IsMerged)
+                return;
+
+            var currentBaseGrid = registration.BaseBlock?.CubeGrid ?? registration.BaseGrid;
+            var currentOtherGrid = registration.OtherBlock?.CubeGrid ?? registration.OtherGrid;
+
+            registration.SurvivingGrid = currentBaseGrid;
+
+            registration.AbsorbedGrid = registration.SurvivingGrid.EntityId == currentBaseGrid.EntityId
+                ? currentOtherGrid
+                : currentBaseGrid;
+
+            registration.WasPrimaryGridAbsorbed = PrimaryGrid != null
+                && PrimaryGrid.EntityId == registration.AbsorbedGrid.EntityId;
+
+            registration.AbsorbedBlockIds = new HashSet<long>(_blocks
+                .Where(block => block.CubeGrid != null && block.CubeGrid.EntityId == registration.AbsorbedGrid.EntityId)
+                .Select(block => block.EntityId));
+
+            foreach (var block in _blocks.Where(block => registration.AbsorbedBlockIds.Contains(block.EntityId)))
+                TerminalBlockFactory.TryAssignCubeGrid(block, registration.SurvivingGrid);
+
+            if (registration.WasPrimaryGridAbsorbed)
+                PrimaryGrid = registration.SurvivingGrid;
+
+            registration.IsMerged = true;
+            RebuildTopologyState();
+        }
+
+        /// <summary>
+        /// Restores absorbed-grid blocks back to their original grid for a merge pair
+        /// and rebuilds reachability and construct state afterwards.
+        /// </summary>
+        /// <param name="registration">The merge registration leaving the merged state.</param>
+        void UnmergeGrids(MergeConnectionRegistration registration)
+        {
+            if (registration == null || !registration.IsMerged)
+                return;
+
+            foreach (var block in _blocks.Where(block => registration.AbsorbedBlockIds.Contains(block.EntityId)))
+                TerminalBlockFactory.TryAssignCubeGrid(block, registration.AbsorbedGrid);
+
+            if (registration.WasPrimaryGridAbsorbed)
+                PrimaryGrid = registration.AbsorbedGrid;
+
+            registration.IsMerged = false;
+            RebuildTopologyState();
+        }
+
+        /// <summary>
+        /// Recomputes reachable grids, construct membership, primary-grid ownership,
+        /// and per-block same-construct evaluators from the currently registered blocks.
+        /// </summary>
+        void RebuildTopologyState()
+        {
+            _reachableGridIds.Clear();
+
+            foreach (var block in _blocks)
+            {
+                if (block.CubeGrid != null)
+                    _reachableGridIds.Add(block.CubeGrid.EntityId);
+
+                var mechanicalBlock = block as IMyMechanicalConnectionBlock;
+                if (mechanicalBlock?.TopGrid != null)
+                    _reachableGridIds.Add(mechanicalBlock.TopGrid.EntityId);
+            }
+
+            var programmableBlock = _blocks.OfType<IMyProgrammableBlock>().FirstOrDefault();
+            if (programmableBlock?.CubeGrid != null)
+                PrimaryGrid = programmableBlock.CubeGrid;
+
+            _constructGridIds.Clear();
+            if (PrimaryGrid != null)
+            {
+                var pendingGridIds = new Queue<long>();
+                pendingGridIds.Enqueue(PrimaryGrid.EntityId);
+
+                while (pendingGridIds.Count > 0)
+                {
+                    var gridId = pendingGridIds.Dequeue();
+                    if (!_constructGridIds.Add(gridId))
+                        continue;
+
+                    foreach (var connection in _blocks
+                        .OfType<IMyMechanicalConnectionBlock>()
+                        .Where(block => block.IsAttached && block.CubeGrid != null && block.TopGrid != null))
+                    {
+                        if (connection.CubeGrid.EntityId == gridId)
+                            pendingGridIds.Enqueue(connection.TopGrid.EntityId);
+
+                        if (connection.TopGrid.EntityId == gridId)
+                            pendingGridIds.Enqueue(connection.CubeGrid.EntityId);
+                    }
+                }
+            }
+
+            foreach (var block in _blocks)
+                AssignSameConstructEvaluator(block);
         }
     }
 }

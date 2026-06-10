@@ -10,6 +10,7 @@ namespace MotherCore.Tests.Utilities.Mocks
     public class CommandSpy : BaseModuleCommand, IInvocationObserver
     {
         static int _globalCallIndex = 0;
+        readonly System.Func<TerminalCommand, string> _execute;
 
         /// <summary>
         /// The name used to match this command when it is dispatched by the <see cref="CommandBus"/>.
@@ -36,9 +37,10 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// Initializes a new <see cref="CommandSpy"/> with an optional command name.
         /// </summary>
         /// <param name="name">The command name to register under. Defaults to <c>"track"</c>.</param>
-        public CommandSpy(string name = "track")
+        public CommandSpy(string name = "track", System.Func<TerminalCommand, string> execute = null)
         {
             CommandName = name;
+            _execute = execute;
         }
 
         /// <summary>
@@ -51,7 +53,9 @@ namespace MotherCore.Tests.Utilities.Mocks
         {
             ExecutionCount++;
             ExecutionOrder.Add(++_globalCallIndex);
-            return "";
+            return _execute != null
+                ? _execute(command) ?? string.Empty
+                : string.Empty;
         }
 
         /// <summary>

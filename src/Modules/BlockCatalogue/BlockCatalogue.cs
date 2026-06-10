@@ -1142,6 +1142,14 @@ namespace IngameScript
                     yield return t;
             }
 
+            // Merge events can rebind blocks onto an already-known surviving grid.
+            // In that case there may be no added grid IDs even though new block
+            // entity IDs have become part of the construct, so sweep the whole
+            // construct once to pick up any missing blocks without duplicating ones
+            // we already track.
+            foreach (var t in AddBlocksFromGridsCoroutine(newConstructGridIds))
+                yield return t;
+
             LoadBlockGroups();
             _constructRefreshPending = false;
             Emit<ConstructRefreshedEvent>();

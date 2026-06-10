@@ -4,7 +4,9 @@ using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Mocks;
 using MotherCore.Tests.Utilities.Factories;
 using Sandbox.ModAPI.Ingame;
+using SpaceEngineers.Game.ModAPI.Ingame;
 using System.Linq;
+using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Harness
 {
@@ -271,6 +273,69 @@ namespace MotherCore.Tests.Harness
             Assert.That(dock.IsSameConstructAs(carrierBattery), Is.True);
             Assert.That(dock.OtherConnector.IsSameConstructAs(carrierBattery), Is.False);
             Assert.That(shuttleBattery.IsSameConstructAs(carrierBattery), Is.False);
+        }
+
+        [Test]
+        public void ConnectGridsViaMergeBlock_When_Locked_Rewrites_Blocks_Onto_One_Grid()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var cargoGrid = world.CreateGrid("Cargo Pod");
+            var carrierMerge = carrierGrid.AddBlock(
+                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Carrier Merge")
+            );
+            var cargoMerge = cargoGrid.AddBlock(
+                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Cargo Merge")
+            );
+
+            var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(cargoGrid.Grid.EntityId));
+            Assert.That(cargoMerge.IsSameConstructAs(carrierMerge), Is.False);
+
+            world.Merge(carrierMerge, cargoMerge);
+
+            Assert.That(carrierMerge.State, Is.EqualTo(MergeState.Locked));
+            Assert.That(cargoMerge.State, Is.EqualTo(MergeState.Locked));
+            Assert.That(carrierMerge.Enabled, Is.True);
+            Assert.That(cargoMerge.Enabled, Is.True);
+            Assert.That(cargoMerge.IsSameConstructAs(carrierMerge), Is.True);
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(carrierMerge.CubeGrid.EntityId));
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.Not.EqualTo(cargoGrid.Grid.EntityId));
+            Assert.That(script.PrimaryGrid.EntityId, Is.EqualTo(script.Program.Me.CubeGrid.EntityId));
+        }
+
+        [Test]
+        public void ConnectGridsViaMergeBlock_When_Unlocked_Restores_Separate_Grid_References()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var cargoGrid = world.CreateGrid("Cargo Pod");
+
+            var carrierMerge = carrierGrid.AddBlock(
+                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Carrier Merge"));
+            var cargoMerge = cargoGrid.AddBlock(
+                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Cargo Merge"));
+
+            var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+            world.Merge(carrierMerge, cargoMerge);
+
+            // assert grids are connected in a single grid
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(carrierMerge.CubeGrid.EntityId));
+
+            world.Unmerge(carrierMerge);
+
+            // assert one of the two merge blocks has forced an unmerge
+            Assert.That(carrierMerge.State, Is.EqualTo(MergeState.None));
+            Assert.That(cargoMerge.State, Is.EqualTo(MergeState.Working));
+            Assert.That(carrierMerge.Enabled, Is.False);
+            Assert.That(cargoMerge.Enabled, Is.True);
+
+            // assert that grids are not completely separate in game world.
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(cargoGrid.Grid.EntityId));
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.Not.EqualTo(carrierMerge.CubeGrid.EntityId));
+            Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(cargoGrid.Grid.EntityId));
+            Assert.That(script.Program.Me.CubeGrid.EntityId, Is.EqualTo(script.PrimaryGrid.EntityId));
         }
 
         [Test]

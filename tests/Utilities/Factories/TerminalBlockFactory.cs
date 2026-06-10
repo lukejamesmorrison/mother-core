@@ -20,6 +20,7 @@ namespace MotherCore.Tests.Utilities.Factories
             public string CustomName;
             public IMyCubeGrid CubeGrid;
             public long EntityId;
+            public bool Enabled = true;
             public bool IsFunctional = true;
             public bool IsWorking = true;
             public bool Closed;
@@ -122,6 +123,15 @@ namespace MotherCore.Tests.Utilities.Factories
                         && other.CubeGrid != null
                         && state.CubeGrid.EntityId == other.CubeGrid.EntityId;
                 });
+
+                    var functionalBlock = block as IMyFunctionalBlock;
+
+                    if (functionalBlock != null)
+                    {
+                    A.CallTo(() => functionalBlock.Enabled).ReturnsLazily(() => state.Enabled);
+                    A.CallToSet(() => functionalBlock.Enabled)
+                        .Invokes((bool value) => state.Enabled = value);
+                    }
         }
 
         static long CreateEntityId()
