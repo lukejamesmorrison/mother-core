@@ -655,7 +655,7 @@ namespace IngameScript
         /// state) is intentionally excluded here and is the responsibility of the
         /// script that owns autopilot (e.g. MotherAutopilotSystem).
         /// </summary>
-    void LoadShipController()
+        void LoadShipController()
         {
 
             Mother.ShipController = TerminalBlocks.OfType<IMyShipController>()
