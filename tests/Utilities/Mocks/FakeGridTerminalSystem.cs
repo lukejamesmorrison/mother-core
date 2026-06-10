@@ -26,7 +26,8 @@ namespace MotherCore.Tests.Utilities.Mocks
     {
         readonly List<IMyTerminalBlock> _blocks = new List<IMyTerminalBlock>();
         readonly List<IMyBlockGroup> _groups = new List<IMyBlockGroup>();
-        readonly HashSet<long> _connectedGridIds = new HashSet<long>();
+        readonly HashSet<long> _reachableGridIds = new HashSet<long>();
+        readonly HashSet<long> _constructGridIds = new HashSet<long>();
 
         /// <summary>
         /// Initializes a new in-memory grid terminal system rooted at a single
@@ -53,7 +54,8 @@ namespace MotherCore.Tests.Utilities.Mocks
             PrimaryGrid = primaryGrid 
                 ?? throw new ArgumentNullException(nameof(primaryGrid));
 
-            _connectedGridIds.Add(PrimaryGrid.EntityId);
+            _reachableGridIds.Add(PrimaryGrid.EntityId);
+            _constructGridIds.Add(PrimaryGrid.EntityId);
         }
 
         /// <summary>
@@ -78,7 +80,7 @@ namespace MotherCore.Tests.Utilities.Mocks
             MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
         {
             var grid = GridFactory.Create(
-                gridName ?? $"Grid-{_connectedGridIds.Count + 1}",
+                gridName ?? $"Grid-{_reachableGridIds.Count + 1}",
                 entityId);
 
             ConnectGrids(PrimaryGrid, grid, connectionKind);
@@ -115,13 +117,57 @@ namespace MotherCore.Tests.Utilities.Mocks
             if (existingConnection != null)
                 return existingConnection;
 
-            _connectedGridIds.Add(baseGrid.EntityId);
-            _connectedGridIds.Add(topGrid.EntityId);
+            _reachableGridIds.Add(baseGrid.EntityId);
+            _reachableGridIds.Add(topGrid.EntityId);
+            _constructGridIds.Add(baseGrid.EntityId);
+            _constructGridIds.Add(topGrid.EntityId);
 
             var connection = MechanicalConnectionFactory.Create(connectionKind, baseGrid, topGrid);
             AddBlock(connection, baseGrid);
 
             return connection;
+        }
+
+        /// <summary>
+        /// Creates a paired connector link between two grids while keeping them as
+        /// separate constructs for <see cref="IMyTerminalBlock.IsSameConstructAs(IMyTerminalBlock)"/>.
+        /// </summary>
+        /// <param name="baseGrid">The grid that owns the primary connector.</param>
+        /// <param name="otherGrid">The grid that owns the paired connector.</param>
+        /// <param name="baseConnectorName">Optional custom name for the base-grid connector.</param>
+        /// <param name="otherConnectorName">Optional custom name for the other-grid connector.</param>
+        /// <param name="initialStatus">The initial shared connector status.</param>
+        /// <returns>The connector registered on <paramref name="baseGrid"/>.</returns>
+        public IMyShipConnector ConnectGridsViaConnector(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseConnectorName = null,
+            string otherConnectorName = null,
+            MyShipConnectorStatus initialStatus = MyShipConnectorStatus.Connected)
+        {
+            if (baseGrid == null)
+                throw new ArgumentNullException(nameof(baseGrid));
+
+            if (otherGrid == null)
+                throw new ArgumentNullException(nameof(otherGrid));
+
+            _reachableGridIds.Add(baseGrid.EntityId);
+            _reachableGridIds.Add(otherGrid.EntityId);
+            _constructGridIds.Add(baseGrid.EntityId);
+
+            IMyShipConnector otherConnector;
+            var baseConnector = ConnectorConnectionFactory.Create(
+                baseGrid,
+                otherGrid,
+                out otherConnector,
+                baseConnectorName,
+                otherConnectorName,
+                initialStatus);
+
+            AddBlock(baseConnector, baseGrid);
+            AddBlock(otherConnector, otherGrid);
+
+            return baseConnector;
         }
 
         /// <summary>
@@ -158,7 +204,7 @@ namespace MotherCore.Tests.Utilities.Mocks
                     "Create blocks with TerminalBlockFactory.Create<TBlock>() or provide a block with CubeGrid already configured.");
             }
 
-            EnsureConnectedToPrimary(targetGrid);
+            EnsureReachableFromPrimary(targetGrid);
 
             AssignSameConstructEvaluator(block);
 
@@ -338,9 +384,9 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// grid by inserting a synthetic mechanical connection block.
         /// </summary>
         /// <param name="grid">The grid that should become part of the construct.</param>
-        void EnsureConnectedToPrimary(IMyCubeGrid grid)
+        void EnsureReachableFromPrimary(IMyCubeGrid grid)
         {
-            if (grid == null || grid.EntityId == PrimaryGrid.EntityId || _connectedGridIds.Contains(grid.EntityId))
+            if (grid == null || grid.EntityId == PrimaryGrid.EntityId || _reachableGridIds.Contains(grid.EntityId))
                 return;
 
             ConnectGrids(PrimaryGrid, grid, MechanicalConnectionKind.Rotor);
@@ -358,8 +404,8 @@ namespace MotherCore.Tests.Utilities.Mocks
                 other != null
                 && block.CubeGrid != null
                 && other.CubeGrid != null
-                && _connectedGridIds.Contains(block.CubeGrid.EntityId)
-                && _connectedGridIds.Contains(other.CubeGrid.EntityId);
+                && _constructGridIds.Contains(block.CubeGrid.EntityId)
+                && _constructGridIds.Contains(other.CubeGrid.EntityId);
 
             FakeProgrammableBlock programmableBlock = block as FakeProgrammableBlock;
 

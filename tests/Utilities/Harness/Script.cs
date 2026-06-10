@@ -271,6 +271,24 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Connects two grids with a paired connector link without making them the same construct.
+        /// </summary>
+        public IMyShipConnector ConnectGridsViaConnector(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseConnectorName = null,
+            string otherConnectorName = null,
+            MyShipConnectorStatus initialStatus = MyShipConnectorStatus.Connected)
+        {
+            return _gridTerminalSystem.ConnectGridsViaConnector(
+                baseGrid,
+                otherGrid,
+                baseConnectorName,
+                otherConnectorName,
+                initialStatus);
+        }
+
+        /// <summary>
         /// Finds the mechanical connection whose top grid matches <paramref name="topGrid"/>.
         /// This keeps individual tests from querying the grid terminal system directly.
         /// </summary>
@@ -605,6 +623,22 @@ namespace MotherCore.Tests.Utilities
             MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
         {
             return base.ConnectGrids(baseGrid, topGrid, connectionKind);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ConnectGridsViaConnector"/>
+        public new IMyShipConnector ConnectGridsViaConnector(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseConnectorName = null,
+            string otherConnectorName = null,
+            MyShipConnectorStatus initialStatus = MyShipConnectorStatus.Connected)
+        {
+            return base.ConnectGridsViaConnector(
+                baseGrid,
+                otherGrid,
+                baseConnectorName,
+                otherConnectorName,
+                initialStatus);
         }
 
         /// <inheritdoc cref="Script{TProgram}.GetMechanicalConnectionTo"/>

@@ -242,6 +242,7 @@ Today, `Script<TProgram>` exposes this fluent surface:
 - `WithCustomData(string customData)`
 - `CreateGrid(string name = null, long? entityId = null, MechanicalConnectionKind connectionKind = Rotor)`
 - `ConnectGrids(IMyCubeGrid baseGrid, IMyCubeGrid topGrid, MechanicalConnectionKind connectionKind = Rotor)`
+- `ConnectGridsViaConnector(IMyCubeGrid baseGrid, IMyCubeGrid otherGrid, string baseConnectorName = null, string otherConnectorName = null, MyShipConnectorStatus initialStatus = Connected)`
 - `WithBlock(IMyTerminalBlock block, IMyCubeGrid grid = null)`
 - `WithBlocks(params IMyTerminalBlock[] blocks)`
 - `WithBlockGroup(string groupName, params IMyTerminalBlock[] blocks)`
@@ -745,7 +746,7 @@ This plan reflects the current MotherCore source and the executable suite as it 
 - [x] Add integration coverage for `Modules/LocalStorage`.
     Covered set, get, clear, boot from `Program.Storage`, save-data serialization, and the `set` and `get` commands through the script harness.
 
-- [ ] Add module boot and event coverage for `ConnectorModule`, `MechanicalBlockModule`, and `MergeBlockModule`.
+- [ ] Add module boot and event coverage for [x] `ConnectorModule`, [x] `MechanicalBlockModule`, and `MergeBlockModule`.
     Reuse the test patterns documented in `Tests/README.md`: verify command registration, event subscription, state-transition behavior, and deferred hook behavior after construct refresh.
 
 - [x] Add focused integration coverage for `BlockCatalogue`.

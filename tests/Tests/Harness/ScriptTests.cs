@@ -52,19 +52,19 @@ namespace MotherCore.Tests.Harness
         }
 
         [Test]
-        public void Boot_Exposes_A_Non_Null_Mother()
+        public void Boot_Exposes_A_Non_Null_GridTerminalSystem()
         {
             var script = new Script().Boot();
 
-            Assert.That(script.Mother, Is.Not.Null);
+            Assert.That(script.GridTerminalSystem, Is.Not.Null);
         }
 
         [Test]
-        public void Boot_Reaches_Working_System_State()
+        public void Boot_Binds_The_Program_To_The_Harness_GridTerminalSystem()
         {
             var script = new Script().Boot();
 
-            Assert.That(script.Mother.SystemState, Is.EqualTo(Mother.SystemStates.WORKING));
+            Assert.That(script.Program.GridTerminalSystem, Is.SameAs(script.GridTerminalSystem));
         }
 
         [Test]
@@ -73,9 +73,9 @@ namespace MotherCore.Tests.Harness
             var grid = GridFactory.Create("Carrier Grid");
             var script = new Script(grid).Boot();
 
-            Assert.That(script.Mother.SystemState, Is.EqualTo(Mother.SystemStates.WORKING));
             Assert.That(script.PrimaryGrid, Is.SameAs(grid));
-            Assert.That(script.Mother.ProgrammableBlock.CubeGrid, Is.SameAs(grid));
+            Assert.That(script.Program.Me.CubeGrid, Is.SameAs(grid));
+            Assert.That(script.Program.GridTerminalSystem, Is.SameAs(script.GridTerminalSystem));
         }
 
         // =====================================================================
@@ -83,15 +83,18 @@ namespace MotherCore.Tests.Harness
         // =====================================================================
 
         [Test]
-        public void WithCustomData_Makes_Config_Command_Available_After_Boot()
+        public void WithCustomData_Assigns_CustomData_To_The_Programmable_Block_Before_Boot()
         {
+            var customData = new CustomDataComposer()
+                .WithCommand("openDoor", "track")
+                .Build();
+
             var script = new Script()
-                .WithCustomData(new CustomDataComposer()
-                    .WithCommand("openDoor", "track")
-                    .Build())
+                .WithCustomData(customData)
                 .Boot();
 
-            Assert.That(script.Mother.ConfigCommands.Keys, Contains.Item("openDoor"));
+            Assert.That(script.Program.Me.CustomData, Does.Contain("[commands]"));
+            Assert.That(script.Program.Me.CustomData, Does.Contain("openDoor=track"));
         }
 
         // =====================================================================
@@ -130,7 +133,7 @@ namespace MotherCore.Tests.Harness
         // =====================================================================
 
         [Test]
-        public void WithBlock_Makes_Block_Available_To_BlockCatalogue()
+        public void WithBlock_Registers_Block_In_GridTerminalSystem()
         {
             var connector = TerminalBlockFactory.Create<IMyShipConnector>(customName: "Dock A");
 
@@ -138,33 +141,28 @@ namespace MotherCore.Tests.Harness
                 .WithBlock(connector)
                 .Boot();
 
-            var catalogue = script.Mother.GetModule<BlockCatalogue>();
-            var blocks = catalogue.GetBlocksByName<IMyShipConnector>("Dock A");
-
-            Assert.That(blocks, Has.Count.EqualTo(1));
-            Assert.That(blocks[0], Is.SameAs(connector));
+            Assert.That(script.GridTerminalSystem.GetBlockWithName("Dock A"), Is.SameAs(connector));
         }
 
         [Test]
-        public void CreateGrid_And_WithBlock_Build_A_MultiGrid_Construct_For_BlockCatalogue()
+        public void CreateGrid_And_WithBlock_Make_A_Subgrid_Block_Reachable_And_SameConstruct()
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
+            var carrierBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Carrier Battery");
             var script = new Script("Carrier")
                 .WithGrid(cargoGrid);
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            script.WithBlock(battery, cargoGrid)
+            script.WithBlock(carrierBattery)
+                .WithBlock(battery, cargoGrid)
                 .Boot();
 
-            var catalogue = script.Mother.GetModule<BlockCatalogue>();
-            var blocks = catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery");
+            var reachableBatteries = new System.Collections.Generic.List<IMyBatteryBlock>();
+            script.GridTerminalSystem.GetBlocksOfType(reachableBatteries);
 
-            Assert.That(catalogue.ConstructGridIds, Has.Count.EqualTo(2));
-            Assert.That(catalogue.ConstructGridIds, Contains.Item(script.PrimaryGrid.EntityId));
-            Assert.That(catalogue.ConstructGridIds, Contains.Item(cargoGrid.EntityId));
-            Assert.That(blocks, Has.Count.EqualTo(1));
-            Assert.That(blocks[0], Is.SameAs(battery));
-            Assert.That(battery.IsSameConstructAs(script.Mother.ProgrammableBlock), Is.True);
+            Assert.That(reachableBatteries, Contains.Item(carrierBattery));
+            Assert.That(reachableBatteries, Contains.Item(battery));
+            Assert.That(battery.IsSameConstructAs(carrierBattery), Is.True);
         }
 
         [Test]
@@ -196,11 +194,9 @@ namespace MotherCore.Tests.Harness
 
             var piston = script.GetMechanicalConnectionTo(cargoGrid) as IMyPistonBase;
 
-            var catalogue = script.Mother.GetModule<BlockCatalogue>();
-
             Assert.That(piston, Is.Not.Null);
             Assert.That(piston.TopGrid.EntityId, Is.EqualTo(cargoGrid.EntityId));
-            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Has.Count.EqualTo(1));
+            Assert.That(script.GridTerminalSystem.GetBlockWithName("Cargo Battery"), Is.SameAs(battery));
         }
 
         [Test]
@@ -227,7 +223,7 @@ namespace MotherCore.Tests.Harness
                 .Boot();
 
             var mechanicalBlocks = new System.Collections.Generic.List<IMyMechanicalConnectionBlock>();
-            script.Mother.GridTerminalSystem.GetBlocksOfType(mechanicalBlocks);
+            script.GridTerminalSystem.GetBlocksOfType(mechanicalBlocks);
 
             Assert.That(mechanicalBlocks, Has.Count.EqualTo(1));
             Assert.That(mechanicalBlocks[0].TopGrid.CustomName, Is.EqualTo("Cargo Pod"));
@@ -249,7 +245,36 @@ namespace MotherCore.Tests.Harness
         }
 
         [Test]
-        public void WithBlockGroup_Makes_Group_Available_To_BlockCatalogue()
+        public void ConnectGridsViaConnector_Keeps_The_Connected_Grid_Out_Of_The_Construct()
+        {
+            var shuttleGrid = GridFactory.Create("Shuttle");
+            var carrierBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Carrier Battery");
+            var shuttleBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Shuttle Battery");
+
+            var script = new Script("Carrier");
+            var dock = script.ConnectGridsViaConnector(
+                script.PrimaryGrid,
+                shuttleGrid,
+                baseConnectorName: "Carrier Dock",
+                otherConnectorName: "Shuttle Dock");
+
+            script.WithBlock(carrierBattery)
+                .WithBlock(shuttleBattery, shuttleGrid)
+                .Boot();
+
+            var mechanicalBlocks = new System.Collections.Generic.List<IMyMechanicalConnectionBlock>();
+            script.GridTerminalSystem.GetBlocksOfType(mechanicalBlocks);
+
+            Assert.That(dock.OtherConnector, Is.Not.Null);
+            Assert.That(dock.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
+            Assert.That(mechanicalBlocks, Is.Empty);
+            Assert.That(dock.IsSameConstructAs(carrierBattery), Is.True);
+            Assert.That(dock.OtherConnector.IsSameConstructAs(carrierBattery), Is.False);
+            Assert.That(shuttleBattery.IsSameConstructAs(carrierBattery), Is.False);
+        }
+
+        [Test]
+        public void WithBlockGroup_Registers_The_Group_In_GridTerminalSystem()
         {
             var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
             var rightDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Right Door");
@@ -259,8 +284,9 @@ namespace MotherCore.Tests.Harness
                 .WithBlockGroup("Airlocks", leftDoor, rightDoor)
                 .Boot();
 
-            var catalogue = script.Mother.GetModule<BlockCatalogue>();
-            var blocks = catalogue.GetBlocksByName<IMyDoor>("Airlocks");
+            var group = script.GridTerminalSystem.GetBlockGroupWithName("Airlocks");
+            var blocks = new System.Collections.Generic.List<IMyDoor>();
+            group.GetBlocksOfType(blocks);
 
             Assert.That(blocks.Select(block => block.CustomName).ToList(),
                 Is.EquivalentTo(new[] { "Left Door", "Right Door" }));
@@ -350,9 +376,7 @@ namespace MotherCore.Tests.Harness
         {
             var script = new Script().Boot();
 
-            // Terminal.Echo() calls Program.Echo() directly, which PrintCapture intercepts.
-            // Mother.Print() routes through Terminal.Print() (a buffer), not through Echo.
-            script.Mother.GetModule<Terminal>().Echo("hello from test");
+            script.Program.Echo("hello from test");
 
             Assert.That(script.CaptureEcho().Contains("hello from test"), Is.True);
         }
@@ -371,7 +395,7 @@ namespace MotherCore.Tests.Harness
         {
             var script = new Script().Boot();
             
-            script.Mother.GetModule<Terminal>().Echo("expected output");
+            script.Program.Echo("expected output");
 
             Assert.DoesNotThrow(() => script.AssertPrinted("expected output"));
         }
