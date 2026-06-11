@@ -1078,7 +1078,7 @@ Impact:
 
 This plan prioritizes correctness and ergonomics before breadth.
 
-### Phase A: Transport correctness and observability (short-term)
+### [x] Phase A: Transport correctness and observability (short-term)
 
 1. Fix `FakeBroadcastListener` enforcement.
     - Gate `FakeIgc.EnqueueBroadcast(...)` on `listener.IsActive`.
@@ -1197,7 +1197,7 @@ Exit criteria:
 
 | Feature | Status | Notes |
 |---|---|---|
-| `AllocateEndpoint()` | ✅ Done | Creates `FakeIgc` on the network |
+| `CreateNetworkEndpoint()` | ✅ Done | Creates `FakeIgc` on the network |
 | `RegisterSession(session, name)` | ✅ Done | Cross-populates Almanac on boot |
 | `Deliver()` | ✅ Done | Routes pending messages + triggers IGC processing |
 | `SentMessages` | ✅ Done | Capture list for lightweight assertions |

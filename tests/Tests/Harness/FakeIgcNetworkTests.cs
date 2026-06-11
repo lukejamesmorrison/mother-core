@@ -210,6 +210,103 @@ namespace MotherCore.Tests.Harness
         }
 
         // =====================================================================
+        // Broadcast listener enforcement and transport drops
+        // =====================================================================
+
+        [Test]
+        public void Disabled_Broadcast_Listener_Does_Not_Receive_New_Messages()
+        {
+            var network = new FakeIgcNetwork();
+            var sender = network.CreateNetworkEndpoint();
+            var receiver = network.CreateNetworkEndpoint();
+
+            var listener = receiver.RegisterBroadcastListener("alerts");
+            receiver.DisableBroadcastListener(listener);
+
+            sender.SendBroadcastMessage("alerts", "ping");
+            network.Deliver();
+
+            Assert.That(listener.HasPendingMessage, Is.False);
+
+            network.ShouldHaveDroppedMessage(
+                FakeIgcNetwork.DroppedMessageReason.DisabledListener,
+                sender.Me,
+                receiver.Me,
+                "alerts");
+        }
+
+        [Test]
+        public void ReRegistering_A_Broadcast_Listener_ReEnables_It()
+        {
+            var network = new FakeIgcNetwork();
+            var sender = network.CreateNetworkEndpoint();
+            var receiver = network.CreateNetworkEndpoint();
+
+            // register
+            var listener = receiver.RegisterBroadcastListener("alerts");
+            receiver.DisableBroadcastListener(listener);
+
+            // unregister
+            listener = receiver.RegisterBroadcastListener("alerts");
+
+            // re-register
+            sender.SendBroadcastMessage("alerts", "ping");
+            network.Deliver();
+
+            Assert.That(listener.HasPendingMessage, Is.True);
+            Assert.That(listener.AcceptMessage().Data, Is.EqualTo("ping"));
+        }
+
+        [Test]
+        public void Deliver_Tracks_Dropped_Unicast_For_Unknown_Endpoint()
+        {
+            var network = new FakeIgcNetwork();
+            var sender = network.CreateNetworkEndpoint();
+
+            sender.SendUnicastMessage(999_999_999_999L, "status", "ping");
+            network.Deliver();
+
+            network.ShouldHaveDroppedMessage(
+                FakeIgcNetwork.DroppedMessageReason.UnknownEndpoint,
+                sender.Me,
+                999_999_999_999L,
+                "status");
+        }
+
+        [Test]
+        public void Empty_Or_Whitespace_Tag_Is_Tracked_As_InvalidTag()
+        {
+            var network = new FakeIgcNetwork();
+            var sender = network.CreateNetworkEndpoint();
+            var receiver = network.CreateNetworkEndpoint();
+
+            sender.SendUnicastMessage(receiver.Me, " ", "ping");
+            sender.SendBroadcastMessage("", "ping");
+
+            Assert.That(network.SentMessages.Count, Is.EqualTo(0));
+            Assert.That(network.DroppedMessages.Count, Is.EqualTo(2));
+
+            network.ShouldHaveDroppedMessage(FakeIgcNetwork.DroppedMessageReason.InvalidTag, sender.Me, receiver.Me);
+            network.ShouldHaveDroppedMessage(FakeIgcNetwork.DroppedMessageReason.InvalidTag, sender.Me, -1);
+        }
+
+        [Test]
+        public void Network_Assertion_Helpers_Cover_Unicast_Broadcast_And_NoTraffic()
+        {
+            var network = new FakeIgcNetwork();
+            var sender = network.CreateNetworkEndpoint();
+            var receiver = network.CreateNetworkEndpoint();
+
+            Assert.DoesNotThrow(() => network.ShouldHaveNoTraffic());
+
+            sender.SendUnicastMessage(receiver.Me, "status", "online");
+            sender.SendBroadcastMessage("alerts", "ping");
+
+            Assert.DoesNotThrow(() => network.ShouldHaveUnicast(sender.Me, receiver.Me, "status"));
+            Assert.DoesNotThrow(() => network.ShouldHaveBroadcast(sender.Me, "alerts"));
+        }
+
+        // =====================================================================
         // Scripts
         // =====================================================================
 

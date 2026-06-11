@@ -149,7 +149,7 @@ namespace MotherCore.Tests.Utilities.Factories
                 // used to allocate the endpoint; messages sent to it are silently dropped
                 // since no Deliver() is called. For multi-script tests, supply a shared
                 // FakeIgcNetwork via Script.OnNetwork().
-                var standaloneIgc = new FakeIgcNetwork().AllocateEndpoint();
+                var standaloneIgc = new FakeIgcNetwork().CreateNetworkEndpoint();
                 return () => standaloneIgc;
             }
 

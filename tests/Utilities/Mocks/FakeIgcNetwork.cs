@@ -3,6 +3,7 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NUnit.Framework;
 
 namespace MotherCore.Tests.Utilities.Mocks
 {
@@ -39,45 +40,53 @@ namespace MotherCore.Tests.Utilities.Mocks
     public class FakeIgcNetwork
     {
         /// <summary>
-        /// The next ID to allocate for a new endpoint. Initialized to a large number
+        /// The next synthetic endpoint ID for this in-memory network.
+        /// Starts high to reduce collisions with realistic in-game IDs in assertions.
         /// </summary>
         static long _nextId = 100_000_000_000L;
 
         /// <summary>
-        /// All endpoints allocated on this network. Used for routing messages and verifying reachability.
+        /// Endpoints currently registered on this fake network.
+        /// Used for message routing and reachability checks.
         /// </summary>
         readonly List<FakeIgc> _endpoints = new List<FakeIgc>();
 
         /// <summary>
-        /// All scripts that have registered on this network via <see cref="Script{TProgram}.Boot"/>, 
-        /// paired with their grid names for Almanac cross-registration.
+        /// Scripts registered on this network via <see cref="Script{TProgram}.Boot"/>,
+        /// paired with script names for Almanac cross-registration.
         /// </summary>
         readonly List<(IScript Session, string GridName)> _scripts = new List<(IScript, string)>();
 
         /// <summary>
-        /// All messages sent through the network that have not yet been delivered. Cleared on 
-        /// each call to <see cref="Deliver"/>.
+        /// Pending deliveries queued by send operations and consumed by <see cref="Deliver"/>.
         /// </summary>
         readonly List<PendingDelivery> _pending = new List<PendingDelivery>();
 
         /// <summary>
-        /// All messages sent through the network since the last <see cref="ClearSentMessages"/>
-        /// call. Use this for lightweight assertions without needing full delivery.
+        /// Outbound traffic capture since the last <see cref="ClearSentMessages"/> call.
+        /// Use for lightweight assertions without forcing delivery.
         /// </summary>
         public List<SentMessage> SentMessages { get; } = new List<SentMessage>();
 
+        readonly List<DroppedMessage> _droppedMessages = new List<DroppedMessage>();
+
         /// <summary>
-        /// All scripts that have registered on this network via
-        /// <see cref="Script{TProgram}.Boot"/>. Ordered by registration time.
+        /// Read-only transport telemetry for dropped deliveries and rejected sends.
+        /// </summary>
+        public IReadOnlyList<DroppedMessage> DroppedMessages => _droppedMessages;
+
+        /// <summary>
+        /// Registered scripts ordered by registration time.
         /// </summary>
         public IReadOnlyList<IScript> Scripts => _scripts.Select(s => s.Session).ToList();
 
         /// <summary>
-        /// Allocates a new <see cref="FakeIgc"/> endpoint on this network.
-        /// Called internally by <see cref="Script.Boot"/> when the script
-        /// has been joined via <see cref="Script.OnNetwork"/>.
+        /// Creates and registers a new <see cref="FakeIgc"/> endpoint on this network.
+        /// Called during <see cref="Script{TProgram}.Boot"/> when a script joins via
+        /// <see cref="Script{TProgram}.OnNetwork(FakeIgcNetwork)"/>.
         /// </summary>
-        public FakeIgc AllocateEndpoint()
+        /// <returns>The created endpoint bound to this network instance.</returns>
+        public FakeIgc CreateNetworkEndpoint()
         {
             var igc = new FakeIgc(this, _nextId++);
 
@@ -87,11 +96,12 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
 
         /// <summary>
-        /// Registers a booted script on the network and cross-populates every other
-        /// booted script's Almanac with this script's grid name, and vice versa.
-        /// Called automatically by <see cref="Script{TProgram}.Boot"/> - no
-        /// manual call required.
+        /// Registers a booted script and performs two-way Almanac cross-registration
+        /// against all already-registered scripts.
+        /// Called automatically by <see cref="Script{TProgram}.Boot"/>.
         /// </summary>
+        /// <param name="script">The newly booted script to register.</param>
+        /// <param name="gridName">The script name used for Almanac identity and addressing.</param>
         internal void RegisterScript(IScript script, string gridName)
         {
             foreach (var (existing, existingName) in _scripts)
@@ -104,7 +114,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
 
         /// <summary>
-        /// Adds or updates an Almanac record on the recipient script for the given subject script, using the provided grid name.
+        /// Adds or updates the recipient's Almanac record for a peer script.
         /// </summary>
         /// <param name="recipient">The script that will receive the Almanac update.</param>
         /// <param name="subject">The script that is the subject of the Almanac update.</param>
@@ -135,7 +145,17 @@ namespace MotherCore.Tests.Utilities.Mocks
             foreach (var delivery in _pending.ToList())
             {
                 var target = _endpoints.FirstOrDefault(e => e.Me == delivery.TargetId);
-                if (target == null) continue;
+                if (target == null)
+                {
+                    RecordDrop(
+                        DroppedMessageReason.UnknownEndpoint,
+                        delivery.SourceId,
+                        delivery.TargetId,
+                        delivery.Tag,
+                        delivery.Data,
+                        delivery.IsBroadcast);
+                    continue;
+                }
 
                 var msg = new MyIGCMessage(delivery.Data, delivery.Tag, delivery.SourceId);
 
@@ -158,12 +178,14 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
 
         /// <summary>
-        /// Clears the <see cref="SentMessages"/> log. Useful for isolating messages sent during specific test phases.
+        /// Clears transport telemetry captured since the previous phase.
+        /// This resets both <see cref="SentMessages"/> and <see cref="DroppedMessages"/>.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The current network for fluent chaining.</returns>
         public FakeIgcNetwork ClearSentMessages()
         {
             SentMessages.Clear();
+            _droppedMessages.Clear();
 
             return this;
         }
@@ -177,15 +199,16 @@ namespace MotherCore.Tests.Utilities.Mocks
         public FakeIgcNetwork DispatchIgc() => Deliver();
 
         /// <summary>
-        /// Returns <c>true</c> if the given ID matches any endpoint registered on this network. 
-        /// Used to verify reachability in <see cref="FakeIgc.IsEndpointReachable"/>.
+        /// Returns whether the specified endpoint ID exists on this network.
+        /// Used by <see cref="FakeIgc.IsEndpointReachable(long, TransmissionDistance)"/>.
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
+        /// <param name="id">The endpoint ID to check.</param>
+        /// <returns><c>true</c> when an endpoint with that ID is registered; otherwise <c>false</c>.</returns>
         internal bool HasEndpoint(long id) => _endpoints.Any(e => e.Me == id);
 
         /// <summary>
-        /// Enqueues a unicast message for delivery. Called internally by <see cref="FakeIgc.SendUnicastMessage{TData}"/>.
+        /// Queues a unicast send for later delivery.
+        /// Called by <see cref="FakeIgc.SendUnicastMessage{TData}(long, string, TData)"/>.
         /// </summary>
         /// <param name="targetId"></param>
         /// <param name="tag"></param>
@@ -193,24 +216,102 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// <param name="sourceId"></param>
         internal void EnqueueUnicast(long targetId, string tag, object data, long sourceId)
         {
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                RecordDrop(DroppedMessageReason.InvalidTag, sourceId, targetId, tag, data, isBroadcast: false);
+                return;
+            }
+
             SentMessages.Add(new SentMessage(sourceId, targetId, tag, data, isBroadcast: false));
             _pending.Add(new PendingDelivery(targetId, tag, data, sourceId, isBroadcast: false));
         }
 
         /// <summary>
-        /// Enqueues a broadcast message for delivery to all endpoints except the sender. Called internally 
-        /// by <see cref="FakeIgc.SendBroadcastMessage{TData}"/>.
+        /// Queues a broadcast send for later delivery to all endpoints except the sender.
+        /// Called by <see cref="FakeIgc.SendBroadcastMessage{TData}(string, TData, TransmissionDistance)"/>.
         /// </summary>
         /// <param name="tag"></param>
         /// <param name="data"></param>
         /// <param name="sourceId"></param>
         internal void EnqueueBroadcast(string tag, object data, long sourceId)
         {
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                RecordDrop(DroppedMessageReason.InvalidTag, sourceId, -1, tag, data, isBroadcast: true);
+                return;
+            }
+
             SentMessages.Add(new SentMessage(sourceId, targetId: -1, tag, data, isBroadcast: true));
 
             foreach (var endpoint in _endpoints)
                 if (endpoint.Me != sourceId)
                     _pending.Add(new PendingDelivery(endpoint.Me, tag, data, sourceId, isBroadcast: true));
+        }
+
+        /// <summary>
+        /// Records a dropped or rejected message for assertion-friendly transport telemetry.
+        /// </summary>
+        internal void RecordDrop(
+            DroppedMessageReason reason,
+            long sourceId,
+            long targetId,
+            string tag,
+            object data,
+            bool isBroadcast)
+        {
+            _droppedMessages.Add(new DroppedMessage(reason, sourceId, targetId, tag, data, isBroadcast));
+        }
+
+        /// <summary>
+        /// Asserts that a unicast message matching the specified source, target, and tag was captured.
+        /// </summary>
+        public void ShouldHaveUnicast(long sourceId, long targetId, string tag)
+        {
+            Assert.That(
+                SentMessages.Any(m => !m.IsBroadcast && m.SourceId == sourceId && m.TargetId == targetId && m.Tag == tag),
+                Is.True,
+                $"Expected a unicast message from '{sourceId}' to '{targetId}' on tag '{tag}', but none was recorded.");
+        }
+
+        /// <summary>
+        /// Asserts that a broadcast message matching the specified source and tag was captured.
+        /// </summary>
+        public void ShouldHaveBroadcast(long sourceId, string tag)
+        {
+            Assert.That(
+                SentMessages.Any(m => m.IsBroadcast && m.SourceId == sourceId && m.Tag == tag),
+                Is.True,
+                $"Expected a broadcast message from '{sourceId}' on tag '{tag}', but none was recorded.");
+        }
+
+        /// <summary>
+        /// Asserts that no sent or dropped traffic has been captured.
+        /// </summary>
+        public void ShouldHaveNoTraffic()
+        {
+            Assert.That(SentMessages, Is.Empty,
+                "Expected no sent traffic, but sent messages were recorded.");
+            Assert.That(DroppedMessages, Is.Empty,
+                "Expected no dropped traffic, but dropped messages were recorded.");
+        }
+
+        /// <summary>
+        /// Asserts that dropped-traffic telemetry contains a message matching the given criteria.
+        /// </summary>
+        public void ShouldHaveDroppedMessage(
+            DroppedMessageReason reason,
+            long sourceId,
+            long? targetId = null,
+            string tag = null)
+        {
+            Assert.That(
+                DroppedMessages.Any(message =>
+                    message.Reason == reason
+                    && message.SourceId == sourceId
+                    && (!targetId.HasValue || message.TargetId == targetId.Value)
+                    && (tag == null || message.Tag == tag)),
+                Is.True,
+                $"Expected dropped message with reason '{reason}', source '{sourceId}', target '{targetId}', and tag '{tag}', but none was recorded.");
         }
 
         // =====================================================================
@@ -256,6 +357,45 @@ namespace MotherCore.Tests.Utilities.Mocks
             }
         }
 
+        /// <summary>
+        /// Captured telemetry for a dropped or rejected message.
+        /// </summary>
+        public class DroppedMessage
+        {
+            public DroppedMessageReason Reason { get; }
+            public long SourceId { get; }
+            public long TargetId { get; }
+            public string Tag { get; }
+            public object Data { get; }
+            public bool IsBroadcast { get; }
+
+            internal DroppedMessage(
+                DroppedMessageReason reason,
+                long sourceId,
+                long targetId,
+                string tag,
+                object data,
+                bool isBroadcast)
+            {
+                Reason = reason;
+                SourceId = sourceId;
+                TargetId = targetId;
+                Tag = tag;
+                Data = data;
+                IsBroadcast = isBroadcast;
+            }
+        }
+
+        /// <summary>
+        /// Drop categories used by transport telemetry.
+        /// </summary>
+        public enum DroppedMessageReason
+        {
+            UnknownEndpoint,
+            DisabledListener,
+            InvalidTag
+        }
+
         // =====================================================================
         // Internal delivery record
         // =====================================================================
@@ -284,8 +424,8 @@ namespace MotherCore.Tests.Utilities.Mocks
     // =========================================================================
 
     /// <summary>
-    /// A test double for <see cref="IMyIntergridCommunicationSystem"/> that routes
-    /// messages through a <see cref="FakeIgcNetwork"/> rather than the game engine.
+    /// Test double for <see cref="IMyIntergridCommunicationSystem"/> that routes
+    /// messages through <see cref="FakeIgcNetwork"/> instead of the game engine.
     /// </summary>
     public class FakeIgc : IMyIntergridCommunicationSystem
     {
@@ -311,7 +451,14 @@ namespace MotherCore.Tests.Utilities.Mocks
         public IMyBroadcastListener RegisterBroadcastListener(string tag)
         {
             if (!_broadcastListeners.ContainsKey(tag))
+            {
                 _broadcastListeners[tag] = new FakeBroadcastListener(tag);
+            }
+            else
+            {
+                _broadcastListeners[tag].Enable();
+            }
+
             return _broadcastListeners[tag];
         }
 
@@ -354,7 +501,21 @@ namespace MotherCore.Tests.Utilities.Mocks
         internal void EnqueueBroadcast(string tag, MyIGCMessage message)
         {
             if (_broadcastListeners.TryGetValue(tag, out var listener))
+            {
+                if (!listener.IsActive)
+                {
+                    _network.RecordDrop(
+                        FakeIgcNetwork.DroppedMessageReason.DisabledListener,
+                        message.Source,
+                        Me,
+                        tag,
+                        message.Data,
+                        isBroadcast: true);
+                    return;
+                }
+
                 listener.Enqueue(message);
+            }
         }
 
         internal bool HasPendingMessages =>
@@ -429,5 +590,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// to the queue after this is called.
         /// </summary>
         internal void Disable() => IsActive = false;
+
+        internal void Enable() => IsActive = true;
     }
 }

@@ -65,6 +65,11 @@ namespace MotherCore.Tests.Utilities
         public IReadOnlyList<FakeIgcNetwork.SentMessage> SentMessages => _network.SentMessages;
 
         /// <summary>
+        /// Dropped message telemetry captured by this world's shared IGC network.
+        /// </summary>
+        public IReadOnlyList<FakeIgcNetwork.DroppedMessage> DroppedMessages => _network.DroppedMessages;
+
+        /// <summary>
         /// Creates a new <see cref="Script{TProgram}"/> in this world.
         /// Network participation is opt-in via <see cref="Script{TProgram}.OnNetwork()"/>
         /// or <see cref="Script{TProgram}.OnNetwork(FakeIgcNetwork)"/>.

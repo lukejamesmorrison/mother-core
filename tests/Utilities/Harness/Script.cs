@@ -722,7 +722,7 @@ namespace MotherCore.Tests.Utilities
 
             if (_network != null)
             {
-                NetworkIGC = _network.AllocateEndpoint();
+                NetworkIGC = _network.CreateNetworkEndpoint();
                 builder = builder.WithIgc(NetworkIGC);
             }
             else if (_igc != null)
