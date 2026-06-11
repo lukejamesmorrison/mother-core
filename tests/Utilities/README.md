@@ -7,6 +7,11 @@ This folder is organized by role so the core test harness is easier to scan.
 - `Mocks/`: explicit fake implementations and spies used to simulate runtime dependencies in tests.
 - `Harness/`: the executable test runtime surface (`Script`, `TestWorld`, clock, echo, and shared interfaces).
 
+Common utility examples:
+
+- `FakeModule`: minimal module fake aligned with `BaseModule` defaults.
+- `FakeModuleCommand`: reusable command fake for command-bus wiring tests and `BaseModuleCommand` helper behavior.
+
 `TestWorld` is the preferred multi-script orchestration API. In world-based tests,
 use `world.TickMessages(...)` for message-driven progression and `world.Tick(n)` for
 raw world cycles. `Tick` advances full world cycles (dispatch IGC + advance all

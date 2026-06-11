@@ -225,6 +225,7 @@ MotherCore now has a working version of most of this model in the test utilities
 - `MergePair` is a deferred merge-topology descriptor returned by `TestWorld.AddMergeBlockPair(...)` when a test wants merge blocks pre-registered before boot.
 - `ClockDriver` provides assertion-friendly tick control for coroutine-driven behavior.
 - `PrintCapture` provides reusable output capture over `Program.Echo`.
+- `FakeModuleCommand` provides a reusable concrete `BaseModuleCommand` for command-bus wiring tests and protected-helper coverage.
 - `TerminalBlockFactory` now creates explicit harness-backed terminal block fakes for the supported common interfaces and fails fast for unsupported block interfaces.
 - `FakeTerminalBlock` already provides a concrete mutable base for richer fake terminal blocks.
 - `TestGrid` now supports both registering an existing block instance and creating one directly by interface type and name, plus grid-local lookup and `ShouldContainBlock(...)` assertions.
@@ -671,6 +672,7 @@ Default expectations:
 - the script boots without custom setup
 - command registration happens through the real constructor and module graph
 - `ClockDriver` is available for coroutine-based execution
+- for harness-level command tests, `FakeModuleCommand` is the preferred reusable command fake over fixture-local ad hoc command classes
 
 ### 2. Unit test: call a method on an `IModule`
 
@@ -1175,6 +1177,7 @@ Exit criteria:
 | `MergeBlocks(...)` / `UnmergeBlocks(...)` | ✅ Done | Drives merge-block state transitions through the script harness |
 | `WithBlock(...)` / `WithBlocks(...)` / `WithBlockGroup(...)` | ✅ Done | Registers blocks and groups into the script-local terminal system |
 | `WithCommands(params ...)` | ✅ Done | Registers extra concrete commands after boot; useful for harness-specific tests |
+| `FakeModuleCommand` | ✅ Done | Reusable command fake for command-bus and `BaseModuleCommand` helper tests |
 | `OnBeforeBoot(mother)` hook | ✅ Done | Override to inject test-only modules |
 | `Program`, `Mother`, `Bus`, `Config`, `Clock`, `IGC`, `NetworkIGC`, `GridTerminalSystem`, `PrimaryGrid` | ✅ Done | Post-boot accessors; `Bus` also exposes `GetExecutionCount(...)` for concrete command assertions |
 | `Run(UpdateType, string)` | ✅ Done | Drives one real `Mother.Run` cycle |

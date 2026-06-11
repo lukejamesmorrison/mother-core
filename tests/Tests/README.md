@@ -34,16 +34,16 @@ alias was parsed, resolved, and dispatched correctly.
 [Test]
 public void OpenAirlock_Alias_Resolves_And_Dispatches_To_door_open()
 {
-    var session = new Script<Program>()
+    var script = new Script<Program>()
         .WithCustomData(new CustomDataComposer()
             .WithCommand("openAirlock", "door/open AirlockDoor")
             .Build())
         .Boot();
 
-    var capture = new PrintCapture(session);
+    var capture = new PrintCapture(script);
 
-    session.Bus.RunTerminalCommand("openAirlock");
-    session.Clock.RunToIdle();
+    script.Bus.RunTerminalCommand("openAirlock");
+    script.Clock.RunToIdle();
 
     // "AirlockDoor" appears in the BlockNotFound message, confirming
     // the alias resolved and door/open was the command that ran.
@@ -70,9 +70,9 @@ are in place.
 [Test]
 public void DoorModule_Registers_Commands_On_Boot()
 {
-    var session = new Script<Program>().Boot();
+    var script = new Script<Program>().Boot();
 
-    var names = session.Bus.ModuleCommands.Select(c => c.Name).ToList();
+    var names = script.Bus.ModuleCommands.Select(c => c.Name).ToList();
 
     Assert.That(names, Contains.Item("door/open"));
     Assert.That(names, Contains.Item("door/close"));
@@ -89,9 +89,9 @@ For modules that subscribe to events during `Boot()`, use
 [Test]
 public void MergeBlockModule_Is_Subscribed_To_ConstructRefreshedEvent_After_Boot()
 {
-    var session = new Script().Boot();
-    var mergeModule = session.Mother.GetModule<MergeBlockModule>();
-    var eventBus   = session.Mother.GetModule<EventBus>();
+    var script = new Script().Boot();
+    var mergeModule = script.Mother.GetModule<MergeBlockModule>();
+    var eventBus   = script.Mother.GetModule<EventBus>();
 
     Assert.That(eventBus.IsSubscribed<ConstructRefreshedEvent>(mergeModule), Is.True);
 }
@@ -108,11 +108,11 @@ parsed, and executed:
 [Test]
 public void door_open_Reports_BlockNotFound_For_An_Unknown_Block()
 {
-    var session = new Script<Program>().Boot();
-    var capture = new PrintCapture(session);
+    var script = new Script<Program>().Boot();
+    var capture = new PrintCapture(script);
 
-    session.Bus.RunTerminalCommand("door/open HangarDoor");
-    session.Clock.RunToIdle();
+    script.Bus.RunTerminalCommand("door/open HangarDoor");
+    script.Clock.RunToIdle();
 
     // The block name appears in the not-found message, confirming the
     // command ran and looked up "HangarDoor" in the catalogue.
@@ -128,11 +128,11 @@ the grid terminal system at all:
 [Test]
 public void door_open_With_No_Arguments_Returns_NoArgumentsProvided()
 {
-    var session = new Script<Program>().Boot();
-    var capture = new PrintCapture(session);
+    var script = new Script<Program>().Boot();
+    var capture = new PrintCapture(script);
 
-    session.Bus.RunTerminalCommand("door/open");
-    session.Clock.RunToIdle();
+    script.Bus.RunTerminalCommand("door/open");
+    script.Clock.RunToIdle();
 
     Assert.That(capture.Lines.Any(l => l.Contains("No arguments")), Is.True);
 }
@@ -155,28 +155,31 @@ one tick, so you can stop at any boundary:
 [Test]
 public void Multi_Step_Routine_Executes_Commands_One_Per_Tick()
 {
-    var lights = new MyCountingCommand("light/color");
-    var blink  = new MyCountingCommand("light/blink");
+    var lights = new FakeModuleCommand("light/color");
+    var blink  = new FakeModuleCommand("light/blink");
 
-    var session = new Script()
+    var script = new Script()
         .WithCustomData(new CustomDataComposer()
             .WithCommand("dockReady", "light/color DockLight 0,255,0; light/blink DockLight fast")
             .Build())
         .WithCommands(lights, blink)
         .Boot();
 
-    session.Bus.RunTerminalCommand("dockReady");
+    script.Bus.RunTerminalCommand("dockReady");
     // Coroutine is queued but nothing has run yet.
-    Assert.That(lights.ExecutionCount, Is.EqualTo(0));
+    Assert.That(script.Bus.GetExecutionCount("light/color"), Is.EqualTo(0));
 
-    session.Clock.Tick();   // light/color runs
-    Assert.That(lights.ExecutionCount, Is.EqualTo(1));
-    Assert.That(blink.ExecutionCount,  Is.EqualTo(0));  // light/blink hasn't run yet
+    script.Clock.Tick();   // light/color runs
+    Assert.That(script.Bus.GetExecutionCount("light/color"), Is.EqualTo(1));
+    Assert.That(script.Bus.GetExecutionCount("light/blink"), Is.EqualTo(0));  // light/blink hasn't run yet
 
-    session.Clock.Tick();   // light/blink runs
-    Assert.That(blink.ExecutionCount, Is.EqualTo(1));
+    script.Clock.Tick();   // light/blink runs
+    Assert.That(script.Bus.GetExecutionCount("light/blink"), Is.EqualTo(1));
 }
 ```
+
+Use `FakeModuleCommand` from `Utilities/Mocks/` when you need a lightweight
+concrete command in harness tests without writing a fixture-local command type.
 
 ### 2.3 Calling a module method
 
@@ -188,8 +191,8 @@ dispatch or clock tick is needed:
 [Test]
 public void BatteryModule_ChargeBattery_Sets_The_Block_To_Recharge_Mode()
 {
-    var session = new Script<Program>().Boot();
-    var batteries = session.Mother.GetModule<BatteryModule>();
+    var script = new Script<Program>().Boot();
+    var batteries = script.Mother.GetModule<BatteryModule>();
 
     var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Reserve Battery");
     batteries.ChargeBattery(battery);
@@ -250,8 +253,8 @@ in isolation, without wiring up the full EventBus routing:
 [Test]
 public void MergeBlockModule_HandleEvent_Does_Not_Throw_On_ConstructRefreshedEvent()
 {
-    var session    = new Script().Boot();
-    var mergeModule = session.Mother.GetModule<MergeBlockModule>();
+    var script    = new Script().Boot();
+    var mergeModule = script.Mother.GetModule<MergeBlockModule>();
 
     Assert.DoesNotThrow(() =>
         mergeModule.HandleEvent(new ConstructRefreshedEvent(), null));
@@ -280,10 +283,10 @@ private sealed class RecordingModule : FakeModule
 [Test]
 public void EventBus_Routes_DoorOpenedEvent_To_All_Subscribers()
 {
-    var session  = new Script<Program>().Boot();
-    var eventBus = session.Mother.GetModule<EventBus>();
+    var script  = new Script<Program>().Boot();
+    var eventBus = script.Mother.GetModule<EventBus>();
 
-    var recorder = new RecordingModule(session.Mother);
+    var recorder = new RecordingModule(script.Mother);
     var fakeDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
 
     eventBus.Subscribe<DoorOpenedEvent>(recorder);
@@ -339,8 +342,8 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
 
 ### Key points
 
-- **Almanac is wired automatically.** Every session booted on the same
-    world network is cross-registered in every other session's Almanac under its
+- **Almanac is wired automatically.** Every script booted on the same
+    world network is cross-registered in every other script's Almanac under its
     grid name, so `@GUI` resolves without any extra setup.
 
 - **Network scripts are communication-ready by default.** Joining with
@@ -376,7 +379,7 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
     Assert.That(world.SentMessages.Any(m => m.TargetId == gui.IGC.Me), Is.True);
   ```
 
-- **More than two grids** work the same way — add more sessions with
+- **More than two grids** work the same way — add more scripts with
     `.OnNetwork()` and they are all cross-registered with each other.
 
 ### When to use FakeIgcNetwork directly
