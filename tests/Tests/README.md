@@ -48,7 +48,7 @@ public void Rename_Command_Executes_Once()
 
     script.RunTerminal("rename Frigate").RunToIdle();
 
-    script.ShouldHaveExecuted("rename", count: 1);
+    script.ShouldHaveExecuted("rename");
     script.ShouldHaveName("Frigate");
 }
 ```
@@ -69,7 +69,7 @@ public void Boot_Wires_CommandBus_And_EventBus_For_Merge_Module()
   Assert.That(eventBus.IsSubscribed<ConstructRefreshedEvent>(mergeModule), Is.True);
 
   script.RunTerminal("help").RunToIdle();
-  script.ShouldHaveExecuted("help", count: 1);
+  script.ShouldHaveExecuted("help");
 }
 ```
 
