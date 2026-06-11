@@ -160,6 +160,14 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Creates a new script in this world using the default
+        /// <see cref="CoreTestProgram"/> harness program.
+        /// This is a convenience helper over <see cref="CreateScript{TProgram}(string)"/>.
+        /// </summary>
+        public Script<CoreTestProgram> CreateScript(string scriptName = null)
+            => CreateScript<CoreTestProgram>(scriptName);
+
+        /// <summary>
         /// Creates a new <see cref="Script{TProgram}"/> in this world.
         /// Network participation is opt-in via <see cref="Script{TProgram}.OnNetwork()"/>
         /// or <see cref="Script{TProgram}.OnNetwork(FakeIgcNetwork)"/>.
@@ -296,6 +304,17 @@ namespace MotherCore.Tests.Utilities
 
             return pair;
         }
+
+        /// <summary>
+        /// Creates a new script bound to an existing world grid using the default
+        /// <see cref="CoreTestProgram"/> harness program.
+        /// This is a convenience helper over <see cref="CreateScript{TProgram}(TestGrid, string)"/>.
+        /// </summary>
+        /// <param name="primaryGrid">The world grid that should own the programmable block.</param>
+        /// <param name="scriptName">Optional display name for the script.</param>
+        /// <returns>A script harness bound to this world's topology.</returns>
+        public Script<CoreTestProgram> CreateScript(TestGrid primaryGrid, string scriptName = null)
+            => CreateScript<CoreTestProgram>(primaryGrid, scriptName);
 
         /// <summary>
         /// Creates a new <see cref="Script{TProgram}"/> bound to an existing world grid.

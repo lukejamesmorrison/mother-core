@@ -331,7 +331,7 @@ namespace MotherCore.Tests.Harness
             var carrierMerge = carrierGrid.AddBlock<IMyShipMergeBlock>("Carrier Merge");
             var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
-            var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+            var script = world.CreateScript(carrierGrid, "Carrier").Boot();
 
             Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(cargoGrid.Grid.EntityId));
             Assert.That(cargoMerge.IsSameConstructAs(carrierMerge), Is.False);
@@ -358,7 +358,7 @@ namespace MotherCore.Tests.Harness
             var carrierMerge = carrierGrid.AddBlock<IMyShipMergeBlock>("Carrier Merge");
             var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
-            var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+            var script = world.CreateScript(carrierGrid, "Carrier").Boot();
             world.Merge(carrierMerge, cargoMerge);
 
             // assert grids are connected in a single grid

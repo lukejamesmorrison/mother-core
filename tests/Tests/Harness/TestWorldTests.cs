@@ -23,7 +23,7 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var script = world.CreateScript<CoreTestProgram>().Boot();
+            var script = world.CreateScript().Boot();
 
             script.ShouldBeWorking();
         }
@@ -33,7 +33,7 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var script = world.CreateScript<CoreTestProgram>("Flagship").Boot();
+            var script = world.CreateScript("Flagship").Boot();
 
             script.ShouldHaveName("Flagship");
             world.ShouldHaveScript("Flagship");
@@ -44,7 +44,7 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
             var carrierGrid = world.CreateGrid("Carrier");
-            var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+            var script = world.CreateScript(carrierGrid, "Carrier").Boot();
 
             Assert.That(script.PrimaryGrid, Is.SameAs(carrierGrid.Grid));
             Assert.That(script.Program.Me.CubeGrid, Is.SameAs(carrierGrid.Grid));
@@ -57,8 +57,8 @@ namespace MotherCore.Tests.Harness
             var carrierGrid = world.CreateGrid("Carrier");
             var escortGrid = world.CreateGrid("Escort");
 
-            var carrier = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
-            var escort = world.CreateScript<CoreTestProgram>(escortGrid, "Escort").Boot();
+            var carrier = world.CreateScript(carrierGrid, "Carrier").Boot();
+            var escort = world.CreateScript(escortGrid, "Escort").Boot();
 
             Assert.That(carrier.PrimaryGrid, Is.SameAs(carrierGrid.Grid));
             Assert.That(carrier.Program.Me.CubeGrid, Is.SameAs(carrierGrid.Grid));
@@ -119,7 +119,7 @@ namespace MotherCore.Tests.Harness
             var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
             // create script on one of the grids
-            world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+            world.CreateScript(carrierGrid, "Carrier").Boot();
 
             world.Merge(carrierMerge, cargoMerge);
 
@@ -132,8 +132,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
+            var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
             world.ShouldHaveScriptCount(2);
 
@@ -149,8 +149,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
-            world.CreateScript<CoreTestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript("ShipA").Boot();
+            var shipB = world.CreateScript("ShipB").Boot();
 
             var almanacA = shipA.Mother.GetModule<Almanac>();
 
@@ -166,8 +166,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
+            var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -193,7 +193,7 @@ namespace MotherCore.Tests.Harness
         public void ShouldHaveBroadcast_Matches_World_Broadcast_Traffic()
         {
             var world = new TestWorld();
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
+            var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
 
             shipA.Mother.GetModule<IntergridMessageService>().ConstructPing();
 
@@ -209,8 +209,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
+            var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -236,7 +236,7 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            world.CreateScript<CoreTestProgram>("ShipA")
+            world.CreateScript("ShipA")
                 .OnNetwork()
                 .Boot();
 
@@ -250,8 +250,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
+            var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -280,8 +280,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript("ShipA").Boot();
+            var shipB = world.CreateScript("ShipB").Boot();
 
             world.Run(UpdateType.Terminal, "help");
 
@@ -297,8 +297,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript("ShipA").Boot();
+            var shipB = world.CreateScript("ShipB").Boot();
 
             world.RunTerminalAll("help");
 
@@ -312,7 +312,7 @@ namespace MotherCore.Tests.Harness
         public void Run_Does_Not_Throw_For_Update10()
         {
             var world = new TestWorld();
-            world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            world.CreateScript("ShipA").Boot();
 
             Assert.DoesNotThrow(() => world.Run(UpdateType.Update10));
         }
@@ -334,8 +334,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
-            world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
+            var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
+            world.CreateScript("ShipB").OnNetwork().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
 
@@ -354,7 +354,7 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            var shipA = world.CreateScript("ShipA").Boot();
 
             // Queue the command directly — this adds a coroutine to the clock.
             shipA.Bus.RunTerminalCommand("help");
@@ -373,7 +373,7 @@ namespace MotherCore.Tests.Harness
         public void RunMany_Does_Not_Throw_For_Zero_Cycles()
         {
             var world = new TestWorld();
-            world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            world.CreateScript("ShipA").Boot();
 
             Assert.DoesNotThrow(() => world.RunMany(0, UpdateType.Update10));
         }
@@ -390,7 +390,7 @@ namespace MotherCore.Tests.Harness
         public void TickUntil_Stops_When_Condition_Becomes_True()
         {
             var world = new TestWorld();
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            var shipA = world.CreateScript("ShipA").Boot();
 
             shipA.RunTerminal("rename ShipA-Renamed");
 

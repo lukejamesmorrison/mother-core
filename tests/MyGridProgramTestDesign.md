@@ -1143,7 +1143,7 @@ Exit criteria:
   setup constraints
 - topology intent is explicit and assertion-friendly
 
-### Phase D: Test style convergence and migration (ongoing)
+### ✅ Phase D: Test style convergence and migration (ongoing)
 
 1. Migrate high-value integration tests to world-first orchestration where it
     improves clarity.

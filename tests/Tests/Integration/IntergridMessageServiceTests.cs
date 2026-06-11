@@ -66,24 +66,24 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void SendUnicastRequest_With_Empty_Channels_Falls_Back_To_Construct_Channel()
         {
-            var network = new FakeIgcNetwork();
+            var world = new TestWorld();
 
-            var sender = new Script("Sender")
-                .OnNetwork(network)
+            var sender = world.CreateScript("Sender")
+                .OnNetwork()
                 .Boot();
 
-            var receiver = new Script("Receiver")
-                .OnNetwork(network)
+            var receiver = world.CreateScript("Receiver")
+                .OnNetwork()
                 .Boot();
 
             var service = sender.Mother.GetModule<IntergridMessageService>();
             Request request = service.CreateRequest("ping");
             request.Channels.Clear();
 
-            network.ClearSentMessages();
+            world.Network.ClearSentMessages();
             service.SendUnicastRequest(receiver.IGC.Me, request, null);
 
-            var sent = network.SentMessages.Single();
+            var sent = world.SentMessages.Single();
 
             Assert.That(sent.IsBroadcast, Is.False);
             Assert.That(sent.TargetId, Is.EqualTo(receiver.IGC.Me));
@@ -104,12 +104,12 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void SendRequestFromRoutine_Uses_UnicastId_When_Present()
         {
-            var network = new FakeIgcNetwork();
-            var sender = new Script("Sender")
-                .OnNetwork(network)
+            var world = new TestWorld();
+            var sender = world.CreateScript("Sender")
+                .OnNetwork()
                 .Boot();
-            var receiver = new Script("Receiver")
-                .OnNetwork(network)
+            var receiver = world.CreateScript("Receiver")
+                .OnNetwork()
                 .Boot();
 
             var senderAlmanac = sender.Mother.GetModule<Almanac>();
@@ -126,10 +126,10 @@ namespace MotherCore.Tests.Integration
             var routine = new TerminalRoutine("help");
             var service = sender.Mother.GetModule<IntergridMessageService>();
 
-            network.ClearSentMessages();
+            world.Network.ClearSentMessages();
             service.SendRequestFromRoutine("ReceiverShip", routine);
 
-            var sent = network.SentMessages.Single();
+            var sent = world.SentMessages.Single();
             Assert.That(sent.IsBroadcast, Is.False);
             Assert.That(sent.TargetId, Is.EqualTo(receiver.IGC.Me));
         }
@@ -384,21 +384,21 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Construct_Sync_Request_Registers_Remote_Commands_And_Sends_Construct_Response()
         {
-            var network = new FakeIgcNetwork();
+            var world = new TestWorld();
 
-            var sender = new Script("Sender")
-                .OnNetwork(network)
+            var sender = world.CreateScript("Sender")
+                .OnNetwork()
                 .Boot();
 
-            var receiver = new Script("Receiver")
-                .OnNetwork(network)
+            var receiver = world.CreateScript("Receiver")
+                .OnNetwork()
                 .WithCustomData(new CustomDataComposer()
                     .WithCommand("dock", "help")
                     .WithCommand("!undock", "help")
                     .Build())
                 .Boot();
 
-            network.ClearSentMessages();
+            world.Network.ClearSentMessages();
 
             Request syncRequest = new Request(
                 new Dictionary<string, object>
@@ -417,14 +417,14 @@ namespace MotherCore.Tests.Integration
             var incoming = new MyIGCMessage(syncRequest.Serialize(), ".construct", sender.IGC.Me);
             receiver.Mother.GetModule<IntergridMessageService>().HandleIncomingIGCMessage(incoming);
 
-            network.DispatchIgc();
+            world.DispatchIgc();
 
             Assert.That(receiver.Bus.ConstructCommands.ContainsKey(sender.IGC.Me), Is.True);
             Assert.That(receiver.Bus.ConstructCommands[sender.IGC.Me], Contains.Item("dock"));
             Assert.That(receiver.Bus.ImportantConstructCommands.ContainsKey(sender.IGC.Me), Is.True);
             Assert.That(receiver.Bus.ImportantConstructCommands[sender.IGC.Me], Contains.Item("undock"));
 
-            var responseMessages = network.SentMessages
+            var responseMessages = world.SentMessages
                 .Where(m => !m.IsBroadcast && m.SourceId == receiver.IGC.Me && m.TargetId == sender.IGC.Me && m.Tag == ".construct")
                 .ToList();
 
@@ -445,12 +445,12 @@ namespace MotherCore.Tests.Integration
             var world = new TestWorld();
             var sharedGrid = world.CreateGrid("SharedConstruct");
 
-            var sender = world.CreateScript<CoreTestProgram>(sharedGrid, "Sender")
+            var sender = world.CreateScript(sharedGrid, "Sender")
                 .OnNetwork()
                 .WithCustomData(BuildAlphaChannelCustomData())
                 .Boot();
 
-            var receiver = world.CreateScript<CoreTestProgram>(sharedGrid, "Receiver")
+            var receiver = world.CreateScript(sharedGrid, "Receiver")
                 .OnNetwork()
                 .WithCustomData(BuildAlphaChannelCustomData("renameMe", "rename ReceiverRenamed"))
                 .Boot();
@@ -471,11 +471,11 @@ namespace MotherCore.Tests.Integration
         {
             var world = new TestWorld();
 
-            var sender = world.CreateScript<CoreTestProgram>("Sender")
+            var sender = world.CreateScript("Sender")
                 .OnNetwork()
                 .Boot();
 
-            var receiver = world.CreateScript<CoreTestProgram>("Receiver")
+            var receiver = world.CreateScript("Receiver")
                 .OnNetwork()
                 .Boot();
 
@@ -495,15 +495,15 @@ namespace MotherCore.Tests.Integration
         {
             var world = new TestWorld();
 
-            var sender = world.CreateScript<CoreTestProgram>("Sender")
+            var sender = world.CreateScript("Sender")
                 .OnNetwork()
                 .Boot();
 
-            var receiverA = world.CreateScript<CoreTestProgram>("ReceiverA")
+            var receiverA = world.CreateScript("ReceiverA")
                 .OnNetwork()
                 .Boot();
 
-            var receiverB = world.CreateScript<CoreTestProgram>("ReceiverB")
+            var receiverB = world.CreateScript("ReceiverB")
                 .OnNetwork()
                 .Boot();
 

@@ -296,15 +296,14 @@ public void EventBus_Routes_DoorOpenedEvent_To_All_Subscribers()
 
 ---
 
-## 3. MotherOS + MotherGUI on a network
+## 3. MotherOS + MotherGUI in a shared world
 
 In a typical ship build, MotherOS runs on one programmable block and
-MotherGUI on another. They discover each other through the Almanac and
-exchange commands over IGC.
+MotherGUI on another. For integration tests, prefer a shared `TestWorld`
+so setup, progression, and assertions stay at one orchestration layer.
 
-This example boots both programs on a `FakeIgcNetwork`. The network
-cross-registers each grid in the other's Almanac automatically, so
-`@GUI view/go` resolves without any manual wiring.
+This example boots both scripts in one `TestWorld` and uses world-level
+assertions for transport outcomes:
 
 ```csharp
 // Multi-script test project that includes both MotherOS and MotherGUI source.
@@ -315,28 +314,24 @@ cross-registers each grid in the other's Almanac automatically, so
 [Test]
 public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
 {
-    var network = new FakeIgcNetwork();
+    var world = new TestWorld();
 
     // Boot MotherOS as the ship controller
-    var ship = new Script<MotherOSProgram>("Ship")
-        .OnNetwork(network)
+    var ship = world.CreateScript<MotherOSProgram>("Ship")
+        .OnNetwork()
         .Boot();
 
     // Boot MotherGUI as the display controller
-    var gui = new Script<MotherGUIProgram>("GUI")
-        .OnNetwork(network)
+    var gui = world.CreateScript<MotherGUIProgram>("GUI")
+        .OnNetwork()
         .Boot();
 
     // MotherOS sends a view navigation command to MotherGUI
     ship.Bus.RunTerminalCommand("@GUI view/go \"Bridge LCD\" \"RotorView\"");
-    ship.Clock.RunToIdle();
+    world.TickMessages();
 
-    // Message is queued — GUI hasn't processed it yet
-    Assert.That(network.SentMessages.Any(m => m.TargetId == gui.IGC.Me), Is.True);
-
-    // DispatchIgc routes the pending IGC message to MotherGUI
-    network.DispatchIgc();
-    gui.Clock.RunToIdle();
+    world.ShouldHaveDeliveredIgcMessage("Ship", "GUI", "*");
+    world.ShouldHaveNoPendingMessages();
 
     // Assert on whatever MotherGUI state the view navigation produces.
 }
@@ -345,42 +340,50 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
 ### Key points
 
 - **Almanac is wired automatically.** Every session booted on the same
-  network is cross-registered in every other session's Almanac under its grid
-  name, so `@GUI` resolves without any extra setup.
+    world network is cross-registered in every other session's Almanac under its
+    grid name, so `@GUI` resolves without any extra setup.
 
 - **Network scripts are communication-ready by default.** Joining with
-    `.OnNetwork(network)` ensures a default public channel entry (`[channels]`,
-    `*=`) when no explicit channel config is provided.
+    `.OnNetwork()` ensures a default public channel entry (`[channels]`, `*=`)
+    when no explicit channel config is provided.
 
-- **`DispatchIgc()` is explicit.** Messages are buffered until you call
-    `network.DispatchIgc()`, giving precise control over when each message lands.
-  This lets you assert on the outbound queue before it is processed.
+- **`TickMessages()` is intent-first.** For remote-command flows, prefer
+    `world.TickMessages()` so delivery and script execution advance together
+    with readable test intent.
 
-- **For world-based tests, prefer `TestWorld.Tick(...)`.** `TestWorld.Tick`
-    advances a full world cycle: dispatch pending IGC and then run each script clock.
-    Use `world.DispatchIgc()` only when you need a transport-only checkpoint before
-    advancing clocks.
+- **Use `DispatchIgc()` only for transport checkpoints.** Keep it for tests
+    that intentionally assert pre-execution transport state before script clocks
+    advance.
 
 - **`TestWorld` network binding is explicit.** `world.CreateScript(...)` is local
-    by default. For inter-script IGC flows, opt in with `.OnNetwork()` (or
-    `.OnNetwork(world.Network)` when you want to be explicit about the shared network).
+    by default. For inter-script IGC flows, opt in with `.OnNetwork()`.
 
 - **`TickMessages()` is the message-flow shorthand.** For world-level message
     scenarios, prefer `world.TickMessages(...)` over raw `world.Tick(...)` so the
     test intent stays obvious.
 
-- **`SentMessages` for lightweight assertions.** If you only need to verify
-  that a message was sent without triggering delivery:
+- **Use world assertion helpers first.** Prefer `world.ShouldHaveDeliveredIgcMessage(...)`,
+    `world.ShouldHaveBroadcast(...)`, and `world.ShouldHaveNoPendingMessages()`
+    before falling back to raw `SentMessages` inspection.
+
+- **`SentMessages` remains available for lightweight transport checks.** If
+    you only need to verify a message was emitted without asserting full flow:
 
   ```csharp
   ship.Bus.RunTerminalCommand("@GUI view/go \"Bridge LCD\" \"RotorView\"");
   ship.Clock.RunToIdle();
 
-  Assert.That(network.SentMessages.Any(m => m.TargetId == gui.IGC.Me), Is.True);
+    Assert.That(world.SentMessages.Any(m => m.TargetId == gui.IGC.Me), Is.True);
   ```
 
 - **More than two grids** work the same way — add more sessions with
-  `.OnNetwork(network)` and they are all cross-registered with each other.
+    `.OnNetwork()` and they are all cross-registered with each other.
+
+### When to use FakeIgcNetwork directly
+
+Prefer direct `FakeIgcNetwork` setup only when testing transport behavior
+itself (drop reasons, listener activation edge-cases, low-level tag routing)
+instead of world-level integration outcomes.
 
 ### World-based remote flow (preferred in new integration tests)
 
@@ -392,8 +395,8 @@ public void Remote_Command_Executes_On_Receiver_Through_World_Ticks()
 {
         var world = new TestWorld();
 
-        var sender = world.CreateScript<CoreTestProgram>("Sender").OnNetwork(world.Network).Boot();
-        var receiver = world.CreateScript<CoreTestProgram>("Receiver").OnNetwork(world.Network).Boot();
+        var sender = world.CreateScript("Sender").OnNetwork(world.Network).Boot();
+        var receiver = world.CreateScript("Receiver").OnNetwork(world.Network).Boot();
 
         sender.RunTerminal("@Receiver help");
 
