@@ -542,11 +542,11 @@ namespace MotherCore.Tests.Utilities.Mocks
                 && _constructGridIds.Contains(block.CubeGrid.EntityId)
                 && _constructGridIds.Contains(other.CubeGrid.EntityId);
 
-            FakeProgrammableBlock programmableBlock = block as FakeProgrammableBlock;
+            FakeTerminalBlock fakeBlock = block as FakeTerminalBlock;
 
-            if (programmableBlock != null)
+            if (fakeBlock != null)
             {
-                programmableBlock.SameConstructEvaluator = evaluator;
+                fakeBlock.SameConstructEvaluator = evaluator;
                 return;
             }
 

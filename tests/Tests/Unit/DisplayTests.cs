@@ -30,8 +30,7 @@ namespace MotherCore.Tests.Tests.Unit
                 surfaceSize: resolvedSurfaceSize,
                 textureSize: resolvedTextureSize,
                 configure: textSurface =>
-                    A.CallTo(() => textSurface.DrawFrame())
-                        .ReturnsLazily(() => new MySpriteDrawFrame(_ => { })));
+                    textSurface.DrawFrameFactory = () => new MySpriteDrawFrame(_ => { }));
 
             var block = TerminalBlockFactory.Create<Sandbox.ModAPI.Ingame.IMyTerminalBlock>(customName: "LCD");
             var display = new Display(surface.Surface, block, new MyIni(), isCockpitDisplay);

@@ -157,7 +157,7 @@ MotherCore now has a working version of most of this model in the test utilities
 - `MergePair` is a deferred merge-topology descriptor returned by `TestWorld.AddMergeBlockPair(...)` when a test wants merge blocks pre-registered before boot.
 - `ClockDriver` provides assertion-friendly tick control for coroutine-driven behavior.
 - `PrintCapture` provides reusable output capture over `Program.Echo`.
-- `TextSurfaceFactory` provides lightweight `IMyTextSurface` and `IMyTextPanel` doubles with captured `WriteText(...)`, `ContentType`, `SurfaceSize`, and `TextureSize` state for display-focused tests.
+- `TextSurfaceFactory` provides lightweight `FakeTextSurface` and `FakeTextPanel` objects with captured `WriteText(...)`, `ContentType`, `SurfaceSize`, and `TextureSize` state for display-focused tests.
 - `FakeProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block.
 
 Display-related coverage is now also in place for the current harness shape:
@@ -562,7 +562,7 @@ Expected pieces:
 - `TerminalBlockFactory`
 - `BlockGroupFactory`
 - `GridTerminalSystemBuilder`
-- `TextSurfaceFactory` for display-oriented unit and integration tests that need lightweight text-surface doubles
+- `TextSurfaceFactory` for display-oriented unit and integration tests that need lightweight text-surface fakes
 
 Likely helpers:
 
@@ -785,7 +785,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 | `WithCustomData(Action<CustomDataComposer>)` | ⬜ Pending | Fluent composer overload |
 | `ReloadConfiguration()` | ⬜ Pending | Hot-reload config in test |
 | `TerminalBlockFactory` | ✅ Done | Lightweight block creation helpers for harness tests |
-| `TextSurfaceFactory` | ✅ Done | Lightweight text-surface doubles for `DisplayModule` / `Display` tests |
+| `TextSurfaceFactory` | ✅ Done | Lightweight text-surface fakes for `DisplayModule` / `Display` tests |
 | `GridTerminalSystemBuilder` | ⬜ Pending | A higher-level builder still does not exist |
 | `WithBlock(IMyTerminalBlock)` / `WithBlocks(...)` | ✅ Done | Convenience block injection on the script harness |
 | `TestGrid.AddBlock(...)` | ✅ Done | Convenience block injection on the world harness |

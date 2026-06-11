@@ -68,10 +68,10 @@ namespace MotherCore.Tests.Utilities.Factories
                 return true;
             }
 
-            var programmableBlock = block as FakeProgrammableBlock;
-            if (programmableBlock != null)
+            var fakeBlock = block as FakeTerminalBlock;
+            if (fakeBlock != null)
             {
-                programmableBlock.CubeGrid = grid;
+                fakeBlock.CubeGrid = grid;
                 return true;
             }
 
@@ -86,11 +86,20 @@ namespace MotherCore.Tests.Utilities.Factories
                 return false;
 
             TerminalBlockState state;
-            if (!States.TryGetValue(block, out state))
-                return false;
+            if (States.TryGetValue(block, out state))
+            {
+                state.SameConstructEvaluator = evaluator;
+                return true;
+            }
 
-            state.SameConstructEvaluator = evaluator;
-            return true;
+            var fakeBlock = block as FakeTerminalBlock;
+            if (fakeBlock != null)
+            {
+                fakeBlock.SameConstructEvaluator = evaluator;
+                return true;
+            }
+
+            return false;
         }
 
         static void ConfigureTerminalBlock<TBlock>(TBlock block, TerminalBlockState state)

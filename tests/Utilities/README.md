@@ -3,7 +3,7 @@
 This folder is organized by role so the core test harness is easier to scan.
 
 - `BaseClasses/`: reusable NUnit setup bases for script and world integration tests.
-- `Factories/`: construction entry points for bootstrapped test programs, fake runtime objects, lightweight text-surface doubles, and complete test artifacts such as `Program.Me.CustomData`.
+- `Factories/`: construction entry points for bootstrapped test programs, fake runtime objects, lightweight text-surface fakes, and complete test artifacts such as `Program.Me.CustomData`.
 - `Mocks/`: fake implementations and spies used to simulate runtime dependencies in tests.
 - `Harness/`: the executable test runtime surface (`Script`, `TestWorld`, clock, echo, and shared interfaces).
 
