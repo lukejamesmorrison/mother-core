@@ -72,6 +72,7 @@ namespace IngameScript
         /// <returns></returns>
         public override string Execute(TerminalCommand command)
         {
+            PurgeForced = false;
             ModulesToPurge.Clear();
             PurgedModules.Clear();
 
