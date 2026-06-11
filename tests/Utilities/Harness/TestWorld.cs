@@ -51,7 +51,7 @@ namespace MotherCore.Tests.Utilities
         readonly List<IScript> _scripts = new List<IScript>();
         readonly List<WorldBlockRegistration> _worldBlocks = new List<WorldBlockRegistration>();
         readonly List<MergePair> _mergePairs = new List<MergePair>();
-        FakeGridTerminalSystem _gridTerminalSystem;
+        readonly Dictionary<long, FakeGridTerminalSystem> _topologies = new Dictionary<long, FakeGridTerminalSystem>();
 
         /// <summary>
         /// The world's shared fake IGC network. Scripts can opt into this network
@@ -211,7 +211,10 @@ namespace MotherCore.Tests.Utilities
             }
 
             _worldBlocks.Add(new WorldBlockRegistration { Block = block, Grid = grid });
-            _gridTerminalSystem?.AddBlock(block, grid);
+
+            var topology = FindTopologyForGrid(grid);
+
+            topology?.AddBlock(block, grid);
 
             return block;
         }
@@ -286,8 +289,10 @@ namespace MotherCore.Tests.Utilities
 
             _mergePairs.Add(pair);
 
-            if (_gridTerminalSystem != null)
-                MaterializeMergePair(pair);
+            var topology = FindTopologyForGrid(baseGrid.Grid) ?? FindTopologyForGrid(otherGrid.Grid);
+
+            if (topology != null)
+                MaterializeMergePair(pair, topology);
 
             return pair;
         }
@@ -306,10 +311,11 @@ namespace MotherCore.Tests.Utilities
             if (primaryGrid == null)
                 throw new ArgumentNullException(nameof(primaryGrid));
 
-            EnsureWorldTopology(primaryGrid.Grid);
+            var topology = EnsureWorldTopology(primaryGrid.Grid);
 
-            var script = new Script<TProgram>(_gridTerminalSystem, scriptName).WithDefaultNetwork(_network);
+            var script = new Script<TProgram>(topology, scriptName).WithDefaultNetwork(_network);
             _scripts.Add(script);
+
             return script;
         }
 
@@ -322,14 +328,12 @@ namespace MotherCore.Tests.Utilities
         /// <returns>The current world instance for fluent chaining.</returns>
         public TestWorld Merge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
         {
-            if (_gridTerminalSystem == null)
-                throw new InvalidOperationException(
-                    "World topology has not been bound to a script yet. Create a script on an existing world grid first.");
+            var topology = GetTopologyForMerge(firstBlock, secondBlock);
 
-            MaterializeGridBlocks(firstBlock?.CubeGrid);
-            MaterializeGridBlocks(secondBlock?.CubeGrid);
+            MaterializeGridBlocks(firstBlock?.CubeGrid, topology);
+            MaterializeGridBlocks(secondBlock?.CubeGrid, topology);
 
-            _gridTerminalSystem.MergeBlocks(firstBlock, secondBlock);
+            topology.MergeBlocks(firstBlock, secondBlock);
 
             return this;
         }
@@ -341,11 +345,16 @@ namespace MotherCore.Tests.Utilities
         /// <returns>The current world instance for fluent chaining.</returns>
         public TestWorld Unmerge(IMyShipMergeBlock mergeBlock)
         {
-            if (_gridTerminalSystem == null)
-                throw new InvalidOperationException(
-                    "World topology has not been bound to a script yet. Create a script on an existing world grid first.");
+            if (mergeBlock == null)
+                throw new ArgumentNullException(nameof(mergeBlock));
 
-            _gridTerminalSystem.UnmergeBlocks(mergeBlock);
+            var topology = FindTopologyForGrid(mergeBlock.CubeGrid);
+
+            if (topology == null)
+                throw new InvalidOperationException(
+                    "World topology has not been bound for the supplied merge block grid. Create or connect grids in this world first.");
+
+            topology.UnmergeBlocks(mergeBlock);
 
             return this;
         }
@@ -387,6 +396,17 @@ namespace MotherCore.Tests.Utilities
         public TestWorld RunIGC() => Run(UpdateType.IGC);
 
         /// <summary>
+        /// Runs one terminal update cycle for every script in this world with the
+        /// same terminal <paramref name="argument"/>.
+        /// </summary>
+        /// <param name="argument">The terminal argument to pass to all scripts.</param>
+        /// <returns>The current world instance for fluent chaining.</returns>
+        public TestWorld RunTerminalAll(string argument = "")
+        {
+            return Run(UpdateType.Terminal, argument);
+        }
+
+        /// <summary>
         /// Advances the world by <paramref name="count"/> synchronized cycles.
         /// Each cycle first dispatches pending IGC traffic and then advances every
         /// script clock once.
@@ -420,6 +440,87 @@ namespace MotherCore.Tests.Utilities
         public TestWorld TickMessages(int count = 2) => Tick(count);
 
         /// <summary>
+        /// Advances the world until <paramref name="predicate"/> returns true or
+        /// <paramref name="maxTicks"/> is reached.
+        /// </summary>
+        /// <param name="predicate">Completion condition evaluated before each tick.</param>
+        /// <param name="maxTicks">Maximum number of ticks to execute.</param>
+        /// <returns>The current world instance for fluent chaining.</returns>
+        public TestWorld TickUntil(Func<bool> predicate, int maxTicks = 50)
+        {
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (maxTicks < 0)
+                throw new ArgumentOutOfRangeException(nameof(maxTicks), "maxTicks must be zero or greater.");
+
+            for (int i = 0; i < maxTicks; i++)
+            {
+                if (predicate())
+                    return this;
+
+                Tick();
+            }
+
+            Assert.That(predicate(), Is.True,
+                $"Expected world condition to become true within {maxTicks} tick(s), but it never did.");
+
+            return this;
+        }
+
+        /// <summary>
+        /// Connects two world grids as the same construct through a synthetic
+        /// mechanical connection owned by the world's topology model.
+        /// </summary>
+        /// <param name="baseGrid">The base-side grid.</param>
+        /// <param name="topGrid">The attached top-side grid.</param>
+        /// <param name="connectionKind">Mechanical connection flavor.</param>
+        /// <returns>The created or existing mechanical connection block.</returns>
+        public IMyMechanicalConnectionBlock ConnectGrids(
+            TestGrid baseGrid,
+            TestGrid topGrid,
+            MechanicalConnectionKind connectionKind = MechanicalConnectionKind.Rotor)
+        {
+            if (baseGrid == null)
+                throw new ArgumentNullException(nameof(baseGrid));
+
+            if (topGrid == null)
+                throw new ArgumentNullException(nameof(topGrid));
+
+            var topology = EnsureWorldTopology(baseGrid.Grid);
+            var topTopology = FindTopologyForGrid(topGrid.Grid);
+
+            if (topTopology != null && !ReferenceEquals(topology, topTopology))
+            {
+                throw new InvalidOperationException(
+                    "The supplied top grid is already bound to a different world topology.");
+            }
+
+            MaterializeGridBlocks(baseGrid.Grid, topology);
+            MaterializeGridBlocks(topGrid.Grid, topology);
+
+            return topology.ConnectGrids(baseGrid.Grid, topGrid.Grid, connectionKind);
+        }
+
+        /// <summary>
+        /// Reports whether two world grids currently belong to the same construct.
+        /// </summary>
+        public bool AreSameConstruct(TestGrid firstGrid, TestGrid secondGrid)
+        {
+            if (firstGrid == null)
+                throw new ArgumentNullException(nameof(firstGrid));
+
+            if (secondGrid == null)
+                throw new ArgumentNullException(nameof(secondGrid));
+
+            var topology = FindTopologyForGrid(firstGrid.Grid);
+            if (topology == null)
+                return false;
+
+            return topology.IsSameConstruct(firstGrid.Grid, secondGrid.Grid);
+        }
+
+        /// <summary>
         /// Advances the world by <paramref name="count"/> consecutive cycles
         /// with the same <paramref name="updateType"/>.
         /// </summary>
@@ -440,25 +541,65 @@ namespace MotherCore.Tests.Utilities
         /// a script binds to a specific grid.
         /// </summary>
         /// <param name="primaryGrid">The grid that should become the terminal system root.</param>
-        void EnsureWorldTopology(IMyCubeGrid primaryGrid)
+        FakeGridTerminalSystem EnsureWorldTopology(IMyCubeGrid primaryGrid)
         {
-            if (_gridTerminalSystem != null)
-            {
-                if (_gridTerminalSystem.PrimaryGrid.EntityId != primaryGrid.EntityId)
-                {
-                    throw new InvalidOperationException(
-                        "TestWorld currently supports one topology-backed primary script grid.");
-                }
+            if (primaryGrid == null)
+                throw new ArgumentNullException(nameof(primaryGrid));
 
-                return;
-            }
+            var existingTopology = FindTopologyForGrid(primaryGrid);
+            if (existingTopology != null)
+                return existingTopology;
 
-            _gridTerminalSystem = new FakeGridTerminalSystem(primaryGrid);
+            var topology = new FakeGridTerminalSystem(primaryGrid);
+            _topologies[primaryGrid.EntityId] = topology;
 
             foreach (var pair in _mergePairs)
-                MaterializeMergePair(pair);
+            {
+                if (pair.BaseBlock != null)
+                    continue;
 
-            MaterializeGridBlocks(primaryGrid);
+                if (pair.BaseGrid?.EntityId != primaryGrid.EntityId
+                    && pair.OtherGrid?.EntityId != primaryGrid.EntityId)
+                    continue;
+
+                MaterializeMergePair(pair, topology);
+            }
+
+            MaterializeGridBlocks(primaryGrid, topology);
+
+            return topology;
+        }
+
+        FakeGridTerminalSystem FindTopologyForGrid(IMyCubeGrid grid)
+        {
+            if (grid == null)
+                return null;
+
+            foreach (var topology in _topologies.Values)
+                if (topology.KnowsGrid(grid))
+                    return topology;
+
+            return null;
+        }
+
+        FakeGridTerminalSystem GetTopologyForMerge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
+        {
+            var firstTopology = FindTopologyForGrid(firstBlock?.CubeGrid);
+            var secondTopology = FindTopologyForGrid(secondBlock?.CubeGrid);
+
+            if (firstTopology == null && secondTopology == null)
+            {
+                throw new InvalidOperationException(
+                    "World topology has not been bound for either merge block grid. Create or connect grids in this world first.");
+            }
+
+            if (firstTopology != null && secondTopology != null && !ReferenceEquals(firstTopology, secondTopology))
+            {
+                throw new InvalidOperationException(
+                    "The supplied merge blocks belong to different world topologies. Cross-topology merge is not supported.");
+            }
+
+            return firstTopology ?? secondTopology;
         }
 
         /// <summary>
@@ -466,9 +607,9 @@ namespace MotherCore.Tests.Utilities
         /// system, skipping blocks that have already been materialized.
         /// </summary>
         /// <param name="grid">The grid whose blocks should be materialized.</param>
-        void MaterializeGridBlocks(IMyCubeGrid grid)
+        void MaterializeGridBlocks(IMyCubeGrid grid, FakeGridTerminalSystem topology)
         {
-            if (_gridTerminalSystem == null || grid == null)
+            if (topology == null || grid == null)
                 return;
 
             foreach (var blockRegistration in _worldBlocks)
@@ -476,10 +617,10 @@ namespace MotherCore.Tests.Utilities
                 if (blockRegistration.Grid?.EntityId != grid.EntityId)
                     continue;
 
-                if (_gridTerminalSystem.GetBlockWithId(blockRegistration.Block.EntityId) != null)
+                if (topology.GetBlockWithId(blockRegistration.Block.EntityId) != null)
                     continue;
 
-                _gridTerminalSystem.AddBlock(blockRegistration.Block, blockRegistration.Grid);
+                topology.AddBlock(blockRegistration.Block, blockRegistration.Grid);
             }
         }
 
@@ -488,12 +629,12 @@ namespace MotherCore.Tests.Utilities
         /// registers them with the active topology-backed terminal system.
         /// </summary>
         /// <param name="pair">The deferred merge pair to materialize.</param>
-        void MaterializeMergePair(MergePair pair)
+        void MaterializeMergePair(MergePair pair, FakeGridTerminalSystem topology)
         {
             if (pair.BaseBlock != null)
                 return;
 
-            pair.BaseBlock = _gridTerminalSystem.ConnectGridsViaMergeBlock(
+            pair.BaseBlock = topology.ConnectGridsViaMergeBlock(
                 pair.BaseGrid,
                 pair.OtherGrid,
                 pair.BaseMergeBlockName,
@@ -501,7 +642,7 @@ namespace MotherCore.Tests.Utilities
                 pair.InitialState
             );
 
-            pair.OtherBlock = _gridTerminalSystem.GetPairedMergeBlock(pair.BaseBlock);
+            pair.OtherBlock = topology.GetPairedMergeBlock(pair.BaseBlock);
         }
     }
 }

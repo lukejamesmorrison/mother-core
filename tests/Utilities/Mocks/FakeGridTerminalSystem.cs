@@ -85,6 +85,31 @@ namespace MotherCore.Tests.Utilities.Mocks
         public IMyCubeGrid PrimaryGrid { get; private set; }
 
         /// <summary>
+        /// Reports whether this terminal system has topology knowledge for
+        /// <paramref name="grid"/>.
+        /// </summary>
+        public bool KnowsGrid(IMyCubeGrid grid)
+        {
+            if (grid == null)
+                return false;
+
+            return _reachableGridIds.Contains(grid.EntityId);
+        }
+
+        /// <summary>
+        /// Reports whether two grids currently belong to the same construct
+        /// according to this terminal system's topology model.
+        /// </summary>
+        public bool IsSameConstruct(IMyCubeGrid firstGrid, IMyCubeGrid secondGrid)
+        {
+            if (firstGrid == null || secondGrid == null)
+                return false;
+
+            return _constructGridIds.Contains(firstGrid.EntityId)
+                && _constructGridIds.Contains(secondGrid.EntityId);
+        }
+
+        /// <summary>
         /// Creates an additional grid that is reachable from this terminal system.
         /// </summary>
         /// <param name="gridName">Optional display name for the new grid.</param>

@@ -51,6 +51,35 @@ namespace MotherCore.Tests.Harness
         }
 
         [Test]
+        public void CreateScript_On_Different_World_Grids_Binds_Each_Script_To_Its_Own_Primary_Grid()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var escortGrid = world.CreateGrid("Escort");
+
+            var carrier = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
+            var escort = world.CreateScript<CoreTestProgram>(escortGrid, "Escort").Boot();
+
+            Assert.That(carrier.PrimaryGrid, Is.SameAs(carrierGrid.Grid));
+            Assert.That(carrier.Program.Me.CubeGrid, Is.SameAs(carrierGrid.Grid));
+
+            Assert.That(escort.PrimaryGrid, Is.SameAs(escortGrid.Grid));
+            Assert.That(escort.Program.Me.CubeGrid, Is.SameAs(escortGrid.Grid));
+        }
+
+        [Test]
+        public void ConnectGrids_Binds_World_Grids_To_The_Same_Construct()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var cargoGrid = world.CreateGrid("Cargo Pod");
+
+            world.ConnectGrids(carrierGrid, cargoGrid);
+
+            Assert.That(world.AreSameConstruct(carrierGrid, cargoGrid), Is.True);
+        }
+
+        [Test]
         public void TestGrid_Can_Create_And_Register_A_Block_By_Type_And_Name()
         {
             var world = new TestWorld();
@@ -264,6 +293,22 @@ namespace MotherCore.Tests.Harness
         }
 
         [Test]
+        public void RunTerminalAll_Dispatches_Command_On_All_Scripts()
+        {
+            var world = new TestWorld();
+
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
+
+            world.RunTerminalAll("help");
+
+            world.TickMessages();
+
+            shipA.ShouldHaveExecuted("help");
+            shipB.ShouldHaveExecuted("help");
+        }
+
+        [Test]
         public void Run_Does_Not_Throw_For_Update10()
         {
             var world = new TestWorld();
@@ -339,6 +384,19 @@ namespace MotherCore.Tests.Harness
             var world = new TestWorld();
 
             Assert.That(world.RunMany(1, UpdateType.Update10), Is.SameAs(world));
+        }
+
+        [Test]
+        public void TickUntil_Stops_When_Condition_Becomes_True()
+        {
+            var world = new TestWorld();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+
+            shipA.RunTerminal("rename ShipA-Renamed");
+
+            Assert.DoesNotThrow(() => world.TickUntil(() => shipA.Mother.Name == "ShipA-Renamed", maxTicks: 10));
+
+            shipA.ShouldHaveName("ShipA-Renamed");
         }
     }
 }

@@ -249,7 +249,7 @@ The main gap is no longer the absence of a world abstraction. The larger remaini
 - promoting harness services (`Me`, `Storage`, `Echo`, `GridTerminalSystem`, `IGC`) into named first-class fake components
 - unifying terminal block setup around a richer block model rather than ad hoc interface mocking
 - adding assertion helpers scoped to world, script, grid, and block behavior
-- construct-topology support and a few ergonomics items such as composer overloads and config reload helpers
+- a few ergonomics items such as composer overloads and config reload helpers
 
 The explicit block-family rollout is now complete for the currently active harness surfaces:
 
@@ -635,8 +635,7 @@ The next wave of helpers should grow from the `Script` plus `World` model, not f
 
 Likely additions:
 
-- construct-topology support such as `CreateConstruct()` and construct-local dispatch
-- richer construct-topology control beyond the default primary-grid mechanical links
+- broader same-construct assertion ergonomics on top of existing world/grid topology helpers
 - configuration ergonomics such as `WithCustomData(Action<CustomDataComposer>)` and `ReloadConfiguration()`
 
 The core run and world-delivery helpers already exist; the remaining work is mostly in convenience APIs and broader topology modeling.
@@ -768,20 +767,19 @@ Ideal shape:
 
 ```csharp
 var world = new TestWorld();
-var construct = world.CreateConstruct();
+var osGrid = world.CreateGrid("ShipOS Grid");
+var guiGrid = world.CreateGrid("ShipGUI Grid");
 
-var os = world.CreateScript<MotherOS.Program>("ShipOS")
-    .OnConstruct(construct)
-    .Boot();
+world.ConnectGrids(osGrid, guiGrid);
 
-var gui = world.CreateScript<MotherGUI.Program>("ShipGUI")
-    .OnConstruct(construct)
-    .Boot();
+var os = world.CreateScript<MotherOS.Program>(osGrid, "ShipOS").Boot();
+var gui = world.CreateScript<MotherGUI.Program>(guiGrid, "ShipGUI").Boot();
+
+Assert.That(world.AreSameConstruct(osGrid, guiGrid), Is.True);
 
 os.Mother.GetModule<IntergridMessageService>()
     .SendConstructCommand(gui.Mother.Id, "view/go status");
 
-construct.DispatchMessages();
 world.Tick();
 ```
 
@@ -833,7 +831,6 @@ Current direction:
 - `world.Tick(count)` advances full world cycles (dispatches IGC, then advances each script clock)
 - `world.TickMessages(count)` is the intent-first helper for message-driven world progression (defaults to 2 cycles)
 - `world.DispatchIgc()` remains available when tests need transport-only assertions before clocks advance
-- `construct.DispatchMessages()` moves queued same-construct messages
 - `world.Run(UpdateType updateType, string argument = "")` runs one real program cycle for scripts in the world
 - `world.RunIGC()` is a convenience helper for `world.Run(UpdateType.IGC)`
 - `world.RunMany(int count, UpdateType updateType)` advances multiple `Mother.Run` cycles explicitly
@@ -1126,14 +1123,13 @@ Exit criteria:
   tests are replaced by domain-level helper assertions
 - failure messages describe world/script/network intent rather than raw fields
 
-### Phase C: World topology orchestration evolution (medium-term)
+### ✅ Phase C: World topology orchestration evolution (medium-term)
 
 1. Decouple world topology from a single primary script grid.
     - allow multiple scripts to bind using different existing `TestGrid` roots
     - preserve backward compatibility for existing single-root tests
 
 2. Introduce explicit topology management APIs.
-    - world-level construct grouping and membership queries
     - clear semantics for mechanical, merge, and connector connectivity
 
 3. Add orchestration helpers for progression.
@@ -1211,7 +1207,8 @@ Exit criteria:
 |---|---|---|
 | `CreateScript<T>(name)` | ✅ Done | Returns `Script<T>` in world context; network binding is explicit via `OnNetwork()`/`OnNetwork(world.Network)` |
 | `CreateGrid(name, entityId)` | ✅ Done | Creates a world-owned grid handle before boot |
-| `CreateScript<T>(primaryGrid, name)` | ✅ Done | Binds a script to an existing world grid and topology |
+| `CreateScript<T>(primaryGrid, name)` | ✅ Done | Binds a script to an existing world grid and topology; different scripts can now bind to different world grids |
+| `ConnectGrids(baseGrid, topGrid, connectionKind)` | ✅ Done | World-level mechanical construct orchestration across pre-created world grids |
 | `Network` | ✅ Done | Exposes the world's shared `FakeIgcNetwork` for explicit script binding |
 | `Merge(firstBlock, secondBlock)` / `Unmerge(mergeBlock)` | ✅ Done | Drives world-level merge topology using standalone or paired merge blocks |
 | `TestGrid.AddBlock(...)` | ✅ Done | Registers world-owned blocks through a grid handle |
@@ -1220,10 +1217,12 @@ Exit criteria:
 | `Tick(count)` | ✅ Done | Advances full world cycles (IGC dispatch + all script clocks) |
 | `TickMessages(count)` | ✅ Done | Message-focused world progression helper (defaults to two cycles) |
 | `Run(UpdateType, string)` | ✅ Done | Runs all booted scripts one cycle |
+| `RunTerminalAll(argument)` | ✅ Done | Runs one terminal update across all scripts with the same argument |
 | `RunIGC()` | ✅ Done | Convenience for `Run(UpdateType.IGC)` |
 | `RunMany(count, UpdateType, string)` | ✅ Done | Advances multiple cycles |
+| `TickUntil(predicate, maxTicks)` | ✅ Done | Ticks until a condition is met (or fails within max ticks) |
 | `SentMessages` | ✅ Done | Exposes world network sent-message capture for assertions |
-| `CreateConstruct()` / same-construct messaging | ⬜ Pending | Requires construct topology design |
+| Construct helpers beyond same-construct assertions | ⏸ Deferred | Current world/grid assertions and `AreSameConstruct(...)` cover the needed topology intent for now |
 
 ### Base test classes
 
@@ -1258,7 +1257,7 @@ Exit criteria:
 | Feature | Status | Notes |
 |---|---|---|
 | World-level shared clock / time advance | ✅ Done | `TestWorld.Tick(n)` advances full world cycles |
-| `world.CreateConstruct()` | ⬜ Pending | Same-construct messaging topology |
+| `world.CreateConstruct()` | ⏸ Deferred | Not required at this stage; same-construct coverage is assertion-driven via existing world/grid helpers |
 | Script runtime inspection helpers | ⬜ Pending | Instruction count, update frequency per script |
 | Focused event recorder helper | ⬜ Pending | Only if fixture-local effects are not sufficient for narrower event assertions |
 
