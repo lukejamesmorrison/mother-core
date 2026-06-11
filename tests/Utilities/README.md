@@ -7,6 +7,12 @@ This folder is organized by role so the core test harness is easier to scan.
 - `Mocks/`: explicit fake implementations and spies used to simulate runtime dependencies in tests.
 - `Harness/`: the executable test runtime surface (`Script`, `TestWorld`, clock, echo, and shared interfaces).
 
+`TestWorld` is the preferred multi-script orchestration API. In world-based tests,
+use `world.TickMessages(...)` for message-driven progression and `world.Tick(n)` for
+raw world cycles. `Tick` advances full world cycles (dispatch IGC + advance all
+script clocks), and `world.DispatchIgc()` remains available when you intentionally
+need a transport-only phase.
+
 The utilities root stays in `MotherCore.Tests.Utilities`; focused sub-areas such as `Factories` and `Mocks` use child namespaces when that makes the role clearer.
 
 The current harness direction is explicit over generic: common game-facing interfaces

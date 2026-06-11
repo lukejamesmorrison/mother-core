@@ -20,8 +20,8 @@ namespace MotherCore.Tests.Utilities
     /// <code>
     /// var world = new TestWorld();
     ///
-    /// var shipA = world.CreateScript&lt;Program&gt;("ShipA").Boot();
-    /// var shipB = world.CreateScript&lt;Program&gt;("ShipB").Boot();
+    /// var shipA = world.CreateScript&lt;Program&gt;("ShipA").OnNetwork().Boot();
+    /// var shipB = world.CreateScript&lt;Program&gt;("ShipB").OnNetwork().Boot();
     ///
     /// shipA.Bus.RunTerminalCommand("@ShipB help");
     /// world.DispatchIgc();
@@ -47,18 +47,35 @@ namespace MotherCore.Tests.Utilities
         }
 
         readonly FakeIgcNetwork _network = new FakeIgcNetwork();
+        readonly List<IScript> _scripts = new List<IScript>();
         readonly List<WorldBlockRegistration> _worldBlocks = new List<WorldBlockRegistration>();
         readonly List<MergePair> _mergePairs = new List<MergePair>();
         FakeGridTerminalSystem _gridTerminalSystem;
 
         /// <summary>
-        /// Creates a new <see cref="Script{TProgram}"/> joined to this world's IGC
-        /// network. Call <see cref="Script{TProgram}.Boot"/> to complete construction.
+        /// The world's shared fake IGC network. Scripts can opt into this network
+        /// via <see cref="Script{TProgram}.OnNetwork(FakeIgcNetwork)"/>.
+        /// </summary>
+        public FakeIgcNetwork Network => _network;
+
+        /// <summary>
+        /// Messages sent through this world's shared IGC network.
+        /// Useful for assertions without reaching into transport internals.
+        /// </summary>
+        public IReadOnlyList<FakeIgcNetwork.SentMessage> SentMessages => _network.SentMessages;
+
+        /// <summary>
+        /// Creates a new <see cref="Script{TProgram}"/> in this world.
+        /// Network participation is opt-in via <see cref="Script{TProgram}.OnNetwork()"/>
+        /// or <see cref="Script{TProgram}.OnNetwork(FakeIgcNetwork)"/>.
+        /// Call <see cref="Script{TProgram}.Boot"/> to complete construction.
         /// </summary>
         public Script<TProgram> CreateScript<TProgram>(string scriptName = null)
             where TProgram : MyGridProgram, new()
         {
-            return new Script<TProgram>(scriptName).OnNetwork(_network);
+            var script = new Script<TProgram>(scriptName).WithDefaultNetwork(_network);
+            _scripts.Add(script);
+            return script;
         }
 
         /// <summary>
@@ -196,7 +213,9 @@ namespace MotherCore.Tests.Utilities
 
             EnsureWorldTopology(primaryGrid.Grid);
 
-            return new Script<TProgram>(_gridTerminalSystem, scriptName).OnNetwork(_network);
+            var script = new Script<TProgram>(_gridTerminalSystem, scriptName).WithDefaultNetwork(_network);
+            _scripts.Add(script);
+            return script;
         }
 
         /// <summary>
@@ -256,9 +275,9 @@ namespace MotherCore.Tests.Utilities
         /// <param name="updateType">The game update type to pass to each script.</param>
         /// <param name="argument">The terminal argument to pass to each script.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld Run(UpdateType updateType, string argument = "")
+        public TestWorld Run(UpdateType updateType = UpdateType.Update10, string argument = "")
         {
-            foreach (var script in _network.Sessions)
+            foreach (var script in _scripts)
                 script.Mother.Run(argument, updateType);
 
             return this;
@@ -271,6 +290,39 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         /// <returns>The current world instance for fluent chaining.</returns>
         public TestWorld RunIGC() => Run(UpdateType.IGC);
+
+        /// <summary>
+        /// Advances the world by <paramref name="count"/> synchronized cycles.
+        /// Each cycle first dispatches pending IGC traffic and then advances every
+        /// script clock once.
+        /// </summary>
+        /// <param name="count">Number of world cycles to execute.</param>
+        /// <returns>The current world instance for fluent chaining.</returns>
+        public TestWorld Tick(int count = 1)
+        {
+            if (count < 0)
+                throw new ArgumentOutOfRangeException(nameof(count), "Count must be zero or greater.");
+
+            for (int i = 0; i < count; i++)
+            {
+                DispatchIgc();
+
+                _scripts.ForEach(s => s.Tick());
+                //foreach (var script in _scripts)
+                //    script.Tick();
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Intention-revealing world progression helper for message-driven tests.
+        /// We tick twice, to ensure communications can take a round trip.
+        /// Equivalent to <see cref="Tick(int)"/>.
+        /// </summary>
+        /// <param name="count">Number of world cycles to execute.</param>
+        /// <returns>The current world instance for fluent chaining.</returns>
+        public TestWorld TickMessages(int count = 2) => Tick(count);
 
         /// <summary>
         /// Advances the world by <paramref name="count"/> consecutive cycles

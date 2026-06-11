@@ -22,5 +22,10 @@ namespace MotherCore.Tests.Utilities
         /// script is using a shared <c>FakeIgcNetwork</c> or a standalone endpoint.
         /// </summary>
         IMyIntergridCommunicationSystem IGC { get; }
+
+        /// <summary>
+        /// Advances the script clock by one cycle.
+        /// </summary>
+        void Tick();
     }
 }

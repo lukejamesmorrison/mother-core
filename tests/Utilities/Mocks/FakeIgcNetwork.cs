@@ -52,7 +52,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// All scripts that have registered on this network via <see cref="Script{TProgram}.Boot"/>, 
         /// paired with their grid names for Almanac cross-registration.
         /// </summary>
-        readonly List<(IScript Session, string GridName)> _sessions = new List<(IScript, string)>();
+        readonly List<(IScript Session, string GridName)> _scripts = new List<(IScript, string)>();
 
         /// <summary>
         /// All messages sent through the network that have not yet been delivered. Cleared on 
@@ -70,7 +70,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// All scripts that have registered on this network via
         /// <see cref="Script{TProgram}.Boot"/>. Ordered by registration time.
         /// </summary>
-        public IReadOnlyList<IScript> Sessions => _sessions.Select(s => s.Session).ToList();
+        public IReadOnlyList<IScript> Scripts => _scripts.Select(s => s.Session).ToList();
 
         /// <summary>
         /// Allocates a new <see cref="FakeIgc"/> endpoint on this network.
@@ -92,15 +92,15 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// Called automatically by <see cref="Script{TProgram}.Boot"/> - no
         /// manual call required.
         /// </summary>
-        internal void RegisterSession(IScript session, string gridName)
+        internal void RegisterScript(IScript script, string gridName)
         {
-            foreach (var (existing, existingName) in _sessions)
+            foreach (var (existing, existingName) in _scripts)
             {
-                SyncToAlmanac(session, existing, existingName);
-                SyncToAlmanac(existing, session, gridName);
+                SyncToAlmanac(script, existing, existingName);
+                SyncToAlmanac(existing, script, gridName);
             }
 
-            _sessions.Add((session, gridName));
+            _scripts.Add((script, gridName));
         }
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace MotherCore.Tests.Utilities.Mocks
             }
             _pending.Clear();
 
-            foreach (var (session, _) in _sessions)
+            foreach (var (session, _) in _scripts)
             {
                 var igc = session.IGC as FakeIgc;
 

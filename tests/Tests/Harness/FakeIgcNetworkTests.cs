@@ -11,7 +11,7 @@ namespace MotherCore.Tests.Harness
     /// cross-registration, <see cref="FakeIgcNetwork.SentMessages"/> capture,
     /// message delivery via <see cref="FakeIgcNetwork.Deliver"/> and
     /// <see cref="FakeIgcNetwork.DispatchIgc"/>, and the
-    /// <see cref="FakeIgcNetwork.Sessions"/> roster.
+    /// <see cref="FakeIgcNetwork.Scripts"/> roster.
     /// </summary>
     public class FakeIgcNetworkTests
     {
@@ -210,7 +210,7 @@ namespace MotherCore.Tests.Harness
         }
 
         // =====================================================================
-        // Sessions
+        // Scripts
         // =====================================================================
 
         [Test]
@@ -218,7 +218,7 @@ namespace MotherCore.Tests.Harness
         {
             var network = new FakeIgcNetwork();
 
-            Assert.That(network.Sessions, Is.Empty);
+            Assert.That(network.Scripts, Is.Empty);
         }
 
         [Test]
@@ -228,7 +228,7 @@ namespace MotherCore.Tests.Harness
 
             new Script("ShipA").OnNetwork(network).Boot();
 
-            Assert.That(network.Sessions.Count, Is.EqualTo(1));
+            Assert.That(network.Scripts.Count, Is.EqualTo(1));
         }
 
         [Test]
@@ -240,10 +240,10 @@ namespace MotherCore.Tests.Harness
             var shipB = new Script("ShipB").OnNetwork(network).Boot();
             var shipC = new Script("ShipC").OnNetwork(network).Boot();
 
-            Assert.That(network.Sessions.Count, Is.EqualTo(3));
-            Assert.That(network.Sessions[0].Mother.Name, Is.EqualTo("ShipA"));
-            Assert.That(network.Sessions[1].Mother.Name, Is.EqualTo("ShipB"));
-            Assert.That(network.Sessions[2].Mother.Name, Is.EqualTo("ShipC"));
+            Assert.That(network.Scripts.Count, Is.EqualTo(3));
+            Assert.That(network.Scripts[0].Mother.Name, Is.EqualTo("ShipA"));
+            Assert.That(network.Scripts[1].Mother.Name, Is.EqualTo("ShipB"));
+            Assert.That(network.Scripts[2].Mother.Name, Is.EqualTo("ShipC"));
         }
 
         [Test]
@@ -254,7 +254,7 @@ namespace MotherCore.Tests.Harness
             new Script("ShipA").OnNetwork(network).Boot();
             new Script("Standalone").Boot(); // not on the network
 
-            Assert.That(network.Sessions.Count, Is.EqualTo(1));
+            Assert.That(network.Scripts.Count, Is.EqualTo(1));
         }
     }
 }

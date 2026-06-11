@@ -102,14 +102,27 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
 
             var almanacA = shipA.Mother.GetModule<Almanac>();
             var almanacB = shipB.Mother.GetModule<Almanac>();
 
             Assert.That(almanacA.GetRecord("ShipB"), Is.Not.Null, "ShipA should know ShipB");
             Assert.That(almanacB.GetRecord("ShipA"), Is.Not.Null, "ShipB should know ShipA");
+        }
+
+        [Test]
+        public void Scripts_Created_Via_World_Do_Not_Cross_Register_When_Not_On_Network()
+        {
+            var world = new TestWorld();
+
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
+            world.CreateScript<CoreTestProgram>("ShipB").Boot();
+
+            var almanacA = shipA.Mother.GetModule<Almanac>();
+
+            Assert.That(almanacA.GetRecord("ShipB"), Is.Null);
         }
 
         // =====================================================================
@@ -121,8 +134,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
-            var shipB = world.CreateScript<CoreTestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -142,6 +155,60 @@ namespace MotherCore.Tests.Harness
             var world = new TestWorld();
 
             Assert.That(world.DispatchIgc(), Is.SameAs(world));
+        }
+
+        // =====================================================================
+        // Tick
+        // =====================================================================
+
+        [Test]
+        public void TickMessages_Auto_Dispatches_Igc_Before_Advancing_Clocks()
+        {
+            var world = new TestWorld();
+
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
+
+            shipA.Bus.RunTerminalCommand("@ShipB help");
+            shipA.Clock.RunToIdle();
+
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(0));
+
+            world.TickMessages();
+
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Tick_Returns_World_For_Chaining()
+        {
+            var world = new TestWorld();
+
+            Assert.That(world.Tick(), Is.SameAs(world));
+        }
+
+        [Test]
+        public void TickMessages_Processes_Remote_Command_Flow()
+        {
+            var world = new TestWorld();
+
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
+            var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
+
+            shipA.Bus.RunTerminalCommand("@ShipB help");
+            shipA.Clock.RunToIdle();
+
+            world.TickMessages(2);
+
+            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void TickMessages_Returns_World_For_Chaining()
+        {
+            var world = new TestWorld();
+
+            Assert.That(world.TickMessages(), Is.SameAs(world));
         }
 
         // =====================================================================
@@ -191,8 +258,8 @@ namespace MotherCore.Tests.Harness
         {
             var world = new TestWorld();
 
-            var shipA = world.CreateScript<CoreTestProgram>("ShipA").Boot();
-            world.CreateScript<CoreTestProgram>("ShipB").Boot();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
+            world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
 

@@ -10,6 +10,7 @@ using NUnit.Framework;
 using System.Reflection;
 using VRage.Game.ModAPI.Ingame;
 using System.Linq;
+using VRage.Game.ModAPI.Ingame.Utilities;
 
 namespace MotherCore.Tests.Utilities
 {
@@ -91,9 +92,14 @@ namespace MotherCore.Tests.Utilities
         IMyIntergridCommunicationSystem _igc;
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
         FakeIgcNetwork _network;
+        FakeIgcNetwork _defaultNetwork;
         readonly string _gridName;
         readonly FakeGridTerminalSystem _gridTerminalSystem;
         PrintCapture _printCapture;
+        bool _ensureDefaultPublicChannel;
+
+        const string ChannelsSectionName = "channels";
+        const string PublicChannelName = "*";
         /// <param name="gridName">
         /// Optional grid name for this script. Sets <see cref="Mother.Name"/> before boot
         /// and is used as the address other scripts use to reach this one on a
@@ -196,17 +202,84 @@ namespace MotherCore.Tests.Utilities
             return this;
         }
 
+        internal Script<TProgram> WithDefaultNetwork(FakeIgcNetwork network)
+        {
+            _defaultNetwork = network;
+            return this;
+        }
+
+        /// <summary>
+        /// Joins this script to the default network when available.
+        /// If no default network is configured (for example outside <see cref="TestWorld"/>),
+        /// a private network is created.
+        /// </summary>
+        public Script<TProgram> OnNetwork()
+        {
+            return OnNetwork(_defaultNetwork ?? new FakeIgcNetwork());
+        }
+
         /// <summary>
         /// Joins this script to a <see cref="FakeIgcNetwork"/>. A <see cref="FakeIgc"/>
         /// will be allocated from the network and injected into this script's
         /// <c>Program</c> during <see cref="Boot"/>. After boot, the script is
         /// automatically cross-registered in every other booted script's Almanac
         /// under the grid name supplied to the constructor (or the derived fallback).
+        ///
+        /// When no explicit channel configuration is supplied via
+        /// <see cref="WithCustomData"/>, the harness ensures a default public channel
+        /// entry (<c>[channels]</c> / <c>*=</c>) so scripts can communicate immediately.
         /// </summary>
         public Script<TProgram> OnNetwork(FakeIgcNetwork network)
         {
             _network = network;
+            _ensureDefaultPublicChannel = true;
             return this;
+        }
+
+        string BuildEffectiveCustomData()
+        {
+            if (!_ensureDefaultPublicChannel)
+                return _customData;
+
+            var ini = new MyIni();
+
+            if (!string.IsNullOrWhiteSpace(_customData))
+                ini.TryParse(_customData);
+
+            var channelKeys = new List<MyIniKey>();
+            ini.GetKeys(ChannelsSectionName, channelKeys);
+
+            if (channelKeys.Count == 0)
+                ini.Set(ChannelsSectionName, PublicChannelName, string.Empty);
+
+            return ini.ToString();
+        }
+
+        void SyncConstructCommandsOnBoot()
+        {
+            if (_network == null)
+                return;
+
+            var selfBus = _mother.GetModule<CommandBus>();
+            var selfCommands = selfBus.GetSelfCommandNames();
+
+            foreach (var session in _network.Scripts)
+            {
+                if (ReferenceEquals(session, this))
+                    continue;
+
+                if (!session.Mother.CubeGrid.IsSameConstructAs(_mother.CubeGrid))
+                    continue;
+
+                var remoteBus = session.Mother.GetModule<CommandBus>();
+                var remoteCommands = remoteBus.GetSelfCommandNames();
+
+                // Mirror construct sync results immediately after boot so tests
+                // start from a construct-aware state without requiring manual
+                // scheduler priming.
+                selfBus.RegisterRemoteCommands(session.Mother.Id, remoteCommands);
+                remoteBus.RegisterRemoteCommands(_mother.Id, selfCommands);
+            }
         }
 
         /// <summary>
@@ -454,6 +527,50 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Runs one <c>Mother.Run</c> cycle using argument-first ordering,
+        /// which reads closer to user-entered command flow.
+        /// Returns <c>this</c> for chaining.
+        /// </summary>
+        public Script<TProgram> Run(string argument, UpdateType updateType)
+        {
+            return Run(updateType, argument);
+        }
+
+        /// <summary>
+        /// Runs one terminal update cycle as if a player entered
+        /// <paramref name="argument"/> in the PB terminal.
+        /// </summary>
+        public Script<TProgram> RunTerminal(string argument = "")
+        {
+            return Run(UpdateType.Terminal, argument);
+        }
+
+        /// <summary>
+        /// Runs one trigger update cycle as if a button/action executed this PB.
+        /// </summary>
+        public Script<TProgram> RunTrigger(string argument = "")
+        {
+            return Run(UpdateType.Trigger, argument);
+        }
+
+        /// <summary>
+        /// Advances this script's clock by one cycle.
+        /// </summary>
+        public Script<TProgram> Tick()
+        {
+            Clock.Tick();
+            return this;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        void IScript.Tick()
+        {
+            Tick();
+        }
+
+        /// <summary>
         /// Starts capturing output written via <c>Program.Echo</c>.
         /// Returns the <see cref="PrintCapture"/> so assertions can be made against it.
         /// Subsequent calls return the same capture instance.
@@ -622,8 +739,9 @@ namespace MotherCore.Tests.Utilities
             _mother = FindMother(program);
             _printCapture = new PrintCapture(this);
 
-            if (_customData != null)
-                _mother.ProgrammableBlock.CustomData = _customData;
+            var effectiveCustomData = BuildEffectiveCustomData();
+            if (effectiveCustomData != null)
+                _mother.ProgrammableBlock.CustomData = effectiveCustomData;
 
             OnBeforeBoot(_mother);
 
@@ -655,7 +773,8 @@ namespace MotherCore.Tests.Utilities
             // anything printed after boot without extra setup.
             _printCapture.Clear();
 
-            _network?.RegisterSession(this, _mother.Name);
+            _network?.RegisterScript(this, _mother.Name);
+            SyncConstructCommandsOnBoot();
 
             return this;
         }
@@ -684,6 +803,13 @@ namespace MotherCore.Tests.Utilities
         public new Script OnNetwork(FakeIgcNetwork network)
         {
             base.OnNetwork(network);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.OnNetwork()"/>
+        public new Script OnNetwork()
+        {
+            base.OnNetwork();
             return this;
         }
 
@@ -855,6 +981,34 @@ namespace MotherCore.Tests.Utilities
         public new Script Run(UpdateType updateType, string argument = "")
         {
             base.Run(updateType, argument);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.Run(string, UpdateType)"/>
+        public new Script Run(string argument, UpdateType updateType)
+        {
+            base.Run(argument, updateType);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.RunTerminal(string)"/>
+        public new Script RunTerminal(string argument = "")
+        {
+            base.RunTerminal(argument);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.RunTrigger(string)"/>
+        public new Script RunTrigger(string argument = "")
+        {
+            base.RunTrigger(argument);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.Tick"/>
+        public new Script Tick()
+        {
+            base.Tick();
             return this;
         }
 

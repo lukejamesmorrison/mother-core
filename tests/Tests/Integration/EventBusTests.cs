@@ -28,6 +28,7 @@ namespace MotherCore.Tests.Integration
         public void A_Module_Can_Be_Subscribed_To_An_Event()
         {
             EventBus eventBus = Mother.GetModule<EventBus>();
+
             IModule module1 = ModuleFactory.Create(Mother);
             IModule module2 = ModuleFactory.Create(Mother);
 

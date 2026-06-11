@@ -348,9 +348,26 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
   network is cross-registered in every other session's Almanac under its grid
   name, so `@GUI` resolves without any extra setup.
 
+- **Network scripts are communication-ready by default.** Joining with
+    `.OnNetwork(network)` ensures a default public channel entry (`[channels]`,
+    `*=`) when no explicit channel config is provided.
+
 - **`DispatchIgc()` is explicit.** Messages are buffered until you call
     `network.DispatchIgc()`, giving precise control over when each message lands.
   This lets you assert on the outbound queue before it is processed.
+
+- **For world-based tests, prefer `TestWorld.Tick(...)`.** `TestWorld.Tick`
+    advances a full world cycle: dispatch pending IGC and then run each script clock.
+    Use `world.DispatchIgc()` only when you need a transport-only checkpoint before
+    advancing clocks.
+
+- **`TestWorld` network binding is explicit.** `world.CreateScript(...)` is local
+    by default. For inter-script IGC flows, opt in with `.OnNetwork()` (or
+    `.OnNetwork(world.Network)` when you want to be explicit about the shared network).
+
+- **`TickMessages()` is the message-flow shorthand.** For world-level message
+    scenarios, prefer `world.TickMessages(...)` over raw `world.Tick(...)` so the
+    test intent stays obvious.
 
 - **`SentMessages` for lightweight assertions.** If you only need to verify
   that a message was sent without triggering delivery:
@@ -364,3 +381,32 @@ public void MotherOS_Can_Send_view_go_To_MotherGUI_Over_The_Network()
 
 - **More than two grids** work the same way — add more sessions with
   `.OnNetwork(network)` and they are all cross-registered with each other.
+
+### World-based remote flow (preferred in new integration tests)
+
+When your test is already using `TestWorld`, keep progression at the world level:
+
+```csharp
+[Test]
+public void Remote_Command_Executes_On_Receiver_Through_World_Ticks()
+{
+        var world = new TestWorld();
+
+        var sender = world.CreateScript<CoreTestProgram>("Sender").OnNetwork(world.Network).Boot();
+        var receiver = world.CreateScript<CoreTestProgram>("Receiver").OnNetwork(world.Network).Boot();
+
+        sender.RunTerminal("@Receiver help");
+
+        // Two world cycles for this flow:
+        // 1) sender coroutine emits remote IGC message
+        // 2) delivered message is processed and receiver coroutine runs
+        world.TickMessages();
+
+        Assert.That(receiver.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+}
+```
+
+`TickMessages()` here is not a global rule. Use the smallest count that matches the
+stages in the behavior under test. For a terminal-driven remote command, two
+cycles are commonly needed (emit, then execute). For other scenarios, `Tick(1)`
+or more than two may be correct depending on coroutine depth and message hops.

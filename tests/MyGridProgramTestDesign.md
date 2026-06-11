@@ -69,6 +69,7 @@ Its responsibility is to boot one `MyGridProgram` instance with a programmable-b
 In the current implementation, `Script<TProgram>` already provides:
 
 - `WithIGC(...)`
+- `OnNetwork()`
 - `OnNetwork(...)`
 - `WithCustomData(...)`
 - `WithCommands(...)`
@@ -557,6 +558,7 @@ Package-removal exit criteria:
 Today, `Script<TProgram>` exposes this fluent surface:
 
 - `WithIGC(IMyIntergridCommunicationSystem igc)`
+- `OnNetwork()`
 - `OnNetwork(FakeIgcNetwork network)`
 - `WithCustomData(string customData)`
 - `WithStorage(string storage)`
@@ -597,12 +599,16 @@ And after boot:
 - `CreateScript<TProgram>(string name = null)`
 - `CreateGrid(string name = null, long? entityId = null)`
 - `CreateScript<TProgram>(TestGrid primaryGrid, string name = null)`
+- `Network`
 - `Merge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)`
 - `Unmerge(IMyShipMergeBlock mergeBlock)`
 - `DispatchIgc()`
+- `Tick(int count = 1)`
+- `TickMessages(int count = 2)`
 - `Run(UpdateType updateType, string argument = "")`
 - `RunIGC()`
 - `RunMany(int count, UpdateType updateType, string argument = "")`
+- `SentMessages`
 
 `TestGrid` currently provides:
 
@@ -776,7 +782,7 @@ os.Mother.GetModule<IntergridMessageService>()
     .SendConstructCommand(gui.Mother.Id, "view/go status");
 
 construct.DispatchMessages();
-world.RunIGC();
+world.Tick();
 ```
 
 Default expectations:
@@ -797,12 +803,11 @@ Ideal shape:
 ```csharp
 var world = new TestWorld();
 
-var shipA = world.CreateScript<MotherOS.Program>("ShipA").Boot();
-var shipB = world.CreateScript<MotherGUI.Program>("ShipB").Boot();
+var shipA = world.CreateScript<MotherOS.Program>("ShipA").OnNetwork().Boot();
+var shipB = world.CreateScript<MotherGUI.Program>("ShipB").OnNetwork().Boot();
 
 shipA.Bus.RunTerminalCommand("@ShipB view/go status");
-world.DispatchIgc();
-world.RunIGC();
+world.TickMessages();
 ```
 
 For world-topology tests that need grids before boot, the intended mental model now also includes grid handles:
@@ -821,20 +826,17 @@ world.Merge(carrierMerge, cargoMerge);
 
 This is the world-based version of what `FakeIgcNetwork` already does in a narrower form.
 
-The naming matters here. `Deliver()` is too vague because it mixes at least two different concerns:
+`Deliver()` remains useful at the transport layer, but world tests should usually advance via world cycles.
 
-- moving pending messages through transport
-- advancing one or more program cycles
+Current direction:
 
-Those should be separate concepts in the future API.
-
-Suggested direction:
-
-- `world.DispatchIgc()` moves queued IGC messages into recipient inboxes
+- `world.Tick(count)` advances full world cycles (dispatches IGC, then advances each script clock)
+- `world.TickMessages(count)` is the intent-first helper for message-driven world progression (defaults to 2 cycles)
+- `world.DispatchIgc()` remains available when tests need transport-only assertions before clocks advance
 - `construct.DispatchMessages()` moves queued same-construct messages
 - `world.Run(UpdateType updateType, string argument = "")` runs one real program cycle for scripts in the world
 - `world.RunIGC()` is a convenience helper for `world.Run(UpdateType.IGC)`
-- `world.RunMany(int count, UpdateType updateType)` advances multiple cycles explicitly
+- `world.RunMany(int count, UpdateType updateType)` advances multiple `Mother.Run` cycles explicitly
 
 That makes tests read more like Space Engineers itself:
 
@@ -890,9 +892,9 @@ Current helper:
 Likely next helpers:
 
 - `world.Run(UpdateType updateType, string argument = "")`
+- `world.Tick(int count = 1)`
 - `world.RunIGC()`
 - `world.RunMany(int count, UpdateType updateType)`
-- world-level time advance
 - script runtime inspection helpers
 - instruction-count control per script
 
@@ -1011,7 +1013,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 
 ## Implementation Progress
 
-> Last updated: 2026-06-10
+> Last updated: 2026-06-11
 
 ### Script layer (`Script<TProgram>`)
 
@@ -1019,6 +1021,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 |---|---|---|
 | `Boot()` | ✅ Done | Boots program, extracts Mother, runs module Boot |
 | `WithIGC(igc)` | ✅ Done | Injects custom IGC before boot |
+| `OnNetwork()` | ✅ Done | Joins default network context (or creates one when no default exists) |
 | `OnNetwork(network)` | ✅ Done | Joins `FakeIgcNetwork` before boot |
 | `WithCustomData(string)` | ✅ Done | Sets custom data before boot |
 | `WithStorage(string)` | ✅ Done | Sets storage before boot |
@@ -1057,16 +1060,20 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 
 | Feature | Status | Notes |
 |---|---|---|
-| `CreateScript<T>(name)` | ✅ Done | Returns `Script<T>` joined to world network |
+| `CreateScript<T>(name)` | ✅ Done | Returns `Script<T>` in world context; network binding is explicit via `OnNetwork()`/`OnNetwork(world.Network)` |
 | `CreateGrid(name, entityId)` | ✅ Done | Creates a world-owned grid handle before boot |
 | `CreateScript<T>(primaryGrid, name)` | ✅ Done | Binds a script to an existing world grid and topology |
+| `Network` | ✅ Done | Exposes the world's shared `FakeIgcNetwork` for explicit script binding |
 | `Merge(firstBlock, secondBlock)` / `Unmerge(mergeBlock)` | ✅ Done | Drives world-level merge topology using standalone or paired merge blocks |
 | `TestGrid.AddBlock(...)` | ✅ Done | Registers world-owned blocks through a grid handle |
 | `AddMergeBlockPair(...)` | ✅ Done | Optional deferred merge-pair descriptor for pre-registered topology |
 | `DispatchIgc()` | ✅ Done | Delegates to `FakeIgcNetwork.Deliver()` |
+| `Tick(count)` | ✅ Done | Advances full world cycles (IGC dispatch + all script clocks) |
+| `TickMessages(count)` | ✅ Done | Message-focused world progression helper (defaults to two cycles) |
 | `Run(UpdateType, string)` | ✅ Done | Runs all booted scripts one cycle |
 | `RunIGC()` | ✅ Done | Convenience for `Run(UpdateType.IGC)` |
 | `RunMany(count, UpdateType, string)` | ✅ Done | Advances multiple cycles |
+| `SentMessages` | ✅ Done | Exposes world network sent-message capture for assertions |
 | `CreateConstruct()` / same-construct messaging | ⬜ Pending | Requires construct topology design |
 
 ### Base test classes
@@ -1101,7 +1108,7 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 
 | Feature | Status | Notes |
 |---|---|---|
-| World-level shared clock / time advance | ⬜ Pending | Per-script `ClockDriver` exists today |
+| World-level shared clock / time advance | ✅ Done | `TestWorld.Tick(n)` advances full world cycles |
 | `world.CreateConstruct()` | ⬜ Pending | Same-construct messaging topology |
 | Script runtime inspection helpers | ⬜ Pending | Instruction count, update frequency per script |
 | Focused event recorder helper | ⬜ Pending | Only if fixture-local effects are not sufficient for narrower event assertions |
