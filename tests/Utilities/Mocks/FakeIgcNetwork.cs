@@ -181,12 +181,12 @@ namespace MotherCore.Tests.Utilities.Mocks
             }
             _pending.Clear();
 
-            foreach (var (session, _) in _scripts)
+            foreach (var (script, _) in _scripts)
             {
-                var igc = session.IGC as FakeIgc;
+                var igc = script.IGC as FakeIgc;
 
                 if (igc?.HasPendingMessages == true)
-                    session.Mother.GetModule<IntergridMessageService>()?.HandleIncomingIGCMessages();
+                    script.Run(UpdateType.IGC);
             }
 
             return this;

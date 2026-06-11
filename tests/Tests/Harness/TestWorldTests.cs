@@ -169,13 +169,12 @@ namespace MotherCore.Tests.Harness
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB help");
-            shipA.Clock.RunToIdle();
+            shipA.RunTerminal("@ShipB help").RunToIdle();
 
             shipB.ShouldHaveExecuted("help", count: 0);
 
             world.DispatchIgc();
-            shipB.Clock.RunToIdle();
+            shipB.RunToIdle();
 
             world.ShouldHaveDeliveredIgcMessage("ShipA", "ShipB", "*");
             shipB.ShouldHaveExecuted("help");
@@ -212,8 +211,7 @@ namespace MotherCore.Tests.Harness
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB help");
-            shipA.Clock.RunToIdle();
+            shipA.RunTerminal("@ShipB help").RunToIdle();
 
             shipB.ShouldHaveExecuted("help", CommandExecutionOutcome.ModuleExecuted, count: 0);
 
@@ -253,10 +251,9 @@ namespace MotherCore.Tests.Harness
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB help");
-            shipA.Clock.RunToIdle();
+            shipA.RunTerminal("@ShipB help").RunToIdle();
 
-            world.TickMessages(2);
+            world.TickMessages();
 
             world.ShouldHaveDeliveredIgcMessage("ShipA", "ShipB", "*");
             shipB.ShouldHaveExecuted("help");
@@ -285,8 +282,8 @@ namespace MotherCore.Tests.Harness
 
             world.Run(UpdateType.Terminal, "help");
 
-            shipA.Clock.RunToIdle();
-            shipB.Clock.RunToIdle();
+            shipA.RunToIdle();
+            shipB.RunToIdle();
 
             shipA.ShouldHaveExecuted("help");
             shipB.ShouldHaveExecuted("help");
@@ -337,9 +334,9 @@ namespace MotherCore.Tests.Harness
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             world.CreateScript("ShipB").OnNetwork().Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB help");
+            shipA.RunTerminal("@ShipB help");
 
-            shipA.Clock.RunToIdle();
+            shipA.RunToIdle();
             world.DispatchIgc();
 
             Assert.DoesNotThrow(() => world.RunIGC());
@@ -357,13 +354,13 @@ namespace MotherCore.Tests.Harness
             var shipA = world.CreateScript("ShipA").Boot();
 
             // Queue the command directly — this adds a coroutine to the clock.
-            shipA.Bus.RunTerminalCommand("help");
+            shipA.RunTerminal("help");
 
             // world.Run(Update10) → mother.Run(Update10) → RunModules() → Clock.Run()
             // which advances coroutines. 5 ticks is sufficient for any simple command.
             world.RunMany(5, UpdateType.Update10);
 
-            Assert.That(shipA.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            Assert.DoesNotThrow(() => shipA.ShouldHaveExecuted("help"));
 
             //world.RunMany(20, UpdateType.Update10);
             //Assert.That(tracker.ExecutionCount, Is.EqualTo(2));

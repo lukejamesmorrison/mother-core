@@ -1,5 +1,6 @@
 using IngameScript;
 using Sandbox.ModAPI.Ingame;
+using VRage.Game;
 
 namespace MotherCore.Tests.Utilities
 {
@@ -22,6 +23,17 @@ namespace MotherCore.Tests.Utilities
         /// script is using a shared <c>FakeIgcNetwork</c> or a standalone endpoint.
         /// </summary>
         IMyIntergridCommunicationSystem IGC { get; }
+
+        /// <summary>
+        /// Runs one update cycle against the underlying program.
+        /// </summary>
+        void Run(UpdateType updateType, string argument = "");
+
+        /// <summary>
+        /// Advances the script clock until no coroutines remain active or the
+        /// requested maximum cycle count is reached.
+        /// </summary>
+        void RunToIdle(int maxTicks = 100);
 
         /// <summary>
         /// Advances the script clock by one cycle.

@@ -24,7 +24,7 @@ namespace MotherCore.Tests.Utilities
     /// var shipA = world.CreateScript&lt;Program&gt;("ShipA").OnNetwork().Boot();
     /// var shipB = world.CreateScript&lt;Program&gt;("ShipB").OnNetwork().Boot();
     ///
-    /// shipA.Bus.RunTerminalCommand("@ShipB help");
+    /// shipA.RunTerminal("@ShipB help");
     /// world.DispatchIgc();
     /// world.RunIGC();
     /// </code>
@@ -401,7 +401,7 @@ namespace MotherCore.Tests.Utilities
         public TestWorld Run(UpdateType updateType = UpdateType.Update10, string argument = "")
         {
             foreach (var script in _scripts)
-                script.Mother.Run(argument, updateType);
+                script.Run(updateType, argument);
 
             return this;
         }

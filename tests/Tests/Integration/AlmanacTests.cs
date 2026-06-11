@@ -33,6 +33,7 @@ namespace MotherCore.Tests.Integration
         public void GetRecord_Returns_Record_By_Id()
         {
             var almanac = Mother.GetModule<Almanac>();
+
             var record = new AlmanacRecord("ship-001", "grid", new Vector3D(10, 20, 30), 0)
             {
                 UnicastId = 1

@@ -563,11 +563,35 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Advances this script clock until all coroutines are idle or
+        /// <paramref name="maxTicks"/> is reached.
+        /// </summary>
+        public Script<TProgram> RunToIdle(int maxTicks = 100)
+        {
+            Clock.RunToIdle(maxTicks);
+            return this;
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         void IScript.Tick()
         {
             Tick();
+        }
+
+        /// <summary>
+        /// </summary>
+        void IScript.Run(UpdateType updateType, string argument)
+        {
+            Run(updateType, argument);
+        }
+
+        /// <summary>
+        /// </summary>
+        void IScript.RunToIdle(int maxTicks)
+        {
+            RunToIdle(maxTicks);
         }
 
         /// <summary>
@@ -1165,6 +1189,13 @@ namespace MotherCore.Tests.Utilities
         public new Script Tick()
         {
             base.Tick();
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.RunToIdle"/>
+        public new Script RunToIdle(int maxTicks = 100)
+        {
+            base.RunToIdle(maxTicks);
             return this;
         }
 
