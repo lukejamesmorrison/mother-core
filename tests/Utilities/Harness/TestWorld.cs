@@ -540,6 +540,36 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Asserts that two booted scripts currently belong to the same construct.
+        /// </summary>
+        /// <param name="firstScript">The first script to compare.</param>
+        /// <param name="secondScript">The second script to compare.</param>
+        public void ShouldBeSameConstruct(IScript firstScript, IScript secondScript)
+        {
+            if (firstScript == null)
+                throw new ArgumentNullException(nameof(firstScript));
+
+            if (secondScript == null)
+                throw new ArgumentNullException(nameof(secondScript));
+
+            Assert.That(firstScript.Mother, Is.Not.Null,
+                "Expected first script to be booted, but Mother was null.");
+            Assert.That(secondScript.Mother, Is.Not.Null,
+                "Expected second script to be booted, but Mother was null.");
+
+            var firstGrid = firstScript.Mother.CubeGrid;
+            var secondGrid = secondScript.Mother.CubeGrid;
+
+            Assert.That(firstGrid, Is.Not.Null,
+                $"Expected script '{firstScript.Mother.Name}' to have a primary grid, but CubeGrid was null.");
+            Assert.That(secondGrid, Is.Not.Null,
+                $"Expected script '{secondScript.Mother.Name}' to have a primary grid, but CubeGrid was null.");
+
+            Assert.That(firstGrid.IsSameConstructAs(secondGrid), Is.True,
+                $"Expected scripts '{firstScript.Mother.Name}' and '{secondScript.Mother.Name}' to be on the same construct, but they were not.");
+        }
+
+        /// <summary>
         /// Advances the world by <paramref name="count"/> consecutive cycles
         /// with the same <paramref name="updateType"/>.
         /// </summary>

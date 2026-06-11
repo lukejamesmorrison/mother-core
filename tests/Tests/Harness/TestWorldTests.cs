@@ -80,6 +80,34 @@ namespace MotherCore.Tests.Harness
         }
 
         [Test]
+        public void ShouldBeSameConstruct_Passes_For_Scripts_On_Connected_World_Grids()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var cargoGrid = world.CreateGrid("Cargo Pod");
+
+            world.ConnectGrids(carrierGrid, cargoGrid);
+
+            var shipA = world.CreateScript(carrierGrid, "ShipA").Boot();
+            var shipB = world.CreateScript(cargoGrid, "ShipB").Boot();
+
+            Assert.DoesNotThrow(() => world.ShouldBeSameConstruct(shipA, shipB));
+        }
+
+        [Test]
+        public void ShouldBeSameConstruct_Fails_For_Scripts_On_Separate_Constructs()
+        {
+            var world = new TestWorld();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var cargoGrid = world.CreateGrid("Cargo Pod");
+
+            var shipA = world.CreateScript(carrierGrid, "ShipA").Boot();
+            var shipB = world.CreateScript(cargoGrid, "ShipB").Boot();
+
+            Assert.That(() => world.ShouldBeSameConstruct(shipA, shipB), Throws.Exception);
+        }
+
+        [Test]
         public void TestGrid_Can_Create_And_Register_A_Block_By_Type_And_Name()
         {
             var world = new TestWorld();
