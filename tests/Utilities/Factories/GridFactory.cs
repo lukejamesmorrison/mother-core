@@ -1,6 +1,5 @@
-using FakeItEasy;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
-using System;
 using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities.Factories
@@ -11,11 +10,6 @@ namespace MotherCore.Tests.Utilities.Factories
     internal static class GridFactory
     {
         /// <summary>
-        /// Shared random number generator for creating unique entity IDs for grids.
-        /// </summary>
-        static readonly Random Rng = new Random();
-
-        /// <summary>
         /// Creates a lightweight fake grid with the specified custom name and entity ID.
         /// </summary>
         /// <param name="customName"></param>
@@ -25,12 +19,7 @@ namespace MotherCore.Tests.Utilities.Factories
             string customName = "Test Grid",
             long? entityId = null)
         {
-            var grid = A.Fake<IMyCubeGrid>();
-
-            A.CallTo(() => grid.CustomName).Returns(customName ?? "Test Grid");
-            A.CallTo(() => grid.EntityId).Returns(entityId ?? CreateEntityId());
-
-            return grid;
+            return new FakeCubeGrid(customName ?? "Test Grid", entityId ?? CreateEntityId());
         }
 
         /// <summary>
@@ -38,9 +27,6 @@ namespace MotherCore.Tests.Utilities.Factories
         /// 10-digit random number, ensuring a very low probability of collisions across multiple test runs.
         /// </summary>
         /// <returns></returns>
-        static long CreateEntityId()
-        {
-            return ((long)Rng.Next(100000, 1000000) * 10000000000L) + Rng.Next(0, 1000000000);
-        }
+        static long CreateEntityId() => EntityIdFactory.Create();
     }
 }

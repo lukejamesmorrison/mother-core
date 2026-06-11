@@ -1,4 +1,3 @@
-using FakeItEasy;
 using MotherCore.Tests.Utilities.Factories;
 using Sandbox.ModAPI.Ingame;
 using System;

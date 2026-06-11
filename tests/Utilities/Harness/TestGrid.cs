@@ -1,4 +1,6 @@
 using System;
+using MotherCore.Tests.Utilities.Factories;
+using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame;
 
@@ -40,6 +42,59 @@ namespace MotherCore.Tests.Utilities
             where TBlock : class, IMyTerminalBlock
         {
             return _world.RegisterBlock(block, Grid);
+        }
+
+        /// <summary>
+        /// Creates a lightweight terminal block fake, registers it on this grid,
+        /// and returns it for additional test arrangement.
+        /// </summary>
+        /// <typeparam name="TBlock">The terminal block interface to create.</typeparam>
+        /// <param name="customName">Optional custom name for the block.</param>
+        /// <param name="customData">Optional custom data payload.</param>
+        /// <param name="entityId">Optional explicit entity ID.</param>
+        /// <param name="configure">Optional last-mile configuration hook.</param>
+        public TBlock AddBlock<TBlock>(
+            string customName = null,
+            string customData = "",
+            long? entityId = null,
+            Action<TBlock> configure = null)
+            where TBlock : class, IMyTerminalBlock
+        {
+            return _world.CreateBlock(Grid, customName, customData, entityId, configure);
+        }
+
+        /// <summary>
+        /// Looks up a block on this grid by custom name or display name.
+        /// </summary>
+        public IMyTerminalBlock GetBlock(string blockName)
+        {
+            return _world.FindBlock(Grid, blockName);
+        }
+
+        /// <summary>
+        /// Looks up a strongly typed block on this grid by custom name or display name.
+        /// </summary>
+        public TBlock GetBlock<TBlock>(string blockName)
+            where TBlock : class, IMyTerminalBlock
+        {
+            return GetBlock(blockName) as TBlock;
+        }
+
+        /// <summary>
+        /// Reports whether this grid currently contains a block with the supplied name.
+        /// </summary>
+        public bool ContainsBlock(string blockName)
+        {
+            return _world.ContainsBlock(Grid, blockName);
+        }
+
+        /// <summary>
+        /// Assertion helper for world-oriented tests that care about grid-local block registration.
+        /// </summary>
+        public void ShouldContainBlock(string blockName)
+        {
+            Assert.That(ContainsBlock(blockName), Is.True,
+                $"Expected grid '{Name}' to contain block '{blockName}', but it was not registered.");
         }
     }
 }

@@ -381,6 +381,29 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Creates and registers a block using the harness factory so tests can
+        /// arrange script-local topology without a separate factory call.
+        /// </summary>
+        public TBlock WithBlock<TBlock>(
+            string customName = null,
+            string customData = "",
+            long? entityId = null,
+            IMyCubeGrid grid = null,
+            Action<TBlock> configure = null)
+            where TBlock : class, IMyTerminalBlock
+        {
+            var block = TerminalBlockFactory.Create(
+                customName: customName,
+                customData: customData,
+                entityId: entityId,
+                grid: grid,
+                configure: configure);
+
+            WithBlock(block, grid);
+            return block;
+        }
+
+        /// <summary>
         /// Registers multiple blocks on the script's primary grid.
         /// </summary>
         public Script<TProgram> WithBlocks(params IMyTerminalBlock[] blocks)
@@ -451,6 +474,40 @@ namespace MotherCore.Tests.Utilities
         public void AssertPrinted(string fragment)
         {
             CaptureEcho().AssertPrinted(fragment);
+        }
+
+        /// <summary>
+        /// Looks up a registered block by custom or display name.
+        /// </summary>
+        public IMyTerminalBlock GetBlock(string blockName)
+        {
+            return _gridTerminalSystem.GetBlockWithName(blockName);
+        }
+
+        /// <summary>
+        /// Looks up a strongly typed registered block by custom or display name.
+        /// </summary>
+        public TBlock GetBlock<TBlock>(string blockName)
+            where TBlock : class, IMyTerminalBlock
+        {
+            return GetBlock(blockName) as TBlock;
+        }
+
+        /// <summary>
+        /// Reports whether a block with the supplied name is registered on this script's terminal system.
+        /// </summary>
+        public bool ContainsBlock(string blockName)
+        {
+            return GetBlock(blockName) != null;
+        }
+
+        /// <summary>
+        /// Assertion helper for common script-local block registration checks.
+        /// </summary>
+        public void AssertHasBlock(string blockName)
+        {
+            Assert.That(ContainsBlock(blockName), Is.True,
+                $"Expected script '{_mother?.Name ?? _gridName ?? PrimaryGrid?.CustomName ?? "Unknown"}' to contain block '{blockName}', but it was not registered.");
         }
 
         /// <summary>
@@ -754,6 +811,18 @@ namespace MotherCore.Tests.Utilities
             return this;
         }
 
+        /// <inheritdoc cref="Script{TProgram}.WithBlock{TBlock}(string, string, long?, IMyCubeGrid, Action{TBlock})"/>
+        public new TBlock WithBlock<TBlock>(
+            string customName = null,
+            string customData = "",
+            long? entityId = null,
+            IMyCubeGrid grid = null,
+            Action<TBlock> configure = null)
+            where TBlock : class, IMyTerminalBlock
+        {
+            return base.WithBlock(customName, customData, entityId, grid, configure);
+        }
+
         /// <inheritdoc cref="Script{TProgram}.WithBlocks"/>
         public new Script WithBlocks(params IMyTerminalBlock[] blocks)
         {
@@ -816,6 +885,31 @@ namespace MotherCore.Tests.Utilities
         public new void AssertPrinted(string fragment)
         {
             base.AssertPrinted(fragment);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.GetBlock(string)"/>
+        public new IMyTerminalBlock GetBlock(string blockName)
+        {
+            return base.GetBlock(blockName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.GetBlock{TBlock}(string)"/>
+        public new TBlock GetBlock<TBlock>(string blockName)
+            where TBlock : class, IMyTerminalBlock
+        {
+            return base.GetBlock<TBlock>(blockName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ContainsBlock(string)"/>
+        public new bool ContainsBlock(string blockName)
+        {
+            return base.ContainsBlock(blockName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.AssertHasBlock(string)"/>
+        public new void AssertHasBlock(string blockName)
+        {
+            base.AssertHasBlock(blockName);
         }
 
     }

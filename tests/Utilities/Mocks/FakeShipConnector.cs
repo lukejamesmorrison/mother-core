@@ -1,0 +1,78 @@
+using Sandbox.ModAPI.Ingame;
+using System;
+using VRage.Game.ModAPI.Ingame;
+
+namespace MotherCore.Tests.Utilities.Mocks
+{
+    /// <summary>
+    /// Concrete connector fake backed by caller-supplied delegates so paired connector
+    /// state can live in the harness while tests still interact with a real mutable block object.
+    /// </summary>
+    internal sealed class FakeShipConnector : FakeTerminalBlock, IMyShipConnector
+    {
+        Func<MyShipConnectorStatus> _statusAccessor;
+        Func<IMyShipConnector> _otherAccessor;
+        Action _connect;
+        Action _disconnect;
+        Action _toggle;
+
+        public FakeShipConnector(
+            string customData = "",
+            string customName = null,
+            long? entityId = null,
+            IMyCubeGrid cubeGrid = null)
+            : base(customName, customData, entityId, cubeGrid)
+        {
+        }
+
+        public void Configure(
+            Func<MyShipConnectorStatus> statusAccessor,
+            Func<IMyShipConnector> otherAccessor,
+            Action connect,
+            Action disconnect,
+            Action toggle)
+        {
+            _statusAccessor = statusAccessor ?? throw new ArgumentNullException(nameof(statusAccessor));
+            _otherAccessor = otherAccessor;
+            _connect = connect ?? throw new ArgumentNullException(nameof(connect));
+            _disconnect = disconnect ?? throw new ArgumentNullException(nameof(disconnect));
+            _toggle = toggle ?? throw new ArgumentNullException(nameof(toggle));
+        }
+
+        public MyShipConnectorStatus Status => _statusAccessor != null
+            ? _statusAccessor()
+            : MyShipConnectorStatus.Unconnected;
+
+        public bool IsConnected => Status == MyShipConnectorStatus.Connected;
+
+        public bool IsLocked => IsConnected;
+
+        public bool IsParkingEnabled { get; set; } = true;
+
+        public float PullStrength { get; set; } = 1f;
+
+        public bool ThrowOut { get; set; }
+
+        public bool CollectAll { get; set; }
+
+        public IMyShipConnector OtherConnector => Status == MyShipConnectorStatus.Connected
+            ? _otherAccessor?.Invoke()
+            : null;
+
+        public void Connect()
+        {
+            _connect?.Invoke();
+        }
+
+        public void Disconnect()
+        {
+            _disconnect?.Invoke();
+        }
+
+        public void ToggleConnect()
+        {
+            _toggle?.Invoke();
+        }
+
+    }
+}

@@ -1,4 +1,4 @@
-using FakeItEasy;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 using System;
 using System.Runtime.CompilerServices;
@@ -57,13 +57,13 @@ namespace MotherCore.Tests.Utilities.Factories
             string otherCustomName = null,
             MyShipConnectorStatus initialStatus = MyShipConnectorStatus.Connected)
         {
-            var baseConnector = TerminalBlockFactory.Create<IMyShipConnector>(
+            var baseConnector = new FakeShipConnector(
                 customName: baseCustomName ?? DefaultName("Test Connector", baseGrid, otherGrid),
-                grid: baseGrid);
+                cubeGrid: baseGrid);
 
-            otherConnector = TerminalBlockFactory.Create<IMyShipConnector>(
+            otherConnector = new FakeShipConnector(
                 customName: otherCustomName ?? DefaultName("Test Connector", otherGrid, baseGrid),
-                grid: otherGrid);
+                cubeGrid: otherGrid);
 
             var state = new ConnectorPairState
             {
@@ -75,8 +75,8 @@ namespace MotherCore.Tests.Utilities.Factories
             States.Add(baseConnector, state);
             States.Add(otherConnector, state);
 
-            ConfigureConnector(baseConnector, () => state.B, state);
-            ConfigureConnector(otherConnector, () => state.A, state);
+            ConfigureConnector(baseConnector as FakeShipConnector, () => state.B, state);
+            ConfigureConnector(otherConnector as FakeShipConnector, () => state.A, state);
 
             return baseConnector;
         }
@@ -105,33 +105,26 @@ namespace MotherCore.Tests.Utilities.Factories
         /// <param name="otherAccessor">Returns the paired connector on the opposite grid.</param>
         /// <param name="state">The shared mutable state backing the connector pair.</param>
         static void ConfigureConnector(
-            IMyShipConnector connector,
+            FakeShipConnector connector,
             Func<IMyShipConnector> otherAccessor,
             ConnectorPairState state)
         {
-            A.CallTo(() => connector.Status).ReturnsLazily(() => state.Status);
-            A.CallTo(() => connector.IsConnected).ReturnsLazily(() => state.Status == MyShipConnectorStatus.Connected);
-            A.CallTo(() => connector.OtherConnector)
-                .ReturnsLazily(() => state.Status == MyShipConnectorStatus.Connected ? otherAccessor() : null);
-
-            A.CallTo(() => connector.Connect()).Invokes(() =>
-            {
-                if (state.Status == MyShipConnectorStatus.Connectable)
-                    state.Status = MyShipConnectorStatus.Connected;
-            });
-
-            A.CallTo(() => connector.Disconnect()).Invokes(() =>
-            {
-                state.Status = MyShipConnectorStatus.Unconnected;
-            });
-
-            A.CallTo(() => connector.ToggleConnect()).Invokes(() =>
-            {
-                if (state.Status == MyShipConnectorStatus.Connected)
-                    state.Status = MyShipConnectorStatus.Unconnected;
-                else if (state.Status == MyShipConnectorStatus.Connectable)
-                    state.Status = MyShipConnectorStatus.Connected;
-            });
+            connector.Configure(
+                statusAccessor: () => state.Status,
+                otherAccessor: otherAccessor,
+                connect: () =>
+                {
+                    if (state.Status == MyShipConnectorStatus.Connectable)
+                        state.Status = MyShipConnectorStatus.Connected;
+                },
+                disconnect: () => state.Status = MyShipConnectorStatus.Unconnected,
+                toggle: () =>
+                {
+                    if (state.Status == MyShipConnectorStatus.Connected)
+                        state.Status = MyShipConnectorStatus.Unconnected;
+                    else if (state.Status == MyShipConnectorStatus.Connectable)
+                        state.Status = MyShipConnectorStatus.Connected;
+                });
         }
 
         /// <summary>

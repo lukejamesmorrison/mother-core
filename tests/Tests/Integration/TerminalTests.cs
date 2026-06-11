@@ -1,17 +1,11 @@
-using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
-using Sandbox.ModAPI.Ingame;
-using System.Net.NetworkInformation;
-using System;
-using System.Collections.Generic;
 
 namespace MotherCore.Tests.Integration
 {
     public class TerminalTests : ScriptTestBase<CoreTestProgram>
     {
-
         [Test]
         public void It_Can_Have_Highlights()
         {
@@ -37,21 +31,6 @@ namespace MotherCore.Tests.Integration
             terminal.UpdateTerminal();
 
             Assert.That(cleared, Is.True);
-        }
-
-        [Test]
-        public void The_Terminal_Window_Can_Be_Updated()
-        {
-            Terminal terminal = A.Fake<Terminal>(options => options
-                .WithArgumentsForConstructor(() => new Terminal(Mother))
-            );
-
-            A.CallTo(() => terminal.GetConsoleHeader()).Returns("System OK");
-
-            terminal.UpdateTerminal();
-
-            // expect that Echo is called with calling UpdateTerminal
-            A.CallTo(() => terminal.Echo(A<string>._)).MustHaveHappened();
         }
     }
 }

@@ -1,8 +1,7 @@
-using FakeItEasy;
 using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
+using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
-using System.Runtime.CompilerServices;
 using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities.Factories
@@ -14,24 +13,6 @@ namespace MotherCore.Tests.Utilities.Factories
     /// </summary>
     public static class TerminalBlockFactory
     {
-        sealed class TerminalBlockState
-        {
-            public string CustomData;
-            public string CustomName;
-            public IMyCubeGrid CubeGrid;
-            public long EntityId;
-            public bool Enabled = true;
-            public bool IsFunctional = true;
-            public bool IsWorking = true;
-            public bool Closed;
-            public Func<IMyTerminalBlock, bool> SameConstructEvaluator;
-        }
-
-        static readonly ConditionalWeakTable<IMyTerminalBlock, TerminalBlockState> States =
-            new ConditionalWeakTable<IMyTerminalBlock, TerminalBlockState>();
-
-        static readonly Random Rng = new Random();
-
         public static TBlock Create<TBlock>(
             string customName = null,
             string customData = "",
@@ -40,33 +21,50 @@ namespace MotherCore.Tests.Utilities.Factories
             Action<TBlock> configure = null)
             where TBlock : class, IMyTerminalBlock
         {
-            var block = A.Fake<TBlock>();
-            var state = new TerminalBlockState
+            var concreteBlock = CreateConcreteBlock<TBlock>(customName, customData, entityId, grid);
+            if (concreteBlock != null)
             {
-                CustomData = customData ?? string.Empty,
-                CustomName = customName ?? typeof(TBlock).Name,
-                CubeGrid = grid,
-                EntityId = entityId ?? CreateEntityId(),
-            };
+                configure?.Invoke(concreteBlock);
+                return concreteBlock;
+            }
 
-            States.Add(block, state);
-            ConfigureTerminalBlock(block, state);
-            configure?.Invoke(block);
+            throw new NotSupportedException(
+                $"TerminalBlockFactory does not have a concrete fake for '{typeof(TBlock).FullName}'. "
+                + "Add an explicit harness fake instead of relying on a generic interface proxy.");
+        }
 
-            return block;
+        static TBlock CreateConcreteBlock<TBlock>(
+            string customName,
+            string customData,
+            long? entityId,
+            IMyCubeGrid grid)
+            where TBlock : class, IMyTerminalBlock
+        {
+            if (typeof(TBlock) == typeof(IMyDoor))
+                return new FakeDoor(customData, customName, entityId, grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyTerminalBlock))
+                return new FakeBasicTerminalBlock(customData, customName, entityId, grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyBatteryBlock))
+                return new FakeBatteryBlock(customData, customName, entityId, grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyReactor))
+                return new FakeReactor(customData, customName, entityId, grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyShipConnector))
+                return new FakeShipConnector(customData, customName, entityId, grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyShipMergeBlock))
+                return new FakeShipMergeBlock(customData, customName, entityId, grid) as TBlock;
+
+            return null;
         }
 
         internal static bool TryAssignCubeGrid(IMyTerminalBlock block, IMyCubeGrid grid)
         {
             if (block == null || grid == null)
                 return false;
-
-            TerminalBlockState state;
-            if (States.TryGetValue(block, out state))
-            {
-                state.CubeGrid = grid;
-                return true;
-            }
 
             var fakeBlock = block as FakeTerminalBlock;
             if (fakeBlock != null)
@@ -85,13 +83,6 @@ namespace MotherCore.Tests.Utilities.Factories
             if (block == null || evaluator == null)
                 return false;
 
-            TerminalBlockState state;
-            if (States.TryGetValue(block, out state))
-            {
-                state.SameConstructEvaluator = evaluator;
-                return true;
-            }
-
             var fakeBlock = block as FakeTerminalBlock;
             if (fakeBlock != null)
             {
@@ -102,50 +93,10 @@ namespace MotherCore.Tests.Utilities.Factories
             return false;
         }
 
-        static void ConfigureTerminalBlock<TBlock>(TBlock block, TerminalBlockState state)
-            where TBlock : class, IMyTerminalBlock
-        {
-            A.CallTo(() => block.CustomData).ReturnsLazily(() => state.CustomData);
-            A.CallToSet(() => block.CustomData)
-                .Invokes((string value) => state.CustomData = value ?? string.Empty);
-
-            A.CallTo(() => block.CustomName).ReturnsLazily(() => state.CustomName);
-            A.CallToSet(() => block.CustomName)
-                .Invokes((string value) => state.CustomName = value ?? string.Empty);
-
-            A.CallTo(() => block.DisplayNameText).ReturnsLazily(() => state.CustomName);
-            A.CallTo(() => block.CubeGrid).ReturnsLazily(() => state.CubeGrid);
-            A.CallTo(() => block.EntityId).ReturnsLazily(() => state.EntityId);
-
-            A.CallTo(() => block.IsFunctional).ReturnsLazily(() => state.IsFunctional);
-            A.CallTo(() => block.IsWorking).ReturnsLazily(() => state.IsWorking);
-            A.CallTo(() => block.Closed).ReturnsLazily(() => state.Closed);
-
-            A.CallTo(() => block.IsSameConstructAs(A<IMyTerminalBlock>._))
-                .ReturnsLazily((IMyTerminalBlock other) =>
-                {
-                    if (state.SameConstructEvaluator != null)
-                        return state.SameConstructEvaluator(other);
-
-                    return other != null
-                        && state.CubeGrid != null
-                        && other.CubeGrid != null
-                        && state.CubeGrid.EntityId == other.CubeGrid.EntityId;
-                });
-
-                    var functionalBlock = block as IMyFunctionalBlock;
-
-                    if (functionalBlock != null)
-                    {
-                    A.CallTo(() => functionalBlock.Enabled).ReturnsLazily(() => state.Enabled);
-                    A.CallToSet(() => functionalBlock.Enabled)
-                        .Invokes((bool value) => state.Enabled = value);
-                    }
-        }
-
-        static long CreateEntityId()
-        {
-            return ((long)Rng.Next(100000, 1000000) * 10000000000L) + Rng.Next(0, 1000000000);
-        }
+        /// <summary>
+        /// Create a unique Entity Id.
+        /// </summary>
+        /// <returns></returns>
+        static long CreateEntityId() => EntityIdFactory.Create();
     }
 }

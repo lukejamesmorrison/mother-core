@@ -1,5 +1,4 @@
 ﻿using Sandbox.ModAPI.Ingame;
-using System;
 using MotherCore.Tests.Utilities.Mocks;
 using VRage.Game.ModAPI.Ingame;
 
@@ -10,7 +9,6 @@ namespace MotherCore.Tests.Utilities.Factories
     /// </summary>
     internal static class ProgrammableBlockFactory
     {
-        static readonly Random _rng = new Random();
         /// <summary>
         /// Creates a lightweight <see cref="IMyProgrammableBlock"/> with the specified properties.
         /// </summary>
@@ -23,8 +21,7 @@ namespace MotherCore.Tests.Utilities.Factories
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
         {
-            var resolvedId = entityId ?? ((long)_rng.Next(100000, 1000000) * 10000000000L
-                + _rng.Next(0, 1000000000));
+            var resolvedId = entityId ?? EntityIdFactory.Create();
 
             return new FakeProgrammableBlock(customData, customName, resolvedId, cubeGrid: cubeGrid);
         }

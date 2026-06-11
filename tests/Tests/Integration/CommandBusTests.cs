@@ -1,7 +1,7 @@
-using FakeItEasy;
 using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Mocks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -689,7 +689,7 @@ namespace MotherCore.Tests.Integration
         public void Wait_Blocks_Subsequent_Commands_In_Same_Coroutine()
         {
             var script = new Script<CoreTestProgram>().Boot();
-            var fakeRuntime = script.Mother.Program.Runtime;
+            var fakeRuntime = script.Mother.Program.Runtime as FakeGridProgramRuntimeInfo;
 
             script.Bus.RunTerminalCommand("help; wait 2; rename CarrierRenamed");
 
@@ -711,7 +711,8 @@ namespace MotherCore.Tests.Integration
                 "Tick 3: wait still active (deltaTime=0), rename must not execute.");
 
             // Advance simulated time past the 2-second wait threshold.
-            A.CallTo(() => fakeRuntime.TimeSinceLastRun).Returns(TimeSpan.FromSeconds(2.1));
+            Assert.That(fakeRuntime, Is.Not.Null);
+            fakeRuntime.TimeSinceLastRun = TimeSpan.FromSeconds(2.1);
             script.Clock.RunToIdle();
 
             script.AssertCommandExecuted("rename", 1);
@@ -764,7 +765,7 @@ namespace MotherCore.Tests.Integration
         {
             var script = new Script<CoreTestProgram>().Boot();
             int bootCount = script.Clock.CoroutineCount;
-            var fakeRuntime = script.Mother.Program.Runtime;
+            var fakeRuntime = script.Mother.Program.Runtime as FakeGridProgramRuntimeInfo;
 
             // Group 1: wait 2 seconds, then rename.
             // Group 2: help immediately.
@@ -796,7 +797,8 @@ namespace MotherCore.Tests.Integration
                 "Tick 2: group 2 should have been collected; only group 1 remains.");
 
             // Advance simulated time past the 2-second wait threshold.
-            A.CallTo(() => fakeRuntime.TimeSinceLastRun).Returns(TimeSpan.FromSeconds(2.1));
+            Assert.That(fakeRuntime, Is.Not.Null);
+            fakeRuntime.TimeSinceLastRun = TimeSpan.FromSeconds(2.1);
             script.Clock.RunToIdle();
 
             Assert.That(script.Bus.GetExecutionCount("help"), Is.EqualTo(1),

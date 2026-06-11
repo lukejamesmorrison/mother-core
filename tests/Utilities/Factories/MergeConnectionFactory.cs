@@ -1,4 +1,4 @@
-using FakeItEasy;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
@@ -83,13 +83,13 @@ namespace MotherCore.Tests.Utilities.Factories
                 OtherEnabled = otherEnabled,
             };
 
-            var baseBlock = TerminalBlockFactory.Create<IMyShipMergeBlock>(
+            var baseBlock = new FakeShipMergeBlock(
                 customName: baseCustomName ?? DefaultName("Harness Merge", baseGrid, otherGrid),
-                grid: baseGrid);
+                cubeGrid: baseGrid);
 
-            otherBlock = TerminalBlockFactory.Create<IMyShipMergeBlock>(
+            otherBlock = new FakeShipMergeBlock(
                 customName: otherCustomName ?? DefaultName("Harness Merge", otherGrid, baseGrid),
-                grid: otherGrid);
+                cubeGrid: otherGrid);
 
             ConfigureMergeBlock(
                 baseBlock,
@@ -199,15 +199,14 @@ namespace MotherCore.Tests.Utilities.Factories
             Action<bool> enabledSetter,
             Func<MergeState> stateAccessor)
         {
-            A.CallTo(() => block.Enabled).ReturnsLazily(() => enabledAccessor());
-            A.CallToSet(() => block.Enabled)
-                .Invokes((bool value) => enabledSetter(value));
+            if (block == null)
+                throw new ArgumentNullException(nameof(block));
 
-            A.CallTo(() => block.IsConnected)
-                .ReturnsLazily(() => stateAccessor() == MergeState.Locked);
+            var concreteBlock = block as FakeShipMergeBlock;
+            if (concreteBlock == null)
+                throw new NotSupportedException("MergeConnectionFactory requires FakeShipMergeBlock instances.");
 
-            A.CallTo(() => block.State)
-                .ReturnsLazily(() => stateAccessor());
+            concreteBlock.Configure(enabledAccessor, enabledSetter, stateAccessor);
         }
 
         /// <summary>

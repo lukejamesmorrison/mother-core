@@ -5,6 +5,7 @@ using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities
@@ -103,6 +104,44 @@ namespace MotherCore.Tests.Utilities
             return block;
         }
 
+        internal TBlock CreateBlock<TBlock>(
+            IMyCubeGrid grid,
+            string customName = null,
+            string customData = "",
+            long? entityId = null,
+            Action<TBlock> configure = null)
+            where TBlock : class, IMyTerminalBlock
+        {
+            var block = TerminalBlockFactory.Create(
+                customName: customName,
+                customData: customData,
+                entityId: entityId,
+                grid: grid,
+                configure: configure);
+
+            return RegisterBlock(block, grid);
+        }
+
+        internal IMyTerminalBlock FindBlock(IMyCubeGrid grid, string blockName)
+        {
+            if (grid == null)
+                throw new ArgumentNullException(nameof(grid));
+
+            if (string.IsNullOrWhiteSpace(blockName))
+                throw new ArgumentException("Block name is required.", nameof(blockName));
+
+            return _worldBlocks
+                .Where(registration => registration.Grid?.EntityId == grid.EntityId)
+                .Select(registration => registration.Block)
+                .FirstOrDefault(block => string.Equals(block.CustomName, blockName, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(block.DisplayNameText, blockName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        internal bool ContainsBlock(IMyCubeGrid grid, string blockName)
+        {
+            return FindBlock(grid, blockName) != null;
+        }
+
         /// <summary>
         /// Registers a paired merge-block link in the world.
         /// The actual merge blocks are materialized when a script binds to the world topology.
@@ -175,7 +214,9 @@ namespace MotherCore.Tests.Utilities
 
             MaterializeGridBlocks(firstBlock?.CubeGrid);
             MaterializeGridBlocks(secondBlock?.CubeGrid);
+
             _gridTerminalSystem.MergeBlocks(firstBlock, secondBlock);
+
             return this;
         }
 
@@ -191,6 +232,7 @@ namespace MotherCore.Tests.Utilities
                     "World topology has not been bound to a script yet. Create a script on an existing world grid first.");
 
             _gridTerminalSystem.UnmergeBlocks(mergeBlock);
+
             return this;
         }
 
@@ -309,7 +351,8 @@ namespace MotherCore.Tests.Utilities
                 pair.OtherGrid,
                 pair.BaseMergeBlockName,
                 pair.OtherMergeBlockName,
-                pair.InitialState);
+                pair.InitialState
+            );
 
             pair.OtherBlock = _gridTerminalSystem.GetPairedMergeBlock(pair.BaseBlock);
         }

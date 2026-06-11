@@ -14,13 +14,22 @@ The `MyGridProgram` runtime contract that matters for tests is still the same:
 - `Echo`
 - `World`
 
+These are not just constructor inputs. Together they are the programmable block test harness.
+
+The harness should feel like a small game-world runtime:
+
+- `World` owns shared test infrastructure and world-scoped utilities
+- `Grid` is where scripts and blocks live
+- `Script<TProgram>` is one programmable block instance mounted on a grid
+- terminal blocks are world objects that can be registered, queried, mutated, and asserted against
+
 MotherCore already injects most of this through `ProgramFactory.ProgramBuilder<T>`. The design question is not whether we need a test seam. It is where that seam should live.
 
 The current answer is:
 
 - use a test-only `partial Program` as the script seam
 - use `Script<TProgram>` as one booted programmable block instance
-- use a shared `World` as the environment for multi-script interaction
+- use a shared `World` as the environment for all script interaction, even when a test only boots one script
 
 In the current MotherCore harness, that world model now includes a small world-owned grid handle:
 
@@ -90,19 +99,74 @@ The world is the shared environment that owns:
 
 A `World` should create or coordinate multiple `Script` instances. Each script then projects that shared environment into its own programmable block runtime.
 
+### 4. The harness should be explicit and complete
+
+The main runtime-facing seams should be treated as first-class harness components, not as incidental bits of setup hidden inside factories:
+
+- `GridTerminalSystem`
+- `IGC`
+- `Storage`
+- `Echo`
+- `Me`
+
+Most of these already exist in some form today. The design direction should now be to make them explicit world and script services with stable fake implementations and developer-friendly helpers.
+
+That matters because this layer is not business logic under test. It is orchestration infrastructure. It should therefore optimize for:
+
+- intuitive setup
+- representative behavior
+- low-friction mutation during a test
+- strong assertions without bespoke per-test wiring
+
+The end goal is not merely to be able to fake Space Engineers. The goal is to make the common testing path feel obvious.
+
+## Harness Composition
+
+Think of the harness as a composition root for game-runtime test doubles.
+
+### World-owned services
+
+The world should own the shared services and default factories that make tests feel coherent:
+
+- world-level topology and grid registry
+- shared IGC transport and dispatch
+- default world info
+- default echo routing and optional output capture
+- entity and block ID allocation
+- block registration and later construct orchestration
+
+### Script-owned projections
+
+Each script should receive its own programmable-block-local view of that world:
+
+- one `Me`
+- one `Storage`
+- one `Runtime`
+- one script-facing `GridTerminalSystem` projection onto the world topology
+- one `Echo` delegate that can be captured at script or world scope
+
+This is the important split:
+
+- the world owns the source of truth
+- the script owns the programmable-block-local projection of that truth
+
+That model matches the game more closely than a pile of isolated mocks.
+
 ## Ownership Rules
 
 The goal is to mirror the game closely enough to make tests intuitive while still keeping setup cheap.
 
 ### Shared at the world level
 
-These should default to being shared by all scripts in the same test world:
+These should default to being shared by all scripts in the same test world or at least originated there:
 
 - world clock or time source
 - IGC transport
 - network topology
 - `IMyGridProgramWorldInfo`
 - optional default echo sink
+- grid and block registries
+- entity identity allocation
 
 ### Unique per script
 
@@ -112,6 +176,7 @@ These should remain unique per `Script` instance:
 - `GridTerminalSystem`
 - `Runtime`
 - `Storage`
+- `Echo` delegate binding
 - script identity such as grid/program name
 
 This is an important correction to the earlier design direction.
@@ -122,6 +187,7 @@ The better model is:
 
 - a shared world clock
 - a per-script runtime facade backed by that world clock
+- a world-owned environment with per-script programmable-block projections
 
 ## Why Partial Classes Beat a Separate Host Object
 
@@ -142,6 +208,7 @@ The right split is:
 
 - script-specific hooks via partial `Program`
 - runtime/environment concerns via `Script` and `World`
+- terminal block simulation via dedicated harness block fakes and factories
 
 ## Current Implementation
 
@@ -157,8 +224,17 @@ MotherCore now has a working version of most of this model in the test utilities
 - `MergePair` is a deferred merge-topology descriptor returned by `TestWorld.AddMergeBlockPair(...)` when a test wants merge blocks pre-registered before boot.
 - `ClockDriver` provides assertion-friendly tick control for coroutine-driven behavior.
 - `PrintCapture` provides reusable output capture over `Program.Echo`.
+- `TerminalBlockFactory` now creates explicit harness-backed terminal block fakes for the supported common interfaces and fails fast for unsupported block interfaces.
+- `FakeTerminalBlock` already provides a concrete mutable base for richer fake terminal blocks.
+- `TestGrid` now supports both registering an existing block instance and creating one directly by interface type and name, plus grid-local lookup and `ShouldContainBlock(...)` assertions.
+- `Script<TProgram>` now mirrors that convenience with a generic `WithBlock<TBlock>(...)` overload plus script-local block lookup and `AssertHasBlock(...)`.
+- `GridFactory` now creates concrete `FakeCubeGrid` instances rather than interface mocks.
+- connector pairs now use concrete `FakeShipConnector` blocks under `ConnectorConnectionFactory`
+- merge pairs now use concrete `FakeShipMergeBlock` blocks under `MergeConnectionFactory`, and merge-pair configuration now requires those explicit harness blocks.
+- mechanical connections now use concrete `FakeMotorStator`, `FakePistonBase`, `FakeMotorRotor`, and `FakePistonTop` blocks under `MechanicalConnectionFactory`.
 - `TextSurfaceFactory` provides lightweight `FakeTextSurface` and `FakeTextPanel` objects with captured `WriteText(...)`, `ContentType`, `SurfaceSize`, and `TextureSize` state for display-focused tests.
 - `FakeProgrammableBlock : IMyProgrammableBlock` provides a concrete mutable programmable block.
+- `FakeGridProgramRuntimeInfo : IMyGridProgramRuntimeInfo` provides the default runtime fallback used by `ProgramFactory`.
 
 Display-related coverage is now also in place for the current harness shape:
 
@@ -166,7 +242,33 @@ Display-related coverage is now also in place for the current harness shape:
 - `DisplayTests` covers viewport and font-size math, scaling, text-line formatting, and the current public drawing surface of `Display`, including sprite primitives, text helpers, debug output, and the Mother badge renderer.
 - `SpriteFactoryTests` pins the `MySprite` construction contract used by the display helpers.
 
-The main gap is no longer the absence of a world abstraction. The larger remaining gaps are construct-topology support, richer block registration helpers, and a few ergonomics items such as composer overloads and config reload helpers.
+The main gap is no longer the absence of a world abstraction. The larger remaining gaps are:
+
+- making the world the obvious default entry point for harness setup
+- promoting harness services (`Me`, `Storage`, `Echo`, `GridTerminalSystem`, `IGC`) into named first-class fake components
+- unifying terminal block setup around a richer block model rather than ad hoc interface mocking
+- adding assertion helpers scoped to world, script, grid, and block behavior
+- construct-topology support and a few ergonomics items such as composer overloads and config reload helpers
+
+The explicit block-family rollout is now complete for the currently active harness surfaces:
+
+- `FakeDoor` backs the common `IMyDoor` path
+- `FakeBatteryBlock` backs the common `IMyBatteryBlock` path
+- `FakeReactor` backs the common `IMyReactor` path
+- `FakeShipConnector` and `FakeShipMergeBlock` back connector and merge topology helpers
+- `FakeTextSurface` and `FakeTextPanel` back display-focused tests
+- `FakeMotorRotor` and `FakePistonTop` now replace the old mechanical top-part interface-fake path
+
+The current stop condition for this refactor has also changed:
+
+- FakeItEasy is no longer the normal way to model game blocks or harness infrastructure in MotherCore tests
+- generic interface fabrication has been removed from the harness; unsupported `TerminalBlockFactory.Create<TBlock>()` requests now fail fast so new block families stay explicit
+
+The remaining package-removal checklist is now narrower and mostly project-level:
+
+- replace any remaining direct fixture-local FakeItEasy setup where it still appears outside the harness guidance
+- remove the `FakeItEasy` and `FakeItEasy.Analyzer.CSharp` package references from `MotherCore.Tests.csproj` once no active tests depend on them
+- keep `Tests/README.md` and harness guidance aligned with harness-owned fake types and world/script helpers as the default path
 
 ## Recommended Shape
 
@@ -199,8 +301,8 @@ Suggested role:
 - expose `Program`, `Mother`, `Config`, and `Clock`
 - expose `Bus` as a convenience accessor for the `CommandBus` core module
 - own one programmable block identity
-- own one script-local grid terminal system and storage
-- bind the script into a world or network
+- own one script-local projection of harness services such as `Me`, `Storage`, `Runtime`, and `Echo`
+- bind the script into a world-owned grid and transport model
 
 Current closest type:
 
@@ -226,6 +328,149 @@ Supporting transport:
 
 - `FakeIgcNetwork` for remote communication, message capture, and Almanac synchronization
 
+### 4. Block layer
+
+This is the missing ergonomic layer between world setup and module logic.
+
+Suggested role:
+
+- create representative `IMyTerminalBlock` test doubles without per-test mock wiring
+- allow type-specific behavior to be layered in only when needed
+- support world-owned block registration before and after script boot
+- expose assertion-friendly state for tests that care about block mutation
+
+Recommended split:
+
+- use concrete fake block types for common, stateful, behavior-rich blocks
+- keep interface-backed factories only as a thin escape hatch for rare or highly specific interfaces
+- make the world and grid helpers the normal registration path so tests think in terms of game objects, not mocks
+
+Current closest types:
+
+- `FakeTerminalBlock`
+- `TerminalBlockFactory`
+- `TestGrid.AddBlock(...)`
+- `FakeShipConnector`
+- `FakeShipMergeBlock`
+- `FakeMotorStator` / `FakePistonBase`
+
+## Terminal Block Strategy
+
+Terminal blocks are the main domain object after the script itself.
+
+Mother is intentionally agnostic to exact block type until modules begin to care. That makes terminal blocks the most important extensibility seam for module tests.
+
+The desired developer experience should be:
+
+```csharp
+var world = new TestWorld();
+var grid = world.CreateGrid("Frigate");
+
+var door = grid.AddBlock(BlockFactory.Door("Airlock", b =>
+{
+    b.Status = DoorStatus.Closed;
+    b.CustomData = "[tags]\nrole=airlock";
+}));
+
+var script = world.CreateScript<Program>(grid, "ShipOS").Boot();
+```
+
+The important part is not the exact API spelling. The important part is that the user configures a block-shaped object with mutable state and sensible defaults, then places it onto a grid in the world.
+
+### Recommended fake model
+
+Use a tiered block strategy.
+
+#### Tier 1: concrete base fake
+
+Provide a concrete base fake for shared `IMyTerminalBlock` behavior and state:
+
+- naming
+- custom data
+- grid ownership
+- entity identity
+- enabled / working / functional flags
+- same-construct evaluation
+- position and basic world metadata
+
+This is already the role `FakeTerminalBlock` wants to play. That direction should be reinforced.
+
+#### Tier 2: common typed fakes
+
+Add concrete typed fakes for the block families Mother modules commonly manipulate.
+
+Examples:
+
+- `FakeDoor`
+- `FakeShipConnector`
+- `FakeShipMergeBlock`
+- `FakeMotorStator` / `FakeMechanicalConnectionBlock`
+- `FakeCockpit` or `FakeRemoteControl`
+- `FakeTextPanel` / text-surface providers
+- `FakeBatteryBlock`, `FakeReactor`, `FakeSensorBlock` as needed by active modules
+
+These should expose mutable state and behavior that mirrors the game at the level tests actually care about.
+
+This rollout is now in its next phase: common active families are explicit, so future growth should be demand-driven.
+
+The current guidance is:
+
+1. keep adding typed harness fakes only when a real test needs a new family
+2. prefer world/grid registration helpers over low-level factory calls when the test is expressing game topology
+3. let unsupported `TerminalBlockFactory.Create<TBlock>(...)` calls fail loudly so missing harness coverage is visible and intentional
+
+#### Tier 3: interface escape hatch
+
+There is no generic interface escape hatch in the harness anymore.
+
+If a new block family is needed, add a concrete fake or extend an existing one.
+
+The developer should not need to know FakeItEasy to write most Mother module tests.
+
+## Assertions and Developer Experience
+
+The harness should not stop at setup. A frictionless harness also needs scoped assertions.
+
+Recommended assertion layers:
+
+- world assertions for topology, messaging, and shared output
+- script assertions for command execution, printed output, emitted events, and module access
+- grid assertions for registered blocks, groups, and construct membership
+- block assertions for state transitions and received commands
+
+Examples of the intended style:
+
+```csharp
+script.ShouldHavePrinted("System online");
+script.ShouldHaveExecutedCommand("rename");
+world.ShouldHaveDeliveredIgcMessage("ShipA", "ShipB");
+grid.ShouldContainBlock("Airlock");
+door.ShouldBeOpen();
+```
+
+Again, the exact method names are less important than the experience:
+
+- setup should read like world construction
+- execution should read like game actions
+- assertions should read like domain outcomes
+
+## Recommended Direction
+
+The default mental model should move one step further:
+
+- every test starts conceptually in a `TestWorld`
+- every script is mounted on a `TestGrid`
+- every runtime seam comes from the harness, not from ad hoc test setup
+- every block is either a concrete fake or a consciously chosen fallback factory fake
+
+For convenience, single-script helpers can still exist:
+
+```csharp
+var script = new Script<Program>().Boot();
+```
+
+But that should be understood as shorthand for creating a tiny default world, not as a separate conceptual path.
+
 ## Default Mental Model
 
 The easiest path should read like this:
@@ -247,6 +492,64 @@ var gui = world.CreateScript<MotherGUI.Program>("ShipGUI").Boot();
 
 The user should think in terms of scripts inside a world, not in terms of manually wiring runtime internals.
 
+They should also think in terms of blocks and grids as first-class test objects, not in terms of mocking interfaces.
+
+## Action Plan
+
+The next implementation wave should focus on ergonomics before breadth.
+
+### Phase 1: make the harness model explicit
+
+- document `TestWorld` as the primary composition root even for single-script tests
+- name and expose the harness-owned runtime components more directly
+- make `Script<TProgram>` read as a projection of world state rather than an owner of global setup
+- align docs and examples around world -> grid -> script -> blocks
+
+### Phase 2: unify the block story
+
+- standardize on `FakeTerminalBlock` as the concrete base for block state
+- add typed fake blocks for the block families used most by active modules
+- keep `TerminalBlockFactory` as an escape hatch, but stop teaching it as the default pattern
+- ensure world and grid registration helpers can accept both concrete fakes and factory-created blocks
+
+Immediate Phase 2 continuation order:
+
+- add new typed harness blocks only for genuinely new module coverage
+- migrate any remaining fixture-local FakeItEasy setup onto existing harness fakes when those tests are touched
+
+Phase 2 exit criteria:
+
+- active tests rely on harness-owned concrete blocks for the currently common families
+- display tests rely on harness-owned fake surfaces and panels
+- mechanical topology relies on concrete harness base and top-part blocks
+- unsupported block families fail fast instead of falling back to a generic mock/proxy path
+
+Package-removal exit criteria:
+
+- `MotherCore.Tests.csproj` no longer references `FakeItEasy` or `FakeItEasy.Analyzer.CSharp`
+- no harness factory or mock type still depends on `A.Fake(...)` or `A.CallTo(...)`
+- no active tests rely on FakeItEasy for spies, runtime stubs, or terminal/grid infrastructure
+- `Tests/README.md` and harness guidance describe only harness-owned fake types and assertions as the standard path
+
+### Phase 3: add harness-scoped helpers and assertions
+
+- add world-level helpers for output capture, message dispatch, and topology assertions
+- add script-level helpers for common runtime seams like `Storage`, `Me`, and `Echo`
+- add grid-level lookup and assertion helpers
+- add block-level assertion helpers for common behaviors
+
+### Phase 4: reduce framework leakage from tests
+
+- minimize direct FakeItEasy setup in fixture code
+- move repeated behavior into harness fakes and builders
+- update test guidance so module tests default to harness block fakes rather than hand-written mocks
+
+### Phase 5: grow only where real tests need it
+
+- add more typed block fakes only when a real module test benefits from them
+- expand construct support and world-level delivery only when specific scenarios demand it
+- keep inert defaults for the vast remainder of the Space Engineers API surface
+
 ## Default Test API
 
 ### What exists today
@@ -266,6 +569,7 @@ Today, `Script<TProgram>` exposes this fluent surface:
 - `MergeBlocks(IMyShipMergeBlock mergeBlock)`
 - `UnmergeBlocks(IMyShipMergeBlock mergeBlock)`
 - `WithBlock(IMyTerminalBlock block, IMyCubeGrid grid = null)`
+- `WithBlock<TBlock>(string customName = null, string customData = "", long? entityId = null, IMyCubeGrid grid = null, Action<TBlock> configure = null)`
 - `WithBlocks(params IMyTerminalBlock[] blocks)`
 - `WithBlockGroup(string groupName, params IMyTerminalBlock[] blocks)`
 - `WithCommands(params BaseModuleCommand[] commands)`
@@ -285,6 +589,8 @@ And after boot:
 - `NetworkIGC`
 - `GridTerminalSystem`
 - `PrimaryGrid`
+- `GetBlock(string blockName)` / `GetBlock<TBlock>(string blockName)`
+- `ContainsBlock(string blockName)` / `AssertHasBlock(string blockName)`
 
 `TestWorld` also exists today and provides:
 
@@ -303,6 +609,9 @@ And after boot:
 - `Grid`
 - `Name`
 - `AddBlock<TBlock>(TBlock block)`
+- `AddBlock<TBlock>(string customName = null, string customData = "", long? entityId = null, Action<TBlock> configure = null)`
+- `GetBlock(string blockName)` / `GetBlock<TBlock>(string blockName)`
+- `ContainsBlock(string blockName)` / `ShouldContainBlock(string blockName)`
 
 `MergePair` currently provides:
 
@@ -503,10 +812,8 @@ var world = new TestWorld();
 var carrierGrid = world.CreateGrid("Carrier");
 var cargoGrid = world.CreateGrid("Cargo Pod");
 
-var carrierMerge = carrierGrid.AddBlock(
-    TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Carrier Merge"));
-var cargoMerge = cargoGrid.AddBlock(
-    TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Cargo Merge"));
+var carrierMerge = carrierGrid.AddBlock<IMyShipMergeBlock>("Carrier Merge");
+var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
 var script = world.CreateScript<Program>(carrierGrid, "Carrier").Boot();
 world.Merge(carrierMerge, cargoMerge);

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.Serialization;
-using FakeItEasy;
 using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 
@@ -177,7 +176,7 @@ namespace MotherCore.Tests.Utilities.Factories
             private Action<string> GetEcho() => _echo ?? Console.WriteLine;
 
             private IMyGridProgramRuntimeInfo GetRuntime() =>
-                _runtime ?? A.Fake<IMyGridProgramRuntimeInfo>();
+                _runtime ?? new FakeGridProgramRuntimeInfo();
         }
     }
 }

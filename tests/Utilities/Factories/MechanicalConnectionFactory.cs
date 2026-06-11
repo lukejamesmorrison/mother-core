@@ -1,4 +1,4 @@
-using FakeItEasy;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 using System;
 using VRage.Game.ModAPI.Ingame;
@@ -11,20 +11,6 @@ namespace MotherCore.Tests.Utilities.Factories
     /// </summary>
     internal static class MechanicalConnectionFactory
     {
-        /// <summary>
-        /// Shared mutable attachment state used by a fake mechanical base block and
-        /// its corresponding top part.
-        /// </summary>
-        sealed class MechanicalConnectionState
-        {
-            /// <summary>
-            /// Tracks whether the fake connection should report itself as attached.
-            /// </summary>
-            public bool IsAttached = true;
-        }
-
-        static readonly Random Rng = new Random();
-
         /// <summary>
         /// Creates a fake mechanical connection block that joins the supplied base
         /// grid to the supplied top grid using the requested connection family.
@@ -72,14 +58,11 @@ namespace MotherCore.Tests.Utilities.Factories
             IMyCubeGrid topGrid,
             string customName)
         {
-            var state = new MechanicalConnectionState();
-            IMyMotorStator stator = null;
+            var rotor = new FakeMotorRotor();
+            var stator = new FakeMotorStator(customName: customName, cubeGrid: baseGrid);
 
-            var rotor = A.Fake<IMyMotorRotor>();
-            ConfigureAttachableTop(rotor, topGrid, () => state.IsAttached, () => stator);
-
-            stator = TerminalBlockFactory.Create<IMyMotorStator>(customName: customName, grid: baseGrid);
-            ConfigureMechanicalConnection(stator, rotor, topGrid, state);
+            ConfigureAttachableTop(rotor, topGrid, () => stator.IsAttached, () => stator);
+            stator.ConfigureTop(rotor, topGrid);
 
             return stator;
         }
@@ -97,44 +80,15 @@ namespace MotherCore.Tests.Utilities.Factories
             IMyCubeGrid topGrid,
             string customName)
         {
-            var state = new MechanicalConnectionState();
-            IMyPistonBase piston = null;
-
-            var pistonTop = A.Fake<IMyPistonTop>();
-            ConfigureAttachableTop(pistonTop, topGrid, () => state.IsAttached, () => piston);
-
-            piston = TerminalBlockFactory.Create<IMyPistonBase>(
+            var pistonTop = new FakePistonTop();
+            var piston = new FakePistonBase(
                 customName: customName ?? DefaultName("Harness Piston", baseGrid, topGrid),
-                grid: baseGrid);
+                cubeGrid: baseGrid);
 
-            ConfigureMechanicalConnection(piston, pistonTop, topGrid, state);
+            ConfigureAttachableTop(pistonTop, topGrid, () => piston.IsAttached, () => piston);
+            piston.ConfigureTop(pistonTop, topGrid);
 
             return piston;
-        }
-
-        /// <summary>
-        /// Configures the shared programmable-block-facing members exposed by a fake
-        /// mechanical connection block.
-        /// </summary>
-        /// <typeparam name="TBlock">The concrete fake base block interface being configured.</typeparam>
-        /// <param name="block">The fake mechanical base block.</param>
-        /// <param name="top">The fake top part attached to the base block.</param>
-        /// <param name="topGrid">The grid reported through <see cref="IMyMechanicalConnectionBlock.TopGrid"/>.</param>
-        /// <param name="state">The shared mutable attachment state for the connection pair.</param>
-        static void ConfigureMechanicalConnection<TBlock>(
-            TBlock block,
-            IMyAttachableTopBlock top,
-            IMyCubeGrid topGrid,
-            MechanicalConnectionState state)
-            where TBlock : class, IMyMechanicalConnectionBlock
-        {
-            A.CallTo(() => block.IsAttached).ReturnsLazily(() => state.IsAttached);
-            A.CallTo(() => block.PendingAttachment).ReturnsLazily(() => !state.IsAttached);
-            A.CallTo(() => block.Top).ReturnsLazily(() => state.IsAttached ? top : null);
-            A.CallTo(() => block.TopGrid).ReturnsLazily(() => state.IsAttached ? topGrid : null);
-
-            A.CallTo(() => block.Attach()).Invokes(() => state.IsAttached = true);
-            A.CallTo(() => block.Detach()).Invokes(() => state.IsAttached = false);
         }
 
         /// <summary>
@@ -155,10 +109,21 @@ namespace MotherCore.Tests.Utilities.Factories
         {
             long entityId = CreateEntityId();
 
-            A.CallTo(() => top.CubeGrid).Returns(grid);
-            A.CallTo(() => top.EntityId).Returns(entityId);
-            A.CallTo(() => top.IsAttached).ReturnsLazily(() => isAttached());
-            A.CallTo(() => top.Base).ReturnsLazily(() => baseAccessor());
+            var rotor = top as FakeMotorRotor;
+            if (rotor != null)
+            {
+                rotor.Configure(grid, entityId, isAttached, baseAccessor);
+                return;
+            }
+
+            var pistonTop = top as FakePistonTop;
+            if (pistonTop != null)
+            {
+                pistonTop.Configure(grid, entityId, isAttached, baseAccessor);
+                return;
+            }
+
+            throw new NotSupportedException("MechanicalConnectionFactory requires concrete fake top parts.");
         }
 
         /// <summary>
@@ -179,7 +144,7 @@ namespace MotherCore.Tests.Utilities.Factories
         /// <returns>A pseudo-random positive entity ID.</returns>
         static long CreateEntityId()
         {
-            return ((long)Rng.Next(100000, 1000000) * 10000000000L) + Rng.Next(0, 1000000000);
+            return EntityIdFactory.Create();
         }
     }
 }

@@ -1,4 +1,3 @@
-using FakeItEasy;
 using IngameScript;
 using MotherCore.Tests.Utilities.Factories;
 using NUnit.Framework;

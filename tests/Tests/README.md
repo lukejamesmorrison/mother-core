@@ -181,27 +181,32 @@ public void Multi_Step_Routine_Executes_Commands_One_Per_Tick()
 ### 2.3 Calling a module method
 
 Module methods are the API that other modules call internally. Retrieve the
-module and call the method directly with a FakeItEasy fake block. No command
+module and call the method directly with a harness block fake. No command
 dispatch or clock tick is needed:
 
 ```csharp
 [Test]
-public void LightModule_SetColor_Applies_The_Requested_Color_To_The_Block()
+public void BatteryModule_ChargeBattery_Sets_The_Block_To_Recharge_Mode()
 {
     var session = new Script<Program>().Boot();
-    var lights  = session.Mother.GetModule<LightModule>();
+    var batteries = session.Mother.GetModule<BatteryModule>();
 
-    var fakeLight = A.Fake<IMyLightingBlock>();
-    lights.SetColor(fakeLight, Color.Red);
+    var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Reserve Battery");
+    batteries.ChargeBattery(battery);
 
-    Assert.That(fakeLight.Color, Is.EqualTo(Color.Red));
+    Assert.That(battery.ChargeMode, Is.EqualTo(ChargeMode.Recharge));
 }
 ```
 
 The same pattern applies to any method that takes a block and modifies it —
-`BatteryModule.ChargeBattery`, `CockpitModule.SetHandbrakes`, etc. The fake
-captures the property write and replays it on the getter, so no real block
-or game runtime is needed.
+`DoorModule.OpenDoor`, `BatteryModule.ChargeBattery`, `CockpitModule.SetHandbrakes`,
+etc. Reach for `TerminalBlockFactory.Create<TBlock>(...)` or a world/grid helper
+first; for common families like plain terminal blocks, doors, batteries, reactors,
+connectors, and merge blocks that now returns concrete harness-backed blocks.
+
+If you hit an unsupported interface, the factory now throws instead of silently
+fabricating a generic double. Add or extend a concrete harness fake for that
+family rather than falling back to ad hoc mocking.
 
 ### 2.4 Testing display helpers
 
@@ -254,24 +259,38 @@ public void MergeBlockModule_HandleEvent_Does_Not_Throw_On_ConstructRefreshedEve
 ```
 
 **Emit via EventBus** when you want to verify that the bus actually routes
-the event to the correct subscribers. Combine with a FakeItEasy spy to
-assert `HandleEvent` was called with the expected arguments:
+the event to the correct subscribers. Prefer a small fixture-local recorder
+module over a framework spy when you need to observe the call:
 
 ```csharp
+private sealed class RecordingModule : FakeModule
+{
+    public int ReceivedCount { get; private set; }
+    public object LastPayload { get; private set; }
+
+    public RecordingModule(Mother mother) : base(mother) {}
+
+    public override void HandleEvent<TEvent>(TEvent e, object eventData)
+    {
+        ReceivedCount++;
+        LastPayload = eventData;
+    }
+}
+
 [Test]
 public void EventBus_Routes_DoorOpenedEvent_To_All_Subscribers()
 {
     var session  = new Script<Program>().Boot();
     var eventBus = session.Mother.GetModule<EventBus>();
 
-    var spy      = A.Fake<IModule>();
-    var fakeDoor = A.Fake<IMyDoor>();
+    var recorder = new RecordingModule(session.Mother);
+    var fakeDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
 
-    eventBus.Subscribe<DoorOpenedEvent>(spy);
+    eventBus.Subscribe<DoorOpenedEvent>(recorder);
     eventBus.Emit<DoorOpenedEvent>(fakeDoor);
 
-    A.CallTo(() => spy.HandleEvent(A<DoorOpenedEvent>._, fakeDoor))
-        .MustHaveHappenedOnceExactly();
+    Assert.That(recorder.ReceivedCount, Is.EqualTo(1));
+    Assert.That(recorder.LastPayload, Is.SameAs(fakeDoor));
 }
 ```
 

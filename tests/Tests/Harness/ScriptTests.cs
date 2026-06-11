@@ -155,13 +155,42 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void WithBlock_Registers_Block_In_GridTerminalSystem()
         {
-            var connector = TerminalBlockFactory.Create<IMyShipConnector>(customName: "Dock A");
+            var script = new Script();
+            var connector = script.WithBlock<IMyShipConnector>("Dock A");
 
-            var script = new Script()
-                .WithBlock(connector)
-                .Boot();
+            script.Boot();
 
             Assert.That(script.GridTerminalSystem.GetBlockWithName("Dock A"), Is.SameAs(connector));
+        }
+
+        [Test]
+        public void WithBlock_GenericOverload_Creates_And_Registers_A_Block_By_Type_And_Name()
+        {
+            var script = new Script();
+
+            script.WithBlock<IMyDoor>("Hangar Door");
+            script.Boot();
+
+            var door = script.GetBlock<IMyDoor>("Hangar Door");
+
+            Assert.That(door, Is.Not.Null);
+            Assert.That(door.CustomName, Is.EqualTo("Hangar Door"));
+            script.AssertHasBlock("Hangar Door");
+        }
+
+        [Test]
+        public void WithBlock_GenericOverload_Can_Configure_Interface_Specific_State()
+        {
+            var script = new Script();
+
+            var battery = script.WithBlock<IMyBatteryBlock>(
+                "Reserve Battery",
+                configure: block => block.Enabled = false);
+
+            script.Boot();
+
+            Assert.That(battery.Enabled, Is.False);
+            Assert.That(script.ContainsBlock("Reserve Battery"), Is.True);
         }
 
         [Test]
@@ -299,12 +328,8 @@ namespace MotherCore.Tests.Harness
             var world = new TestWorld();
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
-            var carrierMerge = carrierGrid.AddBlock(
-                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Carrier Merge")
-            );
-            var cargoMerge = cargoGrid.AddBlock(
-                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Cargo Merge")
-            );
+            var carrierMerge = carrierGrid.AddBlock<IMyShipMergeBlock>("Carrier Merge");
+            var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
             var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
 
@@ -330,10 +355,8 @@ namespace MotherCore.Tests.Harness
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
 
-            var carrierMerge = carrierGrid.AddBlock(
-                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Carrier Merge"));
-            var cargoMerge = cargoGrid.AddBlock(
-                TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "Cargo Merge"));
+            var carrierMerge = carrierGrid.AddBlock<IMyShipMergeBlock>("Carrier Merge");
+            var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
             var script = world.CreateScript<CoreTestProgram>(carrierGrid, "Carrier").Boot();
             world.Merge(carrierMerge, cargoMerge);

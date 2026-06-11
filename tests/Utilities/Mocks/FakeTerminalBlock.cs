@@ -3,6 +3,7 @@ using Sandbox.ModAPI.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using MotherCore.Tests.Utilities.Factories;
 using VRage.Game;
 using VRage.Game.Components.Interfaces;
 using VRage.Game.ModAPI.Ingame;
@@ -81,7 +82,7 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public Func<IMyTerminalBlock, bool> SameConstructEvaluator { get; set; }
 
-        public bool Enabled { get; set; } = true;
+        public virtual bool Enabled { get; set; } = true;
 
         public string CustomData { get; set; }
 
@@ -99,7 +100,7 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public Vector3D WorldPosition { get; set; }
 
-        public void RequestEnable(bool enable)
+        public virtual void RequestEnable(bool enable)
         {
             Enabled = enable;
         }
@@ -280,10 +281,6 @@ namespace MotherCore.Tests.Utilities.Mocks
         {
         }
 
-        protected static long CreateEntityId()
-        {
-            var random = new Random();
-            return ((long)random.Next(100000, 1000000) * 10000000000L) + random.Next(0, 1000000000);
-        }
+        protected static long CreateEntityId() => EntityIdFactory.Create();
     }
 }
