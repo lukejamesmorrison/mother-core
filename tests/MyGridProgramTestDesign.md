@@ -1011,6 +1011,155 @@ The goal is not to fully simulate Space Engineers. The goal is to make testing M
 
 ---
 
+## Review Findings (2026-06-11)
+
+The following findings come from reviewing harness tests under `Tests/Harness/`,
+world/network-heavy integration tests (especially `IntergridMessageServiceTests`),
+and the current harness helpers in `Utilities/Harness/` and `Utilities/Mocks/`.
+
+### 1. Broadcast listener disable behavior is incomplete
+
+`FakeIgc.DisableBroadcastListener(...)` toggles `FakeBroadcastListener.IsActive`,
+but `FakeIgc.EnqueueBroadcast(...)` currently enqueues regardless of active state.
+
+Impact:
+
+- tests can observe messages delivered even after a listener is disabled
+- this diverges from expected game-like behavior and can hide routing defects
+
+### 2. `TestWorld` currently enforces one topology-backed primary grid
+
+`TestWorld.EnsureWorldTopology(...)` throws when a second script attempts to bind
+using a different primary world grid.
+
+Impact:
+
+- limits multi-script world orchestration in scenarios where scripts should be
+  mounted on different pre-created world grids
+- conflicts with the long-term world mental model where scripts are first-class
+  world entities and world topology is not anchored to one primary script grid
+
+### 3. Network delivery silently drops unresolved targets
+
+`FakeIgcNetwork.Deliver()` skips deliveries when no endpoint is found and does
+not expose drop telemetry.
+
+Impact:
+
+- sender-side assertions can pass while recipient-side non-delivery is hard to
+  diagnose
+- failures become "nothing happened" instead of explicit transport outcomes
+
+### 4. Assertion helpers are useful but still too narrow for common flows
+
+Current helpers (`Script.AssertPrinted`, `Script.AssertCommandExecuted`,
+`Script.AssertEventEmitted`, `Script.AssertHasBlock`, `TestGrid.ShouldContainBlock`)
+are solid foundations, but world/network tests still repeat low-level assertion
+patterns directly against `SentMessages`, command counts, and lookup calls.
+
+Impact:
+
+- duplicated assertions across fixtures
+- lower readability and weaker intention-revealing tests
+- less consistent failure messages for orchestration scenarios
+
+### 5. World-first guidance is present, but tests still mix styles heavily
+
+The docs describe `TestWorld` as the preferred multi-script path and position
+single-script `Script<TProgram>` as shorthand, but integration tests still use
+both world-scoped and standalone network/script setup in mixed ways.
+
+Impact:
+
+- harder to establish one obvious orchestration style for new contributors
+- increased fixture variance when expressing equivalent scenarios
+
+## Implementation Plan: Orchestration and Assert Library Improvements
+
+This plan prioritizes correctness and ergonomics before breadth.
+
+### Phase A: Transport correctness and observability (short-term)
+
+1. Fix `FakeBroadcastListener` enforcement.
+    - Gate `FakeIgc.EnqueueBroadcast(...)` on `listener.IsActive`.
+    - Add tests for disable/enable behavior boundaries.
+
+2. Add explicit network delivery telemetry.
+    - Track dropped deliveries (unknown endpoint, disabled listener, invalid tag).
+    - Expose read-only dropped-message records for assertions.
+
+3. Add first network assertion helpers.
+    - `ShouldHaveUnicast(sourceId, targetId, tag)`
+    - `ShouldHaveBroadcast(sourceId, tag)`
+    - `ShouldHaveNoTraffic()`
+    - `ShouldHaveDroppedMessage(...)`
+
+Exit criteria:
+
+- no silent transport loss in tests without an observable record
+- network behavior and assertions are deterministic for common remote flows
+
+### Phase B: Script and world assertion library (near-term)
+
+1. Extend script-scoped assertions.
+    - `ShouldBeWorking()`
+    - `ShouldHaveName(expected)`
+    - `ShouldHaveExecuted(commandName, outcome, count = 1)`
+    - `ShouldHavePrinted(fragment)` / `ShouldNotHavePrinted(fragment)`
+    - `ShouldKnowGrid(gridName)` (Almanac convenience)
+
+2. Extend world-scoped assertions.
+    - `ShouldHaveScript(name)`
+    - `ShouldHaveScriptCount(count)`
+    - `ShouldHaveDeliveredIgcMessage(sourceName, targetName, tag)`
+    - `ShouldHaveBroadcast(tag, sourceName)`
+    - `ShouldHaveNoPendingMessages()`
+
+3. Add grid/block assertion helpers where repetition is high.
+    - group membership assertions
+    - same-construct assertions
+    - merge/connector topology assertions
+
+Exit criteria:
+
+- repetitive direct `Assert.That(...)` transport/orchestration checks in harness
+  tests are replaced by domain-level helper assertions
+- failure messages describe world/script/network intent rather than raw fields
+
+### Phase C: World topology orchestration evolution (medium-term)
+
+1. Decouple world topology from a single primary script grid.
+    - allow multiple scripts to bind using different existing `TestGrid` roots
+    - preserve backward compatibility for existing single-root tests
+
+2. Introduce explicit topology management APIs.
+    - world-level construct grouping and membership queries
+    - clear semantics for mechanical, merge, and connector connectivity
+
+3. Add orchestration helpers for progression.
+    - `RunTerminalAll(argument)`
+    - `TickUntil(predicate, maxTicks)`
+    - message-phase helpers that separate transport dispatch from script clocking
+
+Exit criteria:
+
+- multi-grid, multi-script world tests can be expressed without special-case
+  setup constraints
+- topology intent is explicit and assertion-friendly
+
+### Phase D: Test style convergence and migration (ongoing)
+
+1. Migrate high-value integration tests to world-first orchestration where it
+    improves clarity.
+2. Keep standalone `Script<TProgram>` tests for true single-script concerns.
+3. Update `Tests/README.md` examples to prefer world->grid->script composition
+    for multi-script scenarios and to demonstrate the new assertion helpers.
+
+Exit criteria:
+
+- new tests default to the intended mental model
+- equivalent scenarios share consistent setup and assertion style
+
 ## Implementation Progress
 
 > Last updated: 2026-06-11
