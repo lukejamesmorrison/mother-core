@@ -70,8 +70,10 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// <param name="primaryGrid">The grid that should own the programmable block.</param>
         public FakeGridTerminalSystem(IMyCubeGrid primaryGrid)
         {
-            PrimaryGrid = primaryGrid 
-                ?? throw new ArgumentNullException(nameof(primaryGrid));
+            if (primaryGrid == null)
+                throw new ArgumentNullException(nameof(primaryGrid));
+
+            PrimaryGrid = primaryGrid;
 
             _reachableGridIds.Add(PrimaryGrid.EntityId);
             _constructGridIds.Add(PrimaryGrid.EntityId);

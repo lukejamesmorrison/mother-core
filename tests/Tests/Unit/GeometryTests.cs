@@ -74,8 +74,10 @@ namespace MotherCore.Tests.Tests.Unit
         public void GetPerpendicularVectors_Returns_Orthogonal_Unit_Vectors()
         {
             var reference = new Vector3D(2, 3, 4);
+            Vector3D p1;
+            Vector3D p2;
 
-            Geometry.GetPerpendicularVectors(reference, out var p1, out var p2);
+            Geometry.GetPerpendicularVectors(reference, out p1, out p2);
 
             Assert.That(Vector3D.Dot(reference, p1), Is.EqualTo(0).Within(1e-9));
             Assert.That(Vector3D.Dot(reference, p2), Is.EqualTo(0).Within(1e-9));

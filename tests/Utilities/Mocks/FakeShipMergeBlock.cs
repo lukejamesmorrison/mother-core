@@ -29,9 +29,18 @@ namespace MotherCore.Tests.Utilities.Mocks
             Action<bool> enabledSetter,
             Func<MergeState> stateAccessor)
         {
-            _enabledAccessor = enabledAccessor ?? throw new ArgumentNullException(nameof(enabledAccessor));
-            _enabledSetter = enabledSetter ?? throw new ArgumentNullException(nameof(enabledSetter));
-            _stateAccessor = stateAccessor ?? throw new ArgumentNullException(nameof(stateAccessor));
+            if (enabledAccessor == null)
+                throw new ArgumentNullException(nameof(enabledAccessor));
+
+            if (enabledSetter == null)
+                throw new ArgumentNullException(nameof(enabledSetter));
+
+            if (stateAccessor == null)
+                throw new ArgumentNullException(nameof(stateAccessor));
+
+            _enabledAccessor = enabledAccessor;
+            _enabledSetter = enabledSetter;
+            _stateAccessor = stateAccessor;
         }
 
         public override bool Enabled

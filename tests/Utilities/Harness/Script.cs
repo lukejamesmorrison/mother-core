@@ -132,8 +132,10 @@ namespace MotherCore.Tests.Utilities
 
         internal Script(FakeGridTerminalSystem gridTerminalSystem, string gridName = null)
         {
-            _gridTerminalSystem = gridTerminalSystem
-                ?? throw new ArgumentNullException(nameof(gridTerminalSystem));
+            if (gridTerminalSystem == null)
+                throw new ArgumentNullException(nameof(gridTerminalSystem));
+
+            _gridTerminalSystem = gridTerminalSystem;
 
             _gridName = gridName;
         }

@@ -16,8 +16,14 @@ namespace MotherCore.Tests.Utilities
 
         internal TestGrid(TestWorld world, IMyCubeGrid grid)
         {
-            _world = world ?? throw new ArgumentNullException(nameof(world));
-            Grid = grid ?? throw new ArgumentNullException(nameof(grid));
+            if (world == null)
+                throw new ArgumentNullException(nameof(world));
+
+            if (grid == null)
+                throw new ArgumentNullException(nameof(grid));
+
+            _world = world;
+            Grid = grid;
         }
 
         /// <summary>

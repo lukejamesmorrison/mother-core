@@ -32,11 +32,23 @@ namespace MotherCore.Tests.Utilities.Mocks
             Action disconnect,
             Action toggle)
         {
-            _statusAccessor = statusAccessor ?? throw new ArgumentNullException(nameof(statusAccessor));
+            if (statusAccessor == null)
+                throw new ArgumentNullException(nameof(statusAccessor));
+
+            if (connect == null)
+                throw new ArgumentNullException(nameof(connect));
+
+            if (disconnect == null)
+                throw new ArgumentNullException(nameof(disconnect));
+
+            if (toggle == null)
+                throw new ArgumentNullException(nameof(toggle));
+
+            _statusAccessor = statusAccessor;
             _otherAccessor = otherAccessor;
-            _connect = connect ?? throw new ArgumentNullException(nameof(connect));
-            _disconnect = disconnect ?? throw new ArgumentNullException(nameof(disconnect));
-            _toggle = toggle ?? throw new ArgumentNullException(nameof(toggle));
+            _connect = connect;
+            _disconnect = disconnect;
+            _toggle = toggle;
         }
 
         public MyShipConnectorStatus Status => _statusAccessor != null

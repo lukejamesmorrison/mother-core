@@ -263,13 +263,13 @@ namespace MotherCore.Tests.Harness
             var network = new FakeIgcNetwork();
             var sender = network.CreateNetworkEndpoint();
 
-            sender.SendUnicastMessage(999_999_999_999L, "status", "ping");
+            sender.SendUnicastMessage(999999999999L, "status", "ping");
             network.Deliver();
 
             network.ShouldHaveDroppedMessage(
                 FakeIgcNetwork.DroppedMessageReason.UnknownEndpoint,
                 sender.Me,
-                999_999_999_999L,
+                999999999999L,
                 "status");
         }
 

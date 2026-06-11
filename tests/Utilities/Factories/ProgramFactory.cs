@@ -76,7 +76,8 @@ namespace MotherCore.Tests.Utilities.Factories
                 if (constructor == null)
                     throw new InvalidOperationException("No parameterless constructor found.");
 
-                if (!(program is Sandbox.ModAPI.IMyGridProgram backend))
+                var backend = program as Sandbox.ModAPI.IMyGridProgram;
+                if (backend == null)
                     throw new InvalidOperationException("No IMyGridProgram interface found.");
 
                 var me = GetMe();
@@ -143,7 +144,7 @@ namespace MotherCore.Tests.Utilities.Factories
             {
                 if (_igc != null) return () => _igc;
 
-                // Use a real FakeIgc rather than a partial FakeItEasy stub so that
+                // Use a real FakeIgc rather than a stubbed transport so that
                 // IntergridMessageService.Boot() gets functioning UnicastListener and
                 // RegisterBroadcastListener implementations. The private network is only
                 // used to allocate the endpoint; messages sent to it are silently dropped

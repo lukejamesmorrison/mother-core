@@ -39,11 +39,24 @@ namespace MotherCore.Tests.Utilities.Mocks
     /// </remarks>
     public class FakeIgcNetwork
     {
+        sealed class RegisteredScript
+        {
+            public RegisteredScript(IScript session, string gridName)
+            {
+                Session = session;
+                GridName = gridName;
+            }
+
+            public IScript Session { get; private set; }
+
+            public string GridName { get; private set; }
+        }
+
         /// <summary>
         /// The next synthetic endpoint ID for this in-memory network.
         /// Starts high to reduce collisions with realistic in-game IDs in assertions.
         /// </summary>
-        static long _nextId = 100_000_000_000L;
+        static long _nextId = 100000000000L;
 
         /// <summary>
         /// Endpoints currently registered on this fake network.
@@ -55,7 +68,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// Scripts registered on this network via <see cref="Script{TProgram}.Boot"/>,
         /// paired with script names for Almanac cross-registration.
         /// </summary>
-        readonly List<(IScript Session, string GridName)> _scripts = new List<(IScript, string)>();
+        readonly List<RegisteredScript> _scripts = new List<RegisteredScript>();
 
         /// <summary>
         /// Pending deliveries queued by send operations and consumed by <see cref="Deliver"/>.
@@ -119,13 +132,13 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// <param name="gridName">The script name used for Almanac identity and addressing.</param>
         internal void RegisterScript(IScript script, string gridName)
         {
-            foreach (var (existing, existingName) in _scripts)
+            foreach (var existing in _scripts)
             {
-                SyncToAlmanac(script, existing, existingName);
-                SyncToAlmanac(existing, script, gridName);
+                SyncToAlmanac(script, existing.Session, existing.GridName);
+                SyncToAlmanac(existing.Session, script, gridName);
             }
 
-            _scripts.Add((script, gridName));
+            _scripts.Add(new RegisteredScript(script, gridName));
         }
 
         /// <summary>
@@ -181,8 +194,9 @@ namespace MotherCore.Tests.Utilities.Mocks
             }
             _pending.Clear();
 
-            foreach (var (script, _) in _scripts)
+            foreach (var registration in _scripts)
             {
+                var script = registration.Session;
                 var igc = script.IGC as FakeIgc;
 
                 if (igc?.HasPendingMessages == true)
@@ -211,7 +225,10 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// Preferred alias for <see cref="Deliver"/> that aligns with the
         /// <see cref="TestWorld"/> API naming.
         /// </summary>
-        public FakeIgcNetwork DispatchIgc() => Deliver();
+        public FakeIgcNetwork DispatchIgc()
+        {
+            return Deliver();
+        }
 
         /// <summary>
         /// Returns whether the specified endpoint ID exists on this network.
@@ -219,7 +236,10 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// </summary>
         /// <param name="id">The endpoint ID to check.</param>
         /// <returns><c>true</c> when an endpoint with that ID is registered; otherwise <c>false</c>.</returns>
-        internal bool HasEndpoint(long id) => _endpoints.Any(e => e.Me == id);
+        internal bool HasEndpoint(long id)
+        {
+            return _endpoints.Any(e => e.Me == id);
+        }
 
         /// <summary>
         /// Queues a unicast send for later delivery.
@@ -256,7 +276,7 @@ namespace MotherCore.Tests.Utilities.Mocks
                 return;
             }
 
-            SentMessages.Add(new SentMessage(sourceId, targetId: -1, tag, data, isBroadcast: true));
+            SentMessages.Add(new SentMessage(sourceId, -1, tag, data, isBroadcast: true));
 
             foreach (var endpoint in _endpoints)
                 if (endpoint.Me != sourceId)
@@ -499,7 +519,9 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// <inheritdoc/>
         public void DisableBroadcastListener(IMyBroadcastListener listener)
         {
-            if (listener is FakeBroadcastListener fakeListener) fakeListener.Disable();
+            var fakeListener = listener as FakeBroadcastListener;
+            if (fakeListener != null)
+                fakeListener.Disable();
         }
 
         /// <inheritdoc/>
@@ -515,7 +537,8 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         internal void EnqueueBroadcast(string tag, MyIGCMessage message)
         {
-            if (_broadcastListeners.TryGetValue(tag, out var listener))
+            FakeBroadcastListener listener;
+            if (_broadcastListeners.TryGetValue(tag, out listener))
             {
                 if (!listener.IsActive)
                 {

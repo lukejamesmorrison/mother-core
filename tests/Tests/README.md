@@ -215,7 +215,7 @@ family rather than falling back to ad hoc mocking.
 
 Display-focused tests usually need a fake `IMyTextSurface` or `IMyTextPanel`
 plus a way to observe `WriteText(...)`, `ContentType`, and surface sizing.
-Use `TextSurfaceFactory` for that instead of hand-building FakeItEasy setup in
+Use `TextSurfaceFactory` for that instead of hand-building ad hoc display doubles in
 each test:
 
 ```csharp

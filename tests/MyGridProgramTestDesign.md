@@ -18,44 +18,38 @@ This audit is specifically about whether the MotherCore test suite and harness a
 #### What is already aligned
 
 - `MotherCore.Tests.csproj` already targets `netframework48`, which matches `MotherOS.csproj` and `MotherGUI.csproj`.
+- `MotherCore.Tests.csproj` now explicitly pins `LangVersion = 6`, matching the Mother script baseline.
+- the suite now builds and passes under the pinned contract with `dotnet test .\MotherCore.Tests.csproj` after the project-level C# 6 pin.
 - the test project imports `../src/MotherCore.projitems`, so the core shared source and the harness are exercised together rather than drifting into a separate runtime surface.
 - the harness direction is otherwise consistent with the current design goals: world/script/grid/block abstractions, explicit fake blocks, and a fake runtime environment rather than ad hoc per-test host wiring.
+- the previously identified post-C#6 syntax in the active harness/test sources has been removed.
+- the stale `FakeItEasy` and `FakeItEasy.Analyzer.CSharp` package references have been removed from `MotherCore.Tests.csproj`.
 
 #### What is not aligned yet
 
-- `MotherCore.Tests.csproj` does not currently declare `LangVersion = 6`.
-- forcing a C# 6 build with `dotnet test .\MotherCore.Tests.csproj /p:LangVersion=6` fails immediately, so the suite is not currently C# 6 compatible.
-- the first verified compiler failures are digit separators in:
-    - `Utilities/Mocks/FakeIgcNetwork.cs`
-    - `Tests/Harness/FakeIgcNetworkTests.cs`
-- a broader source audit shows additional post-C#6 syntax in active harness/test code, including:
-    - value tuples in `Utilities/Mocks/FakeIgcNetwork.cs`
-    - throw expressions such as `x ?? throw ...` in `Utilities/Harness/TestGrid.cs`, `Utilities/Harness/Script.cs`, `Utilities/Mocks/FakeGridTerminalSystem.cs`, `Utilities/Mocks/FakeShipConnector.cs`, and `Utilities/Mocks/FakeShipMergeBlock.cs`
-    - pattern matching in `Utilities/Mocks/FakeIgcNetwork.cs`
-    - `out var` usage in `Utilities/Mocks/FakeIgcNetwork.cs` and `Tests/Unit/GeometryTests.cs`
-- `MotherCore.Tests.csproj` still references `FakeItEasy` and `FakeItEasy.Analyzer.CSharp` even though the harness guidance and current implementation direction now treat harness-owned concrete fakes as the standard path.
 - the test project also depends on prerelease test packages right now:
     - `NUnit 4.4.0-beta.2.1`
     - `NUnit3TestAdapter 5.1.0-alpha.3`
+- there is not yet a dedicated compatibility gate in the normal validation path that explicitly asserts the C# 6 contract beyond the project file itself.
 
 ### Audit conclusion
 
-The test suite is framework-aligned with MotherOS and MotherGUI at the `netframework48` level, but it is not yet language-aligned with them. In its current state it should be treated as a `netframework48` test suite that requires a newer C# compiler than the extension scripts do.
+The test suite is now aligned with MotherOS and MotherGUI at both the `netframework48` and C# 6 contract level.
 
-That mismatch matters because the stated deployment goal is not merely to run MotherCore's own tests locally. It is to provide a reusable harness that extension-script test projects can adopt without silently moving off the Mother script baseline.
+That matters because the stated deployment goal is not merely to run MotherCore's own tests locally. It is to provide a reusable harness that extension-script test projects can adopt without silently moving off the Mother script baseline.
 
 ### Recommendations
 
-#### 1. Make C# 6 an explicit project contract
+#### 1. Keep C# 6 as an explicit project contract
 
-- add `<LangVersion>6</LangVersion>` to `MotherCore.Tests.csproj`
-- treat any resulting compile errors as required compatibility work, not optional cleanup
+- keep `<LangVersion>6</LangVersion>` in `MotherCore.Tests.csproj`
+- treat any future compile errors from that pin as required compatibility work, not optional cleanup
 
-This is the most important recommendation because it turns the desired compatibility level into an enforced build contract.
+This is the most important recommendation because it keeps the desired compatibility level enforced by the build.
 
-#### 2. Remove the verified post-C#6 syntax from the harness and tests
+#### 2. Keep post-C#6 syntax out of the harness and tests
 
-The current verified incompatibilities are mechanical and should be straightforward to rewrite without changing harness behavior:
+The main mechanical rewrite categories that were required here were:
 
 - replace digit separators with plain numeric literals
 - replace value tuples with small private structs/classes or `Tuple<...>` where appropriate
@@ -63,28 +57,25 @@ The current verified incompatibilities are mechanical and should be straightforw
 - replace pattern-matching `is` expressions with classic casts and null checks
 - replace `out var` with explicitly typed local variables
 
-This should be done across both harness utilities and test fixtures so extension-script test projects can consume the whole surface without selectively excluding files.
+The same rule should continue to apply to future harness/test additions.
+
+This should continue to be enforced across both harness utilities and test fixtures so extension-script test projects can consume the whole surface without selectively excluding files.
 
 #### 3. Add a compatibility gate to the normal validation path
 
-- run a dedicated `dotnet test /p:LangVersion=6` validation in CI or the standard local verification path
+- run a dedicated `dotnet test .\MotherCore.Tests.csproj` validation in CI or the standard local verification path and treat the pinned `LangVersion=6` as part of that contract
 - keep the compatibility check narrow and intentional so regressions are caught the moment a newer language feature is introduced
 
 Without an explicit gate, the project will drift back to the host machine's default compiler features.
 
-#### 4. Finish the FakeItEasy package removal at the project level
+#### 4. Keep FakeItEasy removed at the project level
 
-The current codebase audit did not surface active `A.Fake(...)` or `A.CallTo(...)` usage in the test sources, while `MotherCore.Tests.csproj` still references:
-
-- `FakeItEasy`
-- `FakeItEasy.Analyzer.CSharp`
-
-That leaves the project in an internally inconsistent state: the documented harness direction says FakeItEasy is no longer the normal path, but the project file still ships the dependency.
+The package references have now been removed, which aligns the project file with the current harness direction.
 
 Recommendation:
 
-- remove both package references once a final verification confirms there are no remaining source-level dependencies
-- then update any lingering documentation wording that still describes FakeItEasy as an active option rather than legacy history
+- keep new tests on harness-owned concrete fakes rather than reintroducing proxy-based mocking as a default path
+- keep documentation wording aligned with that direction
 
 #### 5. Re-evaluate prerelease test dependencies for a distributed harness
 
@@ -101,7 +92,7 @@ The harness should be considered truly compatible with MotherOS/MotherGUI-style 
 
 - `MotherCore.Tests.csproj` targets `netframework48`
 - `MotherCore.Tests.csproj` explicitly pins `LangVersion` to `6`
-- `dotnet test /p:LangVersion=6` passes
+- `dotnet test .\MotherCore.Tests.csproj` passes with the pinned project settings
 - no active harness or test source depends on post-C#6 syntax
 - no inactive legacy mocking dependency remains in the project file unless intentionally retained and justified
 

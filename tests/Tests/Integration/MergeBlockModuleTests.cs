@@ -10,7 +10,20 @@ namespace MotherCore.Tests.Integration
 {
     public class MergeBlockModuleTests
     {
-        static (Script Script, IMyShipMergeBlock MergeBlock) BootHookedMergeScript(
+        sealed class MergeScriptArrangement
+        {
+            public MergeScriptArrangement(Script script, IMyShipMergeBlock mergeBlock)
+            {
+                Script = script;
+                MergeBlock = mergeBlock;
+            }
+
+            public Script Script { get; private set; }
+
+            public IMyShipMergeBlock MergeBlock { get; private set; }
+        }
+
+        static MergeScriptArrangement BootHookedMergeScript(
             string hookName,
             string hookAction,
             IMyCubeGrid cargoGrid,
@@ -26,7 +39,7 @@ namespace MotherCore.Tests.Integration
             script.WithBlock(cargoBattery, cargoGrid)
                 .Boot();
 
-            return (script, mergeBlock);
+            return new MergeScriptArrangement(script, mergeBlock);
         }
 
         [Test]

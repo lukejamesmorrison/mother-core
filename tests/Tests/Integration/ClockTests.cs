@@ -128,18 +128,10 @@ namespace MotherCore.Tests.Integration
 
             int step = 0;
 
-            IEnumerable<double> routine()
-            {
-                step = 1;
-                yield return 0;
-
-                step = 2;
-                yield return 0;
-
-                step = 3;
-            }
-
-            clock.AddCoroutine(routine());
+            clock.AddCoroutine(ThreeStepCoroutine(
+                () => step = 1,
+                () => step = 2,
+                () => step = 3));
 
             clock.Run(); // step 1
             clock.Run(); // step 2
@@ -156,14 +148,10 @@ namespace MotherCore.Tests.Integration
 
             int step = 0;
 
-            IEnumerable<double> routine()
-            {
-                step = 1;
-                yield return 999; // Wait a very long time
-                step = 2;
-            }
-
-            clock.AddCoroutine(routine());
+            clock.AddCoroutine(WaitCoroutine(
+                () => step = 1,
+                999,
+                () => step = 2));
 
             clock.Run(); // step 1, then encounters wait
             clock.Run(); // Still waiting (deltaTime � 0 in tests)
@@ -181,24 +169,8 @@ namespace MotherCore.Tests.Integration
             int counterA = 0;
             int counterB = 0;
 
-            IEnumerable<double> routineA()
-            {
-                counterA++;
-                yield return 0;
-
-                counterA++;
-            }
-
-            IEnumerable<double> routineB()
-            {
-                counterB++;
-                yield return 0;
-
-                counterB++;
-            }
-
-            clock.AddCoroutine(routineA());
-            clock.AddCoroutine(routineB());
+            clock.AddCoroutine(TwoStepCoroutine(() => counterA++, () => counterA++));
+            clock.AddCoroutine(TwoStepCoroutine(() => counterB++, () => counterB++));
 
             clock.Run();
             clock.Run();
@@ -215,13 +187,7 @@ namespace MotherCore.Tests.Integration
 
             int counter = 0;
 
-            IEnumerable<double> routine()
-            {
-                counter++;
-                yield break;
-            }
-
-            clock.AddCoroutine(routine());
+            clock.AddCoroutine(ImmediateCoroutine(() => counter++));
 
             clock.Run(); // Executes and completes
             clock.Run(); // Should not execute again
@@ -242,20 +208,9 @@ namespace MotherCore.Tests.Integration
 
             int childExecuted = 0;
 
-            IEnumerable<double> childRoutine()
-            {
-                childExecuted++;
-                yield return 0;
-            }
-
-            IEnumerable<double> parentRoutine()
-            {
-                // This adds a new coroutine while the clock is iterating
-                clock.AddCoroutine(childRoutine());
-                yield return 0;
-            }
-
-            clock.AddCoroutine(parentRoutine());
+            clock.AddCoroutine(ParentCoroutine(
+                clock,
+                () => OneTickCoroutine(() => childExecuted++)));
 
             // Should not throw despite mutation during iteration
             Assert.DoesNotThrow(() =>
@@ -281,15 +236,7 @@ namespace MotherCore.Tests.Integration
             int completedCount = 0;
 
             for (int i = 0; i < 5; i++)
-            {
-                IEnumerable<double> routine()
-                {
-                    completedCount++;
-                    yield break;
-                }
-
-                clock.AddCoroutine(routine());
-            }
+                clock.AddCoroutine(ImmediateCoroutine(() => completedCount++));
 
             Assert.DoesNotThrow(() => clock.Run());
 
@@ -330,6 +277,49 @@ namespace MotherCore.Tests.Integration
         /// </summary>
         static IEnumerable<double> SimpleCoroutine()
         {
+            yield return 0;
+        }
+
+        static IEnumerable<double> ThreeStepCoroutine(Action first, Action second, Action third)
+        {
+            first();
+            yield return 0;
+
+            second();
+            yield return 0;
+
+            third();
+        }
+
+        static IEnumerable<double> WaitCoroutine(Action first, double wait, Action second)
+        {
+            first();
+            yield return wait;
+            second();
+        }
+
+        static IEnumerable<double> TwoStepCoroutine(Action first, Action second)
+        {
+            first();
+            yield return 0;
+            second();
+        }
+
+        static IEnumerable<double> ImmediateCoroutine(Action action)
+        {
+            action();
+            yield break;
+        }
+
+        static IEnumerable<double> OneTickCoroutine(Action action)
+        {
+            action();
+            yield return 0;
+        }
+
+        static IEnumerable<double> ParentCoroutine(Clock clock, Func<IEnumerable<double>> childFactory)
+        {
+            clock.AddCoroutine(childFactory());
             yield return 0;
         }
     }

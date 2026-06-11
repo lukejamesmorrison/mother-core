@@ -16,7 +16,7 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public bool Open
         {
-            get => Status == DoorStatus.Open || Status == DoorStatus.Opening;
+            get { return Status == DoorStatus.Open || Status == DoorStatus.Opening; }
             set
             {
                 if (value)

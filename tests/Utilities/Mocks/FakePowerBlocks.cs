@@ -18,9 +18,13 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public float MaxOutput { get; set; }
 
-        public float CurrentOutputRatio => MaxOutput <= 0f
-            ? 0f
-            : CurrentOutput / MaxOutput;
+        public float CurrentOutputRatio
+        {
+            get
+            {
+                return MaxOutput <= 0f ? 0f : CurrentOutput / MaxOutput;
+            }
+        }
     }
 
     internal sealed class FakeBatteryBlock : FakePowerProducerBlock, IMyBatteryBlock
@@ -34,7 +38,10 @@ namespace MotherCore.Tests.Utilities.Mocks
         {
         }
 
-        public bool HasCapacityRemaining => CurrentStoredPower < MaxStoredPower;
+        public bool HasCapacityRemaining
+        {
+            get { return CurrentStoredPower < MaxStoredPower; }
+        }
 
         public float CurrentStoredPower { get; set; }
 
@@ -44,13 +51,16 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public float MaxInput { get; set; }
 
-        public bool IsCharging => ChargeMode == ChargeMode.Recharge;
+        public bool IsCharging
+        {
+            get { return ChargeMode == ChargeMode.Recharge; }
+        }
 
         public ChargeMode ChargeMode { get; set; } = ChargeMode.Auto;
 
         public bool OnlyRecharge
         {
-            get => ChargeMode == ChargeMode.Recharge;
+            get { return ChargeMode == ChargeMode.Recharge; }
             set
             {
                 if (value)
@@ -66,7 +76,7 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public bool OnlyDischarge
         {
-            get => ChargeMode == ChargeMode.Discharge;
+            get { return ChargeMode == ChargeMode.Discharge; }
             set
             {
                 if (value)
