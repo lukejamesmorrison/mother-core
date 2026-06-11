@@ -21,6 +21,33 @@ using VRageMath;
 namespace IngameScript
 {
     /// <summary>
+    /// Struct to hold monitoring entries as (expression, callback).
+    /// </summary>
+    public struct MonitorEntry
+    {
+        /// <summary>
+        /// Expression to evaluate the block's terminal state.
+        /// </summary>
+        public Func<IMyTerminalBlock, bool> TerminalExpression;
+
+        /// <summary>
+        /// Callback to execute when the terminal state is reached.
+        /// </summary>
+        public Action<IMyTerminalBlock> OnTerminalStateReached;
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <param name="callback"></param>
+        public MonitorEntry(Func<IMyTerminalBlock, bool> condition, Action<IMyTerminalBlock> callback)
+        {
+            TerminalExpression = condition;
+            OnTerminalStateReached = callback;
+        }
+    }
+
+    /// <summary>
     /// The ActivityMonitor monitors the state of blocks in the grid as they are changing. 
     /// It can be used to observe a change until a terminal state is reached. For 
     /// ongoing state monitoring, use the Block Catalogue instead.
@@ -31,33 +58,6 @@ namespace IngameScript
         /// Dictionary of blocks being monitored.
         /// </summary>
         public Dictionary<IMyTerminalBlock, MonitorEntry> ActiveBlocks { get; }
-
-        /// <summary>
-        /// Struct to hold monitoring entries as (expression, callback).
-        /// </summary>
-        public struct MonitorEntry
-        {
-            /// <summary>
-            /// Expression to evaluate the block's terminal state.
-            /// </summary>
-            public Func<IMyTerminalBlock, bool> TerminalExpression;
-
-            /// <summary>
-            /// Callback to execute when the terminal state is reached.
-            /// </summary>
-            public Action<IMyTerminalBlock> OnTerminalStateReached;
-
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            /// <param name="condition"></param>
-            /// <param name="callback"></param>
-            public MonitorEntry(Func<IMyTerminalBlock, bool> condition, Action<IMyTerminalBlock> callback)
-            {
-                TerminalExpression = condition;
-                OnTerminalStateReached = callback;
-            }
-        }
 
         /// <summary>
         /// Constructor.
@@ -106,8 +106,7 @@ namespace IngameScript
             Action<IMyTerminalBlock> onTerminalReached
         )
         {
-            if (!ActiveBlocks.ContainsKey(block))
-                ActiveBlocks[block] = new MonitorEntry(terminalCondition, onTerminalReached);
+            ActiveBlocks[block] = new MonitorEntry(terminalCondition, onTerminalReached);
         }
 
         /// <summary>
