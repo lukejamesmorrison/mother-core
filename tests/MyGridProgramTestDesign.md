@@ -1078,7 +1078,7 @@ Impact:
 
 This plan prioritizes correctness and ergonomics before breadth.
 
-### [x] Phase A: Transport correctness and observability (short-term)
+### ✅ Phase A: Transport correctness and observability (short-term)
 
 1. Fix `FakeBroadcastListener` enforcement.
     - Gate `FakeIgc.EnqueueBroadcast(...)` on `listener.IsActive`.
@@ -1099,7 +1099,7 @@ Exit criteria:
 - no silent transport loss in tests without an observable record
 - network behavior and assertions are deterministic for common remote flows
 
-### Phase B: Script and world assertion library (near-term)
+### ✅ Phase B: Script and world assertion library (near-term)
 
 1. Extend script-scoped assertions.
     - `ShouldBeWorking()`

@@ -96,5 +96,41 @@ namespace MotherCore.Tests.Utilities
             Assert.That(ContainsBlock(blockName), Is.True,
                 $"Expected grid '{Name}' to contain block '{blockName}', but it was not registered.");
         }
+
+        /// <summary>
+        /// Asserts that two named blocks on this grid are part of the same construct.
+        /// </summary>
+        public void ShouldBeSameConstruct(string firstBlockName, string secondBlockName)
+        {
+            var first = GetBlock(firstBlockName);
+            var second = GetBlock(secondBlockName);
+
+            Assert.That(first, Is.Not.Null,
+                $"Expected block '{firstBlockName}' to exist on grid '{Name}', but it was not found.");
+
+            Assert.That(second, Is.Not.Null,
+                $"Expected block '{secondBlockName}' to exist on grid '{Name}', but it was not found.");
+
+            Assert.That(first.IsSameConstructAs(second), Is.True,
+                $"Expected blocks '{firstBlockName}' and '{secondBlockName}' to be on the same construct, but they were not.");
+        }
+
+        /// <summary>
+        /// Asserts that two named blocks on this grid are not part of the same construct.
+        /// </summary>
+        public void ShouldNotBeSameConstruct(string firstBlockName, string secondBlockName)
+        {
+            var first = GetBlock(firstBlockName);
+            var second = GetBlock(secondBlockName);
+
+            Assert.That(first, Is.Not.Null,
+                $"Expected block '{firstBlockName}' to exist on grid '{Name}', but it was not found.");
+
+            Assert.That(second, Is.Not.Null,
+                $"Expected block '{secondBlockName}' to exist on grid '{Name}', but it was not found.");
+
+            Assert.That(first.IsSameConstructAs(second), Is.False,
+                $"Expected blocks '{firstBlockName}' and '{secondBlockName}' to be on separate constructs, but they were on the same construct.");
+        }
     }
 }

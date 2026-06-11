@@ -6,6 +6,7 @@ using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NUnit.Framework;
 using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities
@@ -68,6 +69,95 @@ namespace MotherCore.Tests.Utilities
         /// Dropped message telemetry captured by this world's shared IGC network.
         /// </summary>
         public IReadOnlyList<FakeIgcNetwork.DroppedMessage> DroppedMessages => _network.DroppedMessages;
+
+        /// <summary>
+        /// Asserts that this world contains a script with the supplied runtime name.
+        /// </summary>
+        public void ShouldHaveScript(string name)
+        {
+            Assert.That(
+                _scripts.Any(script => string.Equals(script.Mother?.Name, name, StringComparison.OrdinalIgnoreCase)),
+                Is.True,
+                $"Expected world to contain script '{name}', but no matching script was found.");
+        }
+
+        /// <summary>
+        /// Asserts the number of scripts registered in this world.
+        /// </summary>
+        public void ShouldHaveScriptCount(int count)
+        {
+            Assert.That(_scripts.Count, Is.EqualTo(count),
+                $"Expected world to contain {count} script(s), but found {_scripts.Count}.");
+        }
+
+        /// <summary>
+        /// Asserts that the captured IGC traffic contains a unicast message from
+        /// <paramref name="sourceName"/> to <paramref name="targetName"/> on <paramref name="tag"/>.
+        /// </summary>
+        public void ShouldHaveDeliveredIgcMessage(string sourceName, string targetName, string tag)
+        {
+            var source = _scripts.FirstOrDefault(script =>
+                string.Equals(script.Mother?.Name, sourceName, StringComparison.OrdinalIgnoreCase));
+            var target = _scripts.FirstOrDefault(script =>
+                string.Equals(script.Mother?.Name, targetName, StringComparison.OrdinalIgnoreCase));
+
+            Assert.That(source, Is.Not.Null,
+                $"Expected world to contain source script '{sourceName}', but none was found.");
+            Assert.That(target, Is.Not.Null,
+                $"Expected world to contain target script '{targetName}', but none was found.");
+
+            var sourceId = source.IGC.Me;
+            var targetId = target.IGC.Me;
+            var anyTag = string.IsNullOrWhiteSpace(tag) || tag == "*";
+
+            Assert.That(
+                SentMessages.Any(message =>
+                    !message.IsBroadcast
+                    && message.SourceId == sourceId
+                    && message.TargetId == targetId
+                    && (anyTag || message.Tag == tag)),
+                Is.True,
+                $"Expected world IGC traffic to include '{sourceName}' -> '{targetName}' on tag '{tag}', but no matching unicast message was captured.");
+
+            Assert.That(
+                DroppedMessages.Any(message =>
+                    !message.IsBroadcast
+                    && message.SourceId == sourceId
+                    && message.TargetId == targetId
+                    && (anyTag || message.Tag == tag)),
+                Is.False,
+                $"Expected world IGC message '{sourceName}' -> '{targetName}' on tag '{tag}' to avoid transport drops, but a matching drop was recorded.");
+        }
+
+        /// <summary>
+        /// Asserts that captured traffic includes a broadcast from <paramref name="sourceName"/>
+        /// on the provided <paramref name="tag"/>.
+        /// </summary>
+        public void ShouldHaveBroadcast(string tag, string sourceName)
+        {
+            var source = _scripts.FirstOrDefault(script =>
+                string.Equals(script.Mother?.Name, sourceName, StringComparison.OrdinalIgnoreCase));
+
+            Assert.That(source, Is.Not.Null,
+                $"Expected world to contain source script '{sourceName}', but none was found.");
+
+            Assert.That(
+                SentMessages.Any(message =>
+                    message.IsBroadcast
+                    && message.SourceId == source.IGC.Me
+                    && message.Tag == tag),
+                Is.True,
+                $"Expected world IGC traffic to include broadcast from '{sourceName}' on tag '{tag}', but no matching broadcast was captured.");
+        }
+
+        /// <summary>
+        /// Asserts that no queued transport deliveries or buffered endpoint messages remain.
+        /// </summary>
+        public void ShouldHaveNoPendingMessages()
+        {
+            Assert.That(_network.HasPendingMessages, Is.False,
+                $"Expected world to have no pending IGC messages, but pending deliveries={_network.PendingDeliveryCount}, pending endpoints={_network.PendingEndpointCount}.");
+        }
 
         /// <summary>
         /// Creates a new <see cref="Script{TProgram}"/> in this world.

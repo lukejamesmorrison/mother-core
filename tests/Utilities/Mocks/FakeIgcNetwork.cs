@@ -81,6 +81,21 @@ namespace MotherCore.Tests.Utilities.Mocks
         public IReadOnlyList<IScript> Scripts => _scripts.Select(s => s.Session).ToList();
 
         /// <summary>
+        /// Number of queued transport deliveries waiting for <see cref="Deliver"/>.
+        /// </summary>
+        public int PendingDeliveryCount => _pending.Count;
+
+        /// <summary>
+        /// Number of endpoints that still have buffered inbound messages.
+        /// </summary>
+        public int PendingEndpointCount => _endpoints.Count(endpoint => endpoint.HasPendingMessages);
+
+        /// <summary>
+        /// Returns <c>true</c> when either transport or endpoint buffers still contain messages.
+        /// </summary>
+        public bool HasPendingMessages => PendingDeliveryCount > 0 || PendingEndpointCount > 0;
+
+        /// <summary>
         /// Creates and registers a new <see cref="FakeIgc"/> endpoint on this network.
         /// Called during <see cref="Script{TProgram}.Boot"/> when a script joins via
         /// <see cref="Script{TProgram}.OnNetwork(FakeIgcNetwork)"/>.

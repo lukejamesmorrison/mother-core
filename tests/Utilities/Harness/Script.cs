@@ -594,6 +594,69 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Asserts that this script reached the WORKING state after boot.
+        /// </summary>
+        public void ShouldBeWorking()
+        {
+            Assert.That(_mother, Is.Not.Null, "Expected a booted script, but Mother was null.");
+            Assert.That(_mother.SystemState, Is.EqualTo(Mother.SystemStates.WORKING),
+                $"Expected script '{_mother.Name}' to be WORKING, but state was '{_mother.SystemState}'.");
+        }
+
+        /// <summary>
+        /// Asserts that this script's runtime name matches <paramref name="expected"/>.
+        /// </summary>
+        public void ShouldHaveName(string expected)
+        {
+            Assert.That(_mother, Is.Not.Null, "Expected a booted script, but Mother was null.");
+            Assert.That(_mother.Name, Is.EqualTo(expected),
+                $"Expected script name '{expected}', but was '{_mother.Name}'.");
+        }
+
+        /// <summary>
+        /// Asserts that the command bus executed a command with the expected outcome count.
+        /// </summary>
+        public void ShouldHaveExecuted(
+            string commandName,
+            CommandExecutionOutcome outcome = CommandExecutionOutcome.ModuleExecuted,
+            int count = 1)
+        {
+            AssertCommandExecuted(commandName, count, outcome);
+        }
+
+        /// <summary>
+        /// Asserts that the captured echo output contains <paramref name="fragment"/>.
+        /// </summary>
+        public void ShouldHavePrinted(string fragment)
+        {
+            CaptureEcho().AssertPrinted(fragment);
+        }
+
+        /// <summary>
+        /// Asserts that the captured echo output does not contain <paramref name="fragment"/>.
+        /// </summary>
+        public void ShouldNotHavePrinted(string fragment)
+        {
+            Assert.That(CaptureEcho().Contains(fragment), Is.False,
+                $"Expected output for script '{_mother?.Name ?? _gridName ?? "Unknown"}' to not contain '{fragment}', but it was found.");
+        }
+
+        /// <summary>
+        /// Asserts that this script's Almanac knows a grid by the given name.
+        /// </summary>
+        public void ShouldKnowGrid(string gridName)
+        {
+            Assert.That(_mother, Is.Not.Null, "Expected a booted script, but Mother was null.");
+
+            var almanac = _mother.GetModule<Almanac>();
+
+            Assert.That(almanac, Is.Not.Null,
+                $"Expected script '{_mother.Name}' to have Almanac loaded, but Almanac was null.");
+            Assert.That(almanac.GetRecord(gridName), Is.Not.Null,
+                $"Expected script '{_mother.Name}' to know grid '{gridName}' in Almanac, but no record was found.");
+        }
+
+        /// <summary>
         /// Looks up a registered block by custom or display name.
         /// </summary>
         public IMyTerminalBlock GetBlock(string blockName)
@@ -625,6 +688,99 @@ namespace MotherCore.Tests.Utilities
         {
             Assert.That(ContainsBlock(blockName), Is.True,
                 $"Expected script '{_mother?.Name ?? _gridName ?? PrimaryGrid?.CustomName ?? "Unknown"}' to contain block '{blockName}', but it was not registered.");
+        }
+
+        /// <summary>
+        /// Asserts that a block group with the given name exists.
+        /// </summary>
+        public void ShouldContainGroup(string groupName)
+        {
+            var group = GridTerminalSystem.GetBlockGroupWithName(groupName);
+
+            Assert.That(group, Is.Not.Null,
+                $"Expected script '{_mother?.Name ?? _gridName ?? "Unknown"}' to contain block group '{groupName}', but it was not found.");
+        }
+
+        /// <summary>
+        /// Asserts that a named block group contains the supplied block names.
+        /// </summary>
+        public void ShouldGroupContainBlocks(string groupName, params string[] blockNames)
+        {
+            var group = GridTerminalSystem.GetBlockGroupWithName(groupName);
+
+            Assert.That(group, Is.Not.Null,
+                $"Expected block group '{groupName}' to exist, but it was not found.");
+
+            var groupBlocks = new List<IMyTerminalBlock>();
+            group.GetBlocks(groupBlocks);
+
+            foreach (var blockName in blockNames ?? new string[0])
+            {
+                Assert.That(
+                    groupBlocks.Any(block =>
+                        string.Equals(block.CustomName, blockName, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(block.DisplayNameText, blockName, StringComparison.OrdinalIgnoreCase)),
+                    Is.True,
+                    $"Expected block group '{groupName}' to contain block '{blockName}', but it was not present.");
+            }
+        }
+
+        /// <summary>
+        /// Asserts that two named blocks are part of the same construct.
+        /// </summary>
+        public void ShouldBeSameConstruct(string firstBlockName, string secondBlockName)
+        {
+            var first = GetBlock(firstBlockName);
+            var second = GetBlock(secondBlockName);
+
+            Assert.That(first, Is.Not.Null,
+                $"Expected block '{firstBlockName}' to exist, but it was not found.");
+            Assert.That(second, Is.Not.Null,
+                $"Expected block '{secondBlockName}' to exist, but it was not found.");
+            Assert.That(first.IsSameConstructAs(second), Is.True,
+                $"Expected blocks '{firstBlockName}' and '{secondBlockName}' to be on the same construct, but they were not.");
+        }
+
+        /// <summary>
+        /// Asserts that two named blocks are not part of the same construct.
+        /// </summary>
+        public void ShouldNotBeSameConstruct(string firstBlockName, string secondBlockName)
+        {
+            var first = GetBlock(firstBlockName);
+            var second = GetBlock(secondBlockName);
+
+            Assert.That(first, Is.Not.Null,
+                $"Expected block '{firstBlockName}' to exist, but it was not found.");
+            Assert.That(second, Is.Not.Null,
+                $"Expected block '{secondBlockName}' to exist, but it was not found.");
+            Assert.That(first.IsSameConstructAs(second), Is.False,
+                $"Expected blocks '{firstBlockName}' and '{secondBlockName}' to be on separate constructs, but they were on the same construct.");
+        }
+
+        /// <summary>
+        /// Asserts that a named merge block is in the expected merge state.
+        /// </summary>
+        public void ShouldHaveMergeState(string mergeBlockName, MergeState expectedState)
+        {
+            var mergeBlock = GetBlock<IMyShipMergeBlock>(mergeBlockName);
+
+            Assert.That(mergeBlock, Is.Not.Null,
+                $"Expected merge block '{mergeBlockName}' to exist, but it was not found.");
+            Assert.That(mergeBlock.State, Is.EqualTo(expectedState),
+                $"Expected merge block '{mergeBlockName}' to have state '{expectedState}', but was '{mergeBlock.State}'.");
+        }
+
+        /// <summary>
+        /// Asserts that a named connector reports the expected connection status.
+        /// </summary>
+        public void ShouldHaveConnectorStatus(string connectorName, MyShipConnectorStatus expectedStatus)
+        {
+            var connector = GetBlock<IMyShipConnector>(connectorName);
+
+            Assert.That(connector, Is.Not.Null,
+                $"Expected connector '{connectorName}' to exist, but it was not found.");
+            Assert.That(connector.Status, Is.EqualTo(expectedStatus),
+                $"Expected connector '{connectorName}' to have status '{expectedStatus}', but was '{connector.Status}'.");
         }
 
         /// <summary>
@@ -1041,6 +1197,45 @@ namespace MotherCore.Tests.Utilities
             base.AssertPrinted(fragment);
         }
 
+        /// <inheritdoc cref="Script{TProgram}.ShouldBeWorking"/>
+        public new void ShouldBeWorking()
+        {
+            base.ShouldBeWorking();
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldHaveName"/>
+        public new void ShouldHaveName(string expected)
+        {
+            base.ShouldHaveName(expected);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldHaveExecuted"/>
+        public new void ShouldHaveExecuted(
+            string commandName,
+            CommandExecutionOutcome outcome = CommandExecutionOutcome.ModuleExecuted,
+            int count = 1)
+        {
+            base.ShouldHaveExecuted(commandName, outcome, count);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldHavePrinted"/>
+        public new void ShouldHavePrinted(string fragment)
+        {
+            base.ShouldHavePrinted(fragment);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldNotHavePrinted"/>
+        public new void ShouldNotHavePrinted(string fragment)
+        {
+            base.ShouldNotHavePrinted(fragment);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldKnowGrid"/>
+        public new void ShouldKnowGrid(string gridName)
+        {
+            base.ShouldKnowGrid(gridName);
+        }
+
         /// <inheritdoc cref="Script{TProgram}.GetBlock(string)"/>
         public new IMyTerminalBlock GetBlock(string blockName)
         {
@@ -1064,6 +1259,42 @@ namespace MotherCore.Tests.Utilities
         public new void AssertHasBlock(string blockName)
         {
             base.AssertHasBlock(blockName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldContainGroup"/>
+        public new void ShouldContainGroup(string groupName)
+        {
+            base.ShouldContainGroup(groupName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldGroupContainBlocks"/>
+        public new void ShouldGroupContainBlocks(string groupName, params string[] blockNames)
+        {
+            base.ShouldGroupContainBlocks(groupName, blockNames);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldBeSameConstruct"/>
+        public new void ShouldBeSameConstruct(string firstBlockName, string secondBlockName)
+        {
+            base.ShouldBeSameConstruct(firstBlockName, secondBlockName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldNotBeSameConstruct"/>
+        public new void ShouldNotBeSameConstruct(string firstBlockName, string secondBlockName)
+        {
+            base.ShouldNotBeSameConstruct(firstBlockName, secondBlockName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldHaveMergeState"/>
+        public new void ShouldHaveMergeState(string mergeBlockName, MergeState expectedState)
+        {
+            base.ShouldHaveMergeState(mergeBlockName, expectedState);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldHaveConnectorStatus"/>
+        public new void ShouldHaveConnectorStatus(string connectorName, MyShipConnectorStatus expectedStatus)
+        {
+            base.ShouldHaveConnectorStatus(connectorName, expectedStatus);
         }
 
     }

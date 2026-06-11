@@ -146,7 +146,7 @@ namespace MotherCore.Tests.Integration
 
             service.SendRequestFromRoutine("UnknownGrid", new TerminalRoutine("help"));
 
-            Assert.That(network.SentMessages.Count, Is.EqualTo(0));
+            network.ShouldHaveNoTraffic();
         }
 
         [Test]
@@ -164,7 +164,7 @@ namespace MotherCore.Tests.Integration
 
             service.Ping();
 
-            Assert.That(network.SentMessages.Count, Is.EqualTo(0));
+            network.ShouldHaveNoTraffic();
         }
 
         [Test]
@@ -459,13 +459,11 @@ namespace MotherCore.Tests.Integration
 
             sender.RunTerminal("renameMe");
 
-            Assert.That(
-                sender.Bus.GetExecutionCount("renameMe", CommandExecutionOutcome.DelegatedToConstruct),
-                Is.EqualTo(1));
+            sender.ShouldHaveExecuted("renameMe", CommandExecutionOutcome.DelegatedToConstruct);
 
             world.TickMessages();
 
-            Assert.That(receiver.Mother.Name, Is.EqualTo("ReceiverRenamed"));
+            receiver.ShouldHaveName("ReceiverRenamed");
         }
 
         [Test]
@@ -481,23 +479,15 @@ namespace MotherCore.Tests.Integration
                 .OnNetwork()
                 .Boot();
 
-            var sentBefore = world.SentMessages.Count;
-
             sender.RunTerminal("@Receiver help");
 
-            Assert.That(
-                sender.Bus.GetExecutionCount(string.Empty, CommandExecutionOutcome.RemoteRoutineSent),
-                Is.EqualTo(1));
-
-            Assert.That(
-                world.SentMessages
-                    .Skip(sentBefore)
-                    .Any(m => !m.IsBroadcast && m.TargetId == receiver.IGC.Me),
-                Is.True);
+            sender.ShouldHaveExecuted(string.Empty, CommandExecutionOutcome.RemoteRoutineSent);
+            world.ShouldHaveDeliveredIgcMessage("Sender", "Receiver", "*");
 
             world.TickMessages();
 
-            Assert.That(receiver.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            receiver.ShouldHaveExecuted("help");
+            world.ShouldHaveNoPendingMessages();
         }
 
         [Test]
@@ -517,19 +507,16 @@ namespace MotherCore.Tests.Integration
                 .OnNetwork()
                 .Boot();
 
-            var sentBefore = world.SentMessages.Count;
-
             sender.RunTerminal("@* help");
 
-            Assert.That(
-                world.SentMessages.Skip(sentBefore).Count(m => !m.IsBroadcast),
-                Is.GreaterThanOrEqualTo(2)
-            );
+            world.ShouldHaveDeliveredIgcMessage("Sender", "ReceiverA", "*");
+            world.ShouldHaveDeliveredIgcMessage("Sender", "ReceiverB", "*");
 
             world.TickMessages();
 
-            Assert.That(receiverA.Bus.GetExecutionCount("help"), Is.EqualTo(1));
-            Assert.That(receiverB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            receiverA.ShouldHaveExecuted("help");
+            receiverB.ShouldHaveExecuted("help");
+            world.ShouldHaveNoPendingMessages();
         }
     }
 }

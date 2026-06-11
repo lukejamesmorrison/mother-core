@@ -25,7 +25,7 @@ namespace MotherCore.Tests.Harness
 
             var script = world.CreateScript<CoreTestProgram>().Boot();
 
-            Assert.That(script.Mother.SystemState, Is.EqualTo(Mother.SystemStates.WORKING));
+            script.ShouldBeWorking();
         }
 
         [Test]
@@ -35,7 +35,8 @@ namespace MotherCore.Tests.Harness
 
             var script = world.CreateScript<CoreTestProgram>("Flagship").Boot();
 
-            Assert.That(script.Mother.Name, Is.EqualTo("Flagship"));
+            script.ShouldHaveName("Flagship");
+            world.ShouldHaveScript("Flagship");
         }
 
         [Test]
@@ -105,11 +106,13 @@ namespace MotherCore.Tests.Harness
             var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript<CoreTestProgram>("ShipB").OnNetwork().Boot();
 
+            world.ShouldHaveScriptCount(2);
+
             var almanacA = shipA.Mother.GetModule<Almanac>();
             var almanacB = shipB.Mother.GetModule<Almanac>();
 
-            Assert.That(almanacA.GetRecord("ShipB"), Is.Not.Null, "ShipA should know ShipB");
-            Assert.That(almanacB.GetRecord("ShipA"), Is.Not.Null, "ShipB should know ShipA");
+            shipA.ShouldKnowGrid("ShipB");
+            shipB.ShouldKnowGrid("ShipA");
         }
 
         [Test]
@@ -140,13 +143,13 @@ namespace MotherCore.Tests.Harness
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
 
-            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(0),
-                "Message should not be delivered before DispatchIgc().");
+            shipB.ShouldHaveExecuted("help", count: 0);
 
             world.DispatchIgc();
             shipB.Clock.RunToIdle();
 
-            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            world.ShouldHaveDeliveredIgcMessage("ShipA", "ShipB", "*");
+            shipB.ShouldHaveExecuted("help");
         }
 
         [Test]
@@ -155,6 +158,17 @@ namespace MotherCore.Tests.Harness
             var world = new TestWorld();
 
             Assert.That(world.DispatchIgc(), Is.SameAs(world));
+        }
+
+        [Test]
+        public void ShouldHaveBroadcast_Matches_World_Broadcast_Traffic()
+        {
+            var world = new TestWorld();
+            var shipA = world.CreateScript<CoreTestProgram>("ShipA").OnNetwork().Boot();
+
+            shipA.Mother.GetModule<IntergridMessageService>().ConstructPing();
+
+            world.ShouldHaveBroadcast(".construct", "ShipA");
         }
 
         // =====================================================================
@@ -172,11 +186,12 @@ namespace MotherCore.Tests.Harness
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
 
-            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(0));
+            shipB.ShouldHaveExecuted("help", CommandExecutionOutcome.ModuleExecuted, count: 0);
 
             world.TickMessages();
 
-            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            world.ShouldHaveDeliveredIgcMessage("ShipA", "ShipB", "*");
+            shipB.ShouldHaveExecuted("help");
         }
 
         [Test]
@@ -185,6 +200,20 @@ namespace MotherCore.Tests.Harness
             var world = new TestWorld();
 
             Assert.That(world.Tick(), Is.SameAs(world));
+        }
+
+        [Test]
+        public void ShouldHaveNoPendingMessages_Passes_After_Idle_Tick()
+        {
+            var world = new TestWorld();
+
+            world.CreateScript<CoreTestProgram>("ShipA")
+                .OnNetwork()
+                .Boot();
+
+            world.Tick();
+
+            Assert.DoesNotThrow(() => world.ShouldHaveNoPendingMessages());
         }
 
         [Test]
@@ -200,7 +229,9 @@ namespace MotherCore.Tests.Harness
 
             world.TickMessages(2);
 
-            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            world.ShouldHaveDeliveredIgcMessage("ShipA", "ShipB", "*");
+            shipB.ShouldHaveExecuted("help");
+            world.ShouldHaveNoPendingMessages();
         }
 
         [Test]
@@ -228,8 +259,8 @@ namespace MotherCore.Tests.Harness
             shipA.Clock.RunToIdle();
             shipB.Clock.RunToIdle();
 
-            Assert.That(shipA.Bus.GetExecutionCount("help"), Is.EqualTo(1));
-            Assert.That(shipB.Bus.GetExecutionCount("help"), Is.EqualTo(1));
+            shipA.ShouldHaveExecuted("help");
+            shipB.ShouldHaveExecuted("help");
         }
 
         [Test]

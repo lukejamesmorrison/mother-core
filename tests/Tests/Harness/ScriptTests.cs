@@ -190,7 +190,7 @@ namespace MotherCore.Tests.Harness
             script.Boot();
 
             Assert.That(battery.Enabled, Is.False);
-            Assert.That(script.ContainsBlock("Reserve Battery"), Is.True);
+            script.AssertHasBlock("Reserve Battery");
         }
 
         [Test]
@@ -315,11 +315,11 @@ namespace MotherCore.Tests.Harness
             script.GridTerminalSystem.GetBlocksOfType(mechanicalBlocks);
 
             Assert.That(dock.OtherConnector, Is.Not.Null);
-            Assert.That(dock.Status, Is.EqualTo(MyShipConnectorStatus.Connected));
+            script.ShouldHaveConnectorStatus("Carrier Dock", MyShipConnectorStatus.Connected);
             Assert.That(mechanicalBlocks, Is.Empty);
-            Assert.That(dock.IsSameConstructAs(carrierBattery), Is.True);
-            Assert.That(dock.OtherConnector.IsSameConstructAs(carrierBattery), Is.False);
-            Assert.That(shuttleBattery.IsSameConstructAs(carrierBattery), Is.False);
+            script.ShouldBeSameConstruct("Carrier Dock", "Carrier Battery");
+            script.ShouldNotBeSameConstruct("Shuttle Dock", "Carrier Battery");
+            script.ShouldNotBeSameConstruct("Shuttle Battery", "Carrier Battery");
         }
 
         [Test]
@@ -338,8 +338,8 @@ namespace MotherCore.Tests.Harness
 
             world.Merge(carrierMerge, cargoMerge);
 
-            Assert.That(carrierMerge.State, Is.EqualTo(MergeState.Locked));
-            Assert.That(cargoMerge.State, Is.EqualTo(MergeState.Locked));
+            script.ShouldHaveMergeState("Carrier Merge", MergeState.Locked);
+            script.ShouldHaveMergeState("Cargo Merge", MergeState.Locked);
             Assert.That(carrierMerge.Enabled, Is.True);
             Assert.That(cargoMerge.Enabled, Is.True);
             Assert.That(cargoMerge.IsSameConstructAs(carrierMerge), Is.True);
@@ -394,6 +394,8 @@ namespace MotherCore.Tests.Harness
             var blocks = new System.Collections.Generic.List<IMyDoor>();
             group.GetBlocksOfType(blocks);
 
+            script.ShouldContainGroup("Airlocks");
+            script.ShouldGroupContainBlocks("Airlocks", "Left Door", "Right Door");
             Assert.That(blocks.Select(block => block.CustomName).ToList(),
                 Is.EquivalentTo(new[] { "Left Door", "Right Door" }));
         }
@@ -501,7 +503,7 @@ namespace MotherCore.Tests.Harness
             
             script.Program.Echo("expected output");
 
-            Assert.DoesNotThrow(() => script.AssertPrinted("expected output"));
+            Assert.DoesNotThrow(() => script.ShouldHavePrinted("expected output"));
         }
 
         [Test]
@@ -509,7 +511,17 @@ namespace MotherCore.Tests.Harness
         {
             var script = new Script().Boot();
 
-            Assert.Throws<AssertionException>(() => script.AssertPrinted("was never printed"));
+            Assert.Throws<AssertionException>(() => script.ShouldHavePrinted("was never printed"));
+        }
+
+        [Test]
+        public void ShouldNotHavePrinted_Throws_When_Fragment_Is_Present()
+        {
+            var script = new Script().Boot();
+
+            script.Program.Echo("present line");
+
+            Assert.Throws<AssertionException>(() => script.ShouldNotHavePrinted("present line"));
         }
     }
 }
