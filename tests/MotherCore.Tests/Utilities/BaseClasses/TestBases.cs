@@ -8,7 +8,7 @@ namespace MotherCore.Tests.Utilities
     /// <summary>
     /// Base class for integration tests that exercise a single booted script.
     /// Boots a fresh <see cref="Script{TProgram}"/> before each test and exposes
-    /// <see cref="Mother"/>, <see cref="Bus"/>, and <see cref="Clock"/> for direct access.
+    /// <see cref="Mother"/> for direct access.
     /// </summary>
     /// <remarks>
     /// Use this base for Tests/Integration/ tests that exercise module
@@ -45,12 +45,6 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>The booted <typeparamref name="TProgram"/> instance. Available after <see cref="SetUp"/>.</summary>
         protected TProgram Program => Script.Program;
-
-        /// <summary>The <see cref="CommandBus"/> for the booted script. Available after <see cref="SetUp"/>.</summary>
-        protected CommandBus Bus => Script.Bus;
-
-        /// <summary>The <see cref="ClockDriver"/> for the booted script. Available after <see cref="SetUp"/>.</summary>
-        protected ClockDriver Clock => Script.Clock;
 
         /// <summary>Boots a fresh script before each test.</summary>
         [SetUp]
@@ -96,12 +90,6 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>The booted <typeparamref name="TProgram"/> instance. Available after <see cref="SetUp"/>.</summary>
         protected TProgram Program => Script.Program;
-
-        /// <summary>The <see cref="CommandBus"/> for the booted script. Available after <see cref="SetUp"/>.</summary>
-        protected CommandBus Bus => Script.Bus;
-
-        /// <summary>The <see cref="ClockDriver"/> for the booted script. Available after <see cref="SetUp"/>.</summary>
-        protected ClockDriver Clock => Script.Clock;
 
         /// <summary>
         /// Echo capture for the booted script. Available after <see cref="SetUp"/>.
