@@ -19,8 +19,8 @@ This audit is specifically about whether the MotherCore test suite and harness a
 
 - `MotherCore.Tests.csproj` already targets `netframework48`, which matches `MotherOS.csproj` and `MotherGUI.csproj`.
 - `MotherCore.Tests.csproj` now explicitly pins `LangVersion = 6`, matching the Mother script baseline.
-- the suite now builds and passes under the pinned contract with `dotnet test .\MotherCore.Tests.csproj` after the project-level C# 6 pin.
-- the test project imports `../src/MotherCore.projitems`, so the core shared source and the harness are exercised together rather than drifting into a separate runtime surface.
+- the suite now builds and passes under the pinned contract with `dotnet test .\MotherCore.Tests\MotherCore.Tests.csproj` after the project-level C# 6 pin.
+- the test project imports `../../src/MotherCore.projitems`, so the core shared source and the harness are exercised together rather than drifting into a separate runtime surface.
 - the harness direction is otherwise consistent with the current design goals: world/script/grid/block abstractions, explicit fake blocks, and a fake runtime environment rather than ad hoc per-test host wiring.
 - the previously identified post-C#6 syntax in the active harness/test sources has been removed.
 - the stale `FakeItEasy` and `FakeItEasy.Analyzer.CSharp` package references have been removed from `MotherCore.Tests.csproj`.
@@ -63,7 +63,7 @@ This should continue to be enforced across both harness utilities and test fixtu
 
 #### 3. Add a compatibility gate to the normal validation path
 
-- run a dedicated `dotnet test .\MotherCore.Tests.csproj` validation in CI or the standard local verification path and treat the pinned `LangVersion=6` as part of that contract
+- run a dedicated `dotnet test .\MotherCore.Tests\MotherCore.Tests.csproj` validation in CI or the standard local verification path and treat the pinned `LangVersion=6` as part of that contract
 - keep the compatibility check narrow and intentional so regressions are caught the moment a newer language feature is introduced
 
 Without an explicit gate, the project will drift back to the host machine's default compiler features.

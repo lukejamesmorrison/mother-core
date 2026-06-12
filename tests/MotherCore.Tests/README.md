@@ -163,7 +163,7 @@ public void Remote_Command_Delivers_Between_Separate_Constructs()
 From `MotherCore/tests`:
 
 ```powershell
-dotnet test .\MotherCore.Tests.csproj
+dotnet test .\MotherCore.Tests\MotherCore.Tests.csproj
 ```
 
 For a focused slice:
