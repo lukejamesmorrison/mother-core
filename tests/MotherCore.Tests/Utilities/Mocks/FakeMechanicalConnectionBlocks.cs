@@ -10,8 +10,8 @@ namespace MotherCore.Tests.Utilities.Mocks
         IMyCubeGrid _topGrid;
 
         protected FakeMechanicalConnectionBlock(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
             : base(customName, customData, entityId, cubeGrid)
@@ -53,11 +53,11 @@ namespace MotherCore.Tests.Utilities.Mocks
     internal sealed class FakeMotorStator : FakeMechanicalConnectionBlock, IMyMotorStator
     {
         public FakeMotorStator(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
-            : base(customData, customName, entityId, cubeGrid)
+            : base(customName, customData, entityId, cubeGrid)
         {
         }
 
@@ -113,11 +113,11 @@ namespace MotherCore.Tests.Utilities.Mocks
     internal sealed class FakePistonBase : FakeMechanicalConnectionBlock, IMyPistonBase
     {
         public FakePistonBase(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
-            : base(customData, customName, entityId, cubeGrid)
+            : base(customName, customData, entityId, cubeGrid)
         {
         }
 

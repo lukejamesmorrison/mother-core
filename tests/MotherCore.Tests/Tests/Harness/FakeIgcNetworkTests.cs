@@ -100,8 +100,8 @@ namespace MotherCore.Tests.Harness
             var shipA = new Script("ShipA").OnNetwork(network).Boot();
             var shipB = new Script("ShipB").OnNetwork(network).Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB help");
-            shipA.Clock.RunToIdle();
+            shipA.RunTerminal("@ShipB help");
+            shipA.RunToIdle();
 
             Assert.That(network.SentMessages.Any(m => m.TargetId == shipB.IGC.Me), Is.True,
                 "The outbound message should be addressed to ShipB's IGC.Me.");

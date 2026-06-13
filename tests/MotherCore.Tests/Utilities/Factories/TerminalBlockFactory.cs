@@ -41,22 +41,22 @@ namespace MotherCore.Tests.Utilities.Factories
             where TBlock : class, IMyTerminalBlock
         {
             if (typeof(TBlock) == typeof(IMyDoor))
-                return new FakeDoor(customData, customName, entityId, grid) as TBlock;
+                return new FakeDoor(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
             if (typeof(TBlock) == typeof(IMyTerminalBlock))
-                return new FakeBasicTerminalBlock(customData, customName, entityId, grid) as TBlock;
+                return new FakeBasicTerminalBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
             if (typeof(TBlock) == typeof(IMyBatteryBlock))
-                return new FakeBatteryBlock(customData, customName, entityId, grid) as TBlock;
+                return new FakeBatteryBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
             if (typeof(TBlock) == typeof(IMyReactor))
-                return new FakeReactor(customData, customName, entityId, grid) as TBlock;
+                return new FakeReactor(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
             if (typeof(TBlock) == typeof(IMyShipConnector))
-                return new FakeShipConnector(customData, customName, entityId, grid) as TBlock;
+                return new FakeShipConnector(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
             if (typeof(TBlock) == typeof(IMyShipMergeBlock))
-                return new FakeShipMergeBlock(customData, customName, entityId, grid) as TBlock;
+                return new FakeShipMergeBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
             return null;
         }

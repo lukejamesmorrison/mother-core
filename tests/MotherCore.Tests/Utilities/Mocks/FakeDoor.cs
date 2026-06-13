@@ -6,8 +6,8 @@ namespace MotherCore.Tests.Utilities.Mocks
     internal sealed class FakeDoor : FakeTerminalBlock, IMyDoor
     {
         public FakeDoor(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
             : base(customName, customData, entityId, cubeGrid)

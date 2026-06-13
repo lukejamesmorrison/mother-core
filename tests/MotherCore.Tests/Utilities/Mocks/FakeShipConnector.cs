@@ -17,8 +17,8 @@ namespace MotherCore.Tests.Utilities.Mocks
         Action _toggle;
 
         public FakeShipConnector(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
             : base(customName, customData, entityId, cubeGrid)

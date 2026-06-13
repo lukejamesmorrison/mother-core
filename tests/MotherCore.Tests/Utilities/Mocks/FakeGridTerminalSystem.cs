@@ -3,6 +3,7 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using SpaceEngineers.Game.ModAPI.Ingame;
 using VRage.Game.ModAPI.Ingame;
 
@@ -345,6 +346,8 @@ namespace MotherCore.Tests.Utilities.Mocks
             if (block == null)
                 throw new ArgumentNullException(nameof(block));
 
+            AutoAssignBlockNameWhenMissing(block);
+
             var targetGrid = grid ?? block.CubeGrid ?? PrimaryGrid;
             var mergedRegistration = _mergeConnections.FirstOrDefault(connection =>
                 connection.IsMerged
@@ -371,6 +374,101 @@ namespace MotherCore.Tests.Utilities.Mocks
 
             if (!_blocks.Contains(block))
                 _blocks.Add(block);
+        }
+
+        /// <summary>
+        /// Assigns a deterministic generated name to blocks that do not have an
+        /// explicit custom name yet.
+        /// </summary>
+        /// <param name="block">The block being registered.</param>
+        void AutoAssignBlockNameWhenMissing(IMyTerminalBlock block)
+        {
+            if (!ShouldAutoAssignBlockName(block))
+                return;
+
+            var baseName = BuildAutoBlockBaseName(block.GetType().Name);
+            var index = GetExistingBlockCountForType(block) + 1;
+            var generatedName = $"{baseName} {index}";
+
+            var fakeBlock = block as FakeTerminalBlock;
+            if (fakeBlock != null)
+            {
+                fakeBlock.SetCustomName(generatedName);
+                return;
+            }
+
+            block.CustomName = generatedName;
+        }
+
+        /// <summary>
+        /// Determines whether a block should receive an auto-generated name.
+        /// </summary>
+        /// <param name="block">The block being considered for auto naming.</param>
+        /// <returns>
+        /// <see langword="true"/> when the block has no explicit name and should be
+        /// renamed during registration; otherwise <see langword="false"/>.
+        /// </returns>
+        bool ShouldAutoAssignBlockName(IMyTerminalBlock block)
+        {
+            var fakeBlock = block as FakeTerminalBlock;
+            if (fakeBlock != null)
+                return !fakeBlock.IsCustomNameExplicit;
+
+            if (string.IsNullOrWhiteSpace(block.CustomName))
+                return true;
+
+            // Non-fake blocks may still use runtime type names as an implicit default.
+            // Treat that value as "unnamed" so tests get deterministic generated names.
+            return string.Equals(block.CustomName, block.GetType().Name, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Counts existing registered blocks of the same runtime type.
+        /// </summary>
+        /// <param name="block">The block whose type should be counted.</param>
+        /// <returns>
+        /// The number of already-registered blocks with the same concrete type,
+        /// excluding <paramref name="block"/> itself.
+        /// </returns>
+        int GetExistingBlockCountForType(IMyTerminalBlock block)
+        {
+            return _blocks.Count(existing =>
+                existing != null
+                && !ReferenceEquals(existing, block)
+                && existing.GetType() == block.GetType());
+        }
+
+        /// <summary>
+        /// Builds the base human-readable block type label used by auto-generated names.
+        /// </summary>
+        /// <param name="runtimeTypeName">The concrete runtime type name (for example, <c>FakeLightingBlock</c>).</param>
+        /// <returns>
+        /// A spaced type label with any leading <c>Fake</c> prefix removed
+        /// (for example, <c>Lighting Block</c>).
+        /// </returns>
+        static string BuildAutoBlockBaseName(string runtimeTypeName)
+        {
+            var typeName = runtimeTypeName ?? string.Empty;
+
+            if (typeName.StartsWith("Fake", StringComparison.Ordinal))
+                typeName = typeName.Substring("Fake".Length);
+
+            if (string.IsNullOrEmpty(typeName))
+                return "Block";
+
+            var words = new StringBuilder(typeName.Length + 8);
+
+            for (int i = 0; i < typeName.Length; i++)
+            {
+                var current = typeName[i];
+
+                if (i > 0 && char.IsUpper(current) && !char.IsUpper(typeName[i - 1]))
+                    words.Append(' ');
+
+                words.Append(current);
+            }
+
+            return words.ToString();
         }
 
         /// <summary>

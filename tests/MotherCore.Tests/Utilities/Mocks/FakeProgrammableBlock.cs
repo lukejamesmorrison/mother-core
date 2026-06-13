@@ -19,8 +19,8 @@ namespace MotherCore.Tests.Utilities.Mocks
         readonly List<IMyTextSurface> _surfaces = new List<IMyTextSurface>();
 
         public FakeProgrammableBlock(
-            string customData = "",
             string customName = "Mother Core PB",
+            string customData = "",
             long? entityId = null,
             string gridName = "Test Grid",
             long? gridEntityId = null,

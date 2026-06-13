@@ -78,6 +78,14 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Adds a hook command to the composed CustomData payload under the [hooks] section.
+        /// </summary>
+        public CustomDataComposer WithHook(string hookName, string command)
+        {
+            return With("hooks", hookName, command);
+        }
+
+        /// <summary>
         /// Adds a generic section/key/value pair to the composed CustomData payload.
         /// </summary>
         public CustomDataComposer With(string section, string name, string value)

@@ -16,8 +16,8 @@ namespace MotherCore.Tests.Utilities.Mocks
         Func<MergeState> _stateAccessor;
 
         public FakeShipMergeBlock(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
             : base(customName, customData, entityId, cubeGrid)

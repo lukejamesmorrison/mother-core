@@ -6,8 +6,8 @@ namespace MotherCore.Tests.Utilities.Mocks
     internal abstract class FakePowerProducerBlock : FakeTerminalBlock, IMyPowerProducer
     {
         protected FakePowerProducerBlock(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
             : base(customName, customData, entityId, cubeGrid)
@@ -30,11 +30,11 @@ namespace MotherCore.Tests.Utilities.Mocks
     internal sealed class FakeBatteryBlock : FakePowerProducerBlock, IMyBatteryBlock
     {
         public FakeBatteryBlock(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
-            : base(customData, customName, entityId, cubeGrid)
+            : base(customName, customData, entityId, cubeGrid)
         {
         }
 
@@ -96,11 +96,11 @@ namespace MotherCore.Tests.Utilities.Mocks
     internal sealed class FakeReactor : FakePowerProducerBlock, IMyReactor
     {
         public FakeReactor(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
-            : base(customData, customName, entityId, cubeGrid)
+            : base(customName, customData, entityId, cubeGrid)
         {
         }
 

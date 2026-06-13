@@ -1,8 +1,10 @@
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
 using VRage.Game;
 using VRage.Game.Components.Interfaces;
@@ -61,50 +63,123 @@ namespace MotherCore.Tests.Utilities.Mocks
     /// Space Engineers interface is implemented explicitly with inert defaults so tests can
     /// opt into extra setup only when they truly need it.
     /// </summary>
+    /// <remarks>
+    /// API surface, member naming, and behavior intent are aligned with the programmable
+    /// block reference for <see cref="IMyTerminalBlock"/>:
+    /// https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.IMyTerminalBlock.html
+    /// </remarks>
     public abstract class FakeTerminalBlock : IMyTerminalBlock
     {
         readonly List<IMyInventory> _inventories = new List<IMyInventory>();
+        static readonly object NameCounterLock = new object();
+        static readonly Dictionary<string, Dictionary<string, int>> DefaultNameCountersByScope =
+            new Dictionary<string, Dictionary<string, int>>();
 
+        /// <summary>
+        /// Initializes a fake terminal block with optional custom identity and grid placement.
+        /// </summary>
+        /// <param name="customName">
+        /// Optional explicit custom name. When omitted, a deterministic default name is generated.
+        /// </param>
+        /// <param name="customData">Optional custom data payload exposed via <see cref="CustomData"/>.</param>
+        /// <param name="entityId">Optional explicit entity ID. When omitted, a synthetic ID is generated.</param>
+        /// <param name="cubeGrid">Optional owning grid. Can also be assigned later by the harness.</param>
         protected FakeTerminalBlock(
             string customName = null,
             string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
         {
-            CustomName = customName ?? GetType().Name;
+            IsCustomNameExplicit = !string.IsNullOrWhiteSpace(customName);
+            CustomName = IsCustomNameExplicit
+                ? customName
+                : BuildDefaultCustomName(GetType().Name);
             CustomData = customData ?? string.Empty;
             EntityId = entityId ?? CreateEntityId();
             CubeGrid = cubeGrid;
             Extra.EntityName = CustomName;
         }
 
+        /// <summary>
+        /// Additional mutable metadata backing explicit interface members that are
+        /// not commonly used in tests.
+        /// </summary>
         public FakeTerminalBlockExtras Extra { get; } = new FakeTerminalBlockExtras();
 
+        /// <summary>
+        /// Optional override for construct-membership checks used by
+        /// <see cref="IsSameConstructAs(IMyTerminalBlock)"/>.
+        /// </summary>
         public Func<IMyTerminalBlock, bool> SameConstructEvaluator { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether this block is enabled.
+        /// Mirrors the concept exposed by PB terminal blocks.
+        /// </summary>
         public virtual bool Enabled { get; set; } = true;
 
+        /// <summary>
+        /// Gets whether <see cref="CustomName"/> was supplied explicitly by the caller.
+        /// </summary>
+        public bool IsCustomNameExplicit { get; }
+
+        /// <summary>
+        /// Gets or sets terminal custom data for this block.
+        /// </summary>
         public string CustomData { get; set; }
 
+        /// <summary>
+        /// Gets or sets the terminal custom name for this block.
+        /// </summary>
         public string CustomName { get; set; }
 
+        /// <summary>
+        /// Gets or sets the owning cube grid for this block.
+        /// </summary>
         public IMyCubeGrid CubeGrid { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether this block is functional.
+        /// </summary>
         public bool IsFunctional { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets whether this block is currently working.
+        /// </summary>
         public bool IsWorking { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets whether this block has been closed/disposed.
+        /// </summary>
         public bool Closed { get; set; }
 
+        /// <summary>
+        /// Gets or sets the synthetic or explicit entity ID for this block.
+        /// </summary>
         public long EntityId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the world position returned by <see cref="GetPosition"/>.
+        /// </summary>
         public Vector3D WorldPosition { get; set; }
 
+        /// <summary>
+        /// Applies an enable/disable request to this fake block.
+        /// </summary>
+        /// <param name="enable">The requested enabled state.</param>
         public virtual void RequestEnable(bool enable)
         {
             Enabled = enable;
         }
 
+        /// <summary>
+        /// Reports whether this block and <paramref name="other"/> are in the same construct.
+        /// </summary>
+        /// <param name="other">The other block to compare against.</param>
+        /// <returns>
+        /// <see langword="true"/> when both blocks are on the same grid construct;
+        /// otherwise <see langword="false"/>.
+        /// </returns>
         public bool IsSameConstructAs(IMyTerminalBlock other)
         {
             if (SameConstructEvaluator != null)
@@ -116,6 +191,10 @@ namespace MotherCore.Tests.Utilities.Mocks
                 && CubeGrid.EntityId == other.CubeGrid.EntityId;
         }
 
+        /// <summary>
+        /// Sets the block custom name and updates the backing entity display name.
+        /// </summary>
+        /// <param name="text">The new custom name value.</param>
         public void SetCustomName(string text)
         {
             CustomName = text;
@@ -123,16 +202,109 @@ namespace MotherCore.Tests.Utilities.Mocks
             OnCustomNameChanged();
         }
 
+        /// <summary>
+        /// Sets the block custom name from a <see cref="StringBuilder"/> payload.
+        /// </summary>
+        /// <param name="text">The new custom name value.</param>
         public void SetCustomName(StringBuilder text)
         {
-            SetCustomName(text == null ? null : text.ToString());
+            SetCustomName(text?.ToString());
         }
 
+        /// <summary>
+        /// Builds a deterministic default name from the runtime fake type.
+        /// Example: <c>FakeLightingBlock</c> -> <c>Lighting Block N</c>.
+        /// </summary>
+        /// <param name="runtimeTypeName">The concrete runtime type name.</param>
+        /// <returns>A generated default block name.</returns>
+        static string BuildDefaultCustomName(string runtimeTypeName)
+        {
+            var typeName = runtimeTypeName ?? string.Empty;
+
+            if (typeName.StartsWith("Fake", StringComparison.Ordinal))
+                typeName = typeName.Substring("Fake".Length);
+
+            if (string.IsNullOrEmpty(typeName))
+                return "Block 1";
+
+            var words = new StringBuilder(typeName.Length + 8);
+
+            for (int i = 0; i < typeName.Length; i++)
+            {
+                var current = typeName[i];
+
+                if (i > 0 && char.IsUpper(current) && !char.IsUpper(typeName[i - 1]))
+                    words.Append(' ');
+
+                words.Append(current);
+            }
+
+            words.Append(" ");
+            words.Append(GetNextDefaultNameIndex(typeName));
+
+            return words.ToString();
+        }
+
+        /// <summary>
+        /// Gets the next 1-based default-name index for the supplied fake block type
+        /// within the current naming scope.
+        /// </summary>
+        /// <param name="typeName">The normalized fake block type name (without the Fake prefix).</param>
+        /// <returns>The next sequence number for the current scope and block type.</returns>
+        static int GetNextDefaultNameIndex(string typeName)
+        {
+            lock (NameCounterLock)
+            {
+                var scopeKey = GetCurrentCounterScope();
+                Dictionary<string, int> counters;
+
+                if (!DefaultNameCountersByScope.TryGetValue(scopeKey, out counters))
+                {
+                    counters = new Dictionary<string, int>();
+                    DefaultNameCountersByScope[scopeKey] = counters;
+                }
+
+                int nextIndex;
+
+                if (!counters.TryGetValue(typeName, out nextIndex))
+                    nextIndex = 1;
+
+                counters[typeName] = nextIndex + 1;
+
+                return nextIndex;
+            }
+        }
+
+        /// <summary>
+        /// Resolves the current naming-counter scope key.
+        /// Uses the active NUnit test ID when available so each test gets an
+        /// isolated default-name sequence; otherwise falls back to a global scope.
+        /// </summary>
+        /// <returns>The scope key used to partition default-name counters.</returns>
+        static string GetCurrentCounterScope()
+        {
+            var testId = TestContext.CurrentContext?.Test?.ID;
+
+            if (string.IsNullOrWhiteSpace(testId))
+                return "global";
+
+            return testId;
+        }
+
+        /// <summary>
+        /// Returns the first inventory attached to this block, if present.
+        /// </summary>
+        /// <returns>The inventory at index 0, or <see langword="null"/>.</returns>
         public IMyInventory GetInventory()
         {
             return GetInventory(0);
         }
 
+        /// <summary>
+        /// Returns the inventory at the requested index.
+        /// </summary>
+        /// <param name="index">The zero-based inventory index.</param>
+        /// <returns>The matching inventory, or <see langword="null"/> when out of range.</returns>
         public IMyInventory GetInventory(int index)
         {
             if (index < 0 || index >= _inventories.Count)
@@ -141,6 +313,10 @@ namespace MotherCore.Tests.Utilities.Mocks
             return _inventories[index];
         }
 
+        /// <summary>
+        /// Returns the current world position for this block.
+        /// </summary>
+        /// <returns>The value of <see cref="WorldPosition"/>.</returns>
         public Vector3D GetPosition()
         {
             return WorldPosition;
@@ -272,15 +448,27 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         BoundingSphereD IMyEntity.WorldVolumeHr => Extra.WorldVolumeHr;
 
+        /// <summary>
+        /// Adds an inventory to this block's internal inventory list.
+        /// </summary>
+        /// <param name="inventory">The inventory instance to attach.</param>
         protected void AddInventoryInternal(IMyInventory inventory)
         {
             _inventories.Add(inventory);
         }
 
+        /// <summary>
+        /// Extension hook invoked whenever <see cref="SetCustomName(string)"/> changes the name.
+        /// Derived fakes can override this to synchronize additional state.
+        /// </summary>
         protected virtual void OnCustomNameChanged()
         {
         }
 
+        /// <summary>
+        /// Creates a unique synthetic entity ID for fake blocks.
+        /// </summary>
+        /// <returns>A monotonically increasing synthetic entity ID.</returns>
         protected static long CreateEntityId() => EntityIdFactory.Create();
     }
 }

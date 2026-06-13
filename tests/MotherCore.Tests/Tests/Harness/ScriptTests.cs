@@ -2,6 +2,7 @@ using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
+using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
 using System.Linq;
@@ -85,6 +86,24 @@ namespace MotherCore.Tests.Harness
             var script = new Script().Boot();
 
             Assert.That(script.Program.GridTerminalSystem, Is.SameAs(script.GridTerminalSystem));
+        }
+
+        [Test]
+        public void Boot_Defaults_Runtime_UpdateFrequency_To_Update10()
+        {
+            var script = new Script().Boot();
+
+            Assert.That(script.Program.Runtime.UpdateFrequency, Is.EqualTo(UpdateFrequency.Update10));
+        }
+
+        [Test]
+        public void WithUpdateFrequency_Overrides_Runtime_UpdateFrequency_After_Boot()
+        {
+            var script = new Script()
+                .WithUpdateFrequency(UpdateFrequency.Update1)
+                .Boot();
+
+            Assert.That(script.Program.Runtime.UpdateFrequency, Is.EqualTo(UpdateFrequency.Update1));
         }
 
         [Test]
@@ -191,6 +210,24 @@ namespace MotherCore.Tests.Harness
 
             Assert.That(battery.Enabled, Is.False);
             script.AssertHasBlock("Reserve Battery");
+        }
+
+        [Test]
+        public void WithBlock_When_CustomName_Is_Not_Provided_AutoGenerates_Name_From_Block_Type()
+        {
+            var light = new FakeLightingBlock();
+
+            Assert.That(light.CustomName, Is.EqualTo("Lighting Block 1"));
+        }
+
+        [Test]
+        public void WithBlock_When_Multiple_Unnamed_Blocks_Of_Same_Type_Are_Added_Increments_Suffix()
+        {
+            var first = new FakeLightingBlock();
+            var second = new FakeLightingBlock();
+
+            Assert.That(first.CustomName, Is.EqualTo("Lighting Block 1"));
+            Assert.That(second.CustomName, Is.EqualTo("Lighting Block 2"));
         }
 
         [Test]

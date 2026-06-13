@@ -97,6 +97,7 @@ namespace MotherCore.Tests.Utilities
         readonly FakeGridTerminalSystem _gridTerminalSystem;
         PrintCapture _printCapture;
         bool _ensureDefaultPublicChannel;
+        UpdateFrequency? _requestedUpdateFrequency;
 
         const string ChannelsSectionName = "channels";
         const string PublicChannelName = "*";
@@ -201,6 +202,17 @@ namespace MotherCore.Tests.Utilities
         public Script<TProgram> WithIGC(IMyIntergridCommunicationSystem igc)
         {
             _igc = igc;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the script runtime update frequency used by default <see cref="Run(string)"/>
+        /// cycles. When supplied, this value is applied after boot so tests can override
+        /// module defaults (for example Clock setting Update10).
+        /// </summary>
+        public Script<TProgram> WithUpdateFrequency(UpdateFrequency updateFrequency)
+        {
+            _requestedUpdateFrequency = updateFrequency;
             return this;
         }
 
@@ -518,6 +530,38 @@ namespace MotherCore.Tests.Utilities
         protected virtual void OnBeforeBoot(Mother mother) { }
 
         /// <summary>
+        /// Runs one <c>Mother.Run</c> cycle using the script runtime's current
+        /// <see cref="UpdateFrequency"/> mapped to its runtime <see cref="UpdateType"/>
+        /// counterpart. Defaults to <see cref="UpdateType.Update10"/> when no runtime
+        /// frequency is available.
+        /// Returns <c>this</c> for chaining.
+        /// </summary>
+        public Script<TProgram> Run(string argument = "")
+        {
+            return Run(GetDefaultRuntimeUpdateType(), argument);
+        }
+
+        /// <summary>
+        /// Get the default runtime frequency for the script.
+        /// </summary>
+        /// <returns></returns>
+        UpdateType GetDefaultRuntimeUpdateType()
+        {
+            var runtimeFrequency = Program?.Runtime?.UpdateFrequency;
+
+            if ((runtimeFrequency & UpdateFrequency.Update1) != 0)
+                return UpdateType.Update1;
+
+            if ((runtimeFrequency & UpdateFrequency.Update10) != 0)
+                return UpdateType.Update10;
+
+            if ((runtimeFrequency & UpdateFrequency.Update100) != 0)
+                return UpdateType.Update100;
+
+            return UpdateType.Update10;
+        }
+
+        /// <summary>
         /// Runs one <c>Mother.Run</c> cycle, mirroring a real
         /// <c>Program.Main(argument, updateType)</c> call.
         /// Returns <c>this</c> for chaining. Must be called after <see cref="Boot"/>.
@@ -565,12 +609,23 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// Advances this script clock until all coroutines are idle or
-        /// <paramref name="maxTicks"/> is reached.
+        /// Runs full script cycles using the default runtime update type
+        /// (<see cref="UpdateType.Update10"/>) until clock work is drained
+        /// (no active coroutines and no queued tasks), or <paramref name="maxTicks"/>
+        /// is reached.
         /// </summary>
         public Script<TProgram> RunToIdle(int maxTicks = 100)
         {
-            Clock.RunToIdle(maxTicks);
+            var clock = _mother.GetModule<Clock>();
+
+            for (int i = 0; i < maxTicks; i++)
+            {
+                if (clock.CoroutineCount == 0 && clock.QueuedTaskCount == 0)
+                    break;
+
+                Run();
+            }
+
             return this;
         }
 
@@ -915,6 +970,14 @@ namespace MotherCore.Tests.Utilities
             if (_storage != null)
                 builder = builder.WithStorage(_storage);
 
+            if (_requestedUpdateFrequency.HasValue)
+            {
+                builder = builder.WithRuntime(new FakeGridProgramRuntimeInfo
+                {
+                    UpdateFrequency = _requestedUpdateFrequency.Value,
+                });
+            }
+
             TProgram program = builder.Build();
 
             Program = program;
@@ -932,6 +995,9 @@ namespace MotherCore.Tests.Utilities
             // RunToIdle() so persistent module coroutines (e.g. BlockCatalogue refresh)
             // are not over-driven and do not interfere with per-test clock assertions.
             _mother.Boot();
+
+            if (_requestedUpdateFrequency.HasValue)
+                Program.Runtime.UpdateFrequency = _requestedUpdateFrequency.Value;
 
             var clock = _mother.GetModule<Clock>();
 
@@ -978,6 +1044,13 @@ namespace MotherCore.Tests.Utilities
         public new Script WithIGC(IMyIntergridCommunicationSystem igc)
         {
             base.WithIGC(igc);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithUpdateFrequency"/>
+        public new Script WithUpdateFrequency(UpdateFrequency updateFrequency)
+        {
+            base.WithUpdateFrequency(updateFrequency);
             return this;
         }
 
@@ -1156,6 +1229,13 @@ namespace MotherCore.Tests.Utilities
         public new Script Boot()
         {
             base.Boot();
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.Run"/>
+        public new Script Run(string argument = "")
+        {
+            base.Run(argument);
             return this;
         }
 

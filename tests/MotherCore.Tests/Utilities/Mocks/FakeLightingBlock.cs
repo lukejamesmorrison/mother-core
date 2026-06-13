@@ -15,8 +15,8 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// Initializes a fake lighting block with optional terminal metadata.
         /// </summary>
         public FakeLightingBlock(
-            string customData = "",
             string customName = null,
+            string customData = "",
             long? entityId = null,
             IMyCubeGrid cubeGrid = null)
             : base(customName, customData, entityId, cubeGrid)
