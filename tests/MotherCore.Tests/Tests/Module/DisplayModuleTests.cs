@@ -7,6 +7,7 @@ using VRage.Game.ModAPI.Ingame.Utilities;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category("Layer:Module")]
     public class DisplayModuleTests
     {
         [Test]

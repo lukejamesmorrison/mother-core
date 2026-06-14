@@ -2,8 +2,9 @@ using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Command
 {
+    [Category(TestCategories.LayerCommand)]
     public class TerminalTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]

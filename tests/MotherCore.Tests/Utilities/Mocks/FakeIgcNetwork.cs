@@ -223,7 +223,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// Routes all pending messages to their recipients and triggers
         /// <c>HandleIncomingIGCMessages</c> on every script with pending input.
         /// Preferred alias for <see cref="Deliver"/> that aligns with the
-        /// <see cref="TestWorld"/> API naming.
+        /// <see cref="World"/> API naming.
         /// </summary>
         public FakeIgcNetwork DispatchIgc()
         {

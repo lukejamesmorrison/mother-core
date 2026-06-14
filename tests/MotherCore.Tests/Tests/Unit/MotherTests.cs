@@ -1,4 +1,4 @@
-﻿using IngameScript;
+using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
@@ -7,6 +7,7 @@ using System;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class MotherTests
     {
         private CoreTestProgram _program;

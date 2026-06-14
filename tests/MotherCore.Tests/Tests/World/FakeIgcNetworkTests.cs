@@ -4,7 +4,7 @@ using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Mocks;
 using System.Linq;
 
-namespace MotherCore.Tests.Harness
+namespace MotherCore.Tests.World
 {
     /// <summary>
     /// Verifies <see cref="FakeIgcNetwork"/>: endpoint allocation, Almanac
@@ -13,6 +13,7 @@ namespace MotherCore.Tests.Harness
     /// <see cref="FakeIgcNetwork.DispatchIgc"/>, and the
     /// <see cref="FakeIgcNetwork.Scripts"/> roster.
     /// </summary>
+    [Category(TestCategories.LayerWorld)]
     public class FakeIgcNetworkTests
     {
         // =====================================================================

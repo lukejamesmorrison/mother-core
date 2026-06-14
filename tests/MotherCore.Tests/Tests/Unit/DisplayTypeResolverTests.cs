@@ -5,6 +5,7 @@ using VRage.Game.ModAPI.Ingame.Utilities;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class DisplayTypeResolverTests
     {
         // ----------------------------------------------------------------

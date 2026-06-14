@@ -224,7 +224,7 @@ namespace MotherCore.Tests.Utilities
 
         /// <summary>
         /// Joins this script to the default network when available.
-        /// If no default network is configured (for example outside <see cref="TestWorld"/>),
+        /// If no default network is configured (for example outside <see cref="World"/>),
         /// a private network is created.
         /// </summary>
         public Script<TProgram> OnNetwork()

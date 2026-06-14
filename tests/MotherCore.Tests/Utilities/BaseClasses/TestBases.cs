@@ -109,7 +109,7 @@ namespace MotherCore.Tests.Utilities
 
     /// <summary>
     /// Base class for integration tests that involve multiple scripts running inside
-    /// one shared <see cref="TestWorld"/>. Creates a fresh world before each test.
+    /// one shared <see cref="World"/>. Creates a fresh world before each test.
     /// </summary>
     /// <remarks>
     /// Use this base for Tests/Integration/World/ tests that exercise cross-script
@@ -134,13 +134,115 @@ namespace MotherCore.Tests.Utilities
     public abstract class WorldTestBase
     {
         /// <summary>The shared test world. Available after <see cref="SetUp"/>.</summary>
-        protected TestWorld World { get; private set; }
+        protected World World { get; private set; }
 
-        /// <summary>Creates a fresh <see cref="TestWorld"/> before each test.</summary>
+        /// <summary>Creates a fresh <see cref="World"/> before each test.</summary>
         [SetUp]
         public virtual void SetUp()
         {
-            World = new TestWorld();
+            World = new MotherCore.Tests.Utilities.World();
+        }
+    }
+
+    /// <summary>
+    /// Base class for module-layer tests that exercise a concrete booted module.
+    /// </summary>
+    /// <typeparam name="TProgram">The script Program type used for boot.</typeparam>
+    /// <typeparam name="TModule">The concrete module under test.</typeparam>
+    public abstract class ModuleTestBase<TProgram, TModule>
+        where TProgram : MyGridProgram, new()
+        where TModule : BaseModule
+    {
+        /// <summary>
+        /// The module fixture used to configure script boot inputs.
+        /// </summary>
+        protected Module<TModule, TProgram> ModuleFixture { get; private set; }
+
+        /// <summary>
+        /// The booted concrete module under test.
+        /// </summary>
+        protected TModule ModuleUnderTest { get; private set; }
+
+        /// <summary>
+        /// The booted script fixture backing this module test.
+        /// </summary>
+        protected Script<TProgram> Script => ModuleFixture.Script;
+
+        /// <summary>
+        /// The booted Mother instance backing this module test.
+        /// </summary>
+        protected Mother Mother => Script.Mother;
+
+        /// <summary>
+        /// The booted Program instance backing this module test.
+        /// </summary>
+        protected TProgram Program => Script.Program;
+
+        /// <summary>
+        /// Boots a fresh module fixture before each test.
+        /// </summary>
+        [SetUp]
+        public virtual void SetUp()
+        {
+            ModuleFixture = ConfigureModule(new Module<TModule, TProgram>());
+            ModuleUnderTest = ModuleFixture.Boot();
+        }
+
+        /// <summary>
+        /// Override to customize module fixture inputs before boot.
+        /// </summary>
+        protected virtual Module<TModule, TProgram> ConfigureModule(Module<TModule, TProgram> module)
+        {
+            return module;
+        }
+    }
+
+    /// <summary>
+    /// Base class for command-layer tests that execute commands against one booted script.
+    /// </summary>
+    /// <typeparam name="TProgram">The script Program type used for boot.</typeparam>
+    public abstract class CommandTestBase<TProgram>
+        where TProgram : MyGridProgram, new()
+    {
+        /// <summary>
+        /// The booted script used for command execution.
+        /// </summary>
+        protected Script<TProgram> Script { get; private set; }
+
+        /// <summary>
+        /// The booted Mother instance backing this command test.
+        /// </summary>
+        protected Mother Mother => Script.Mother;
+
+        /// <summary>
+        /// The booted Program instance backing this command test.
+        /// </summary>
+        protected TProgram Program => Script.Program;
+
+        /// <summary>
+        /// Boots a fresh script fixture before each test.
+        /// </summary>
+        [SetUp]
+        public virtual void SetUp()
+        {
+            Script = ConfigureScript(new Script<TProgram>()).Boot();
+        }
+
+        /// <summary>
+        /// Override to customize script inputs before boot.
+        /// </summary>
+        protected virtual Script<TProgram> ConfigureScript(Script<TProgram> script)
+        {
+            return script;
+        }
+
+        /// <summary>
+        /// Creates a typed command fixture bound to this base's booted script.
+        /// </summary>
+        protected Command<TCommand, TProgram> Command<TCommand>()
+            where TCommand : BaseModuleCommand
+        {
+            return new Command<TCommand, TProgram>(Script).Boot();
         }
     }
 }

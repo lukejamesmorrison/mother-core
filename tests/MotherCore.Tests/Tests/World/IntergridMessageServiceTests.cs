@@ -10,6 +10,7 @@ using VRageMath;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category(TestCategories.LayerWorld)]
     public class IntergridMessageServiceTests : ScriptTestBase<CoreTestProgram>
     {
         static string BuildAlphaChannelCustomData(string alias = null, string command = null)
@@ -66,7 +67,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void SendUnicastRequest_With_Empty_Channels_Falls_Back_To_Construct_Channel()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
 
             var sender = world.CreateScript("Sender")
                 .OnNetwork()
@@ -104,7 +105,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void SendRequestFromRoutine_Uses_UnicastId_When_Present()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
             var sender = world.CreateScript("Sender")
                 .OnNetwork()
                 .Boot();
@@ -384,7 +385,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Construct_Sync_Request_Registers_Remote_Commands_And_Sends_Construct_Response()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
 
             var sender = world.CreateScript("Sender")
                 .OnNetwork()
@@ -442,7 +443,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Construct_Communication_Delegates_Command_To_Owning_Construct_Instance()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
             var sharedGrid = world.CreateGrid("SharedConstruct");
 
             var sender = world.CreateScript(sharedGrid, "Sender")
@@ -469,7 +470,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Remote_Communication_Can_Send_And_Executes_On_Remote_Script()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
 
             var sender = world.CreateScript("Sender")
                 .OnNetwork()
@@ -493,7 +494,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Remote_Communication_Can_Broadcast_To_All_And_Executes_On_All_Remotes()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
 
             var sender = world.CreateScript("Sender")
                 .OnNetwork()

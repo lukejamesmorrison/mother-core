@@ -1,10 +1,11 @@
-﻿using IngameScript;
+using IngameScript;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class TerminalRoutineTests
     {
         // --- Basic sequential parsing ---
@@ -391,7 +392,7 @@ namespace MotherCore.Tests.Tests.Unit
                 { "cmd2", "block/off Light1" }
             };
 
-            // Parsed as parallel groups — Commands list will be empty
+            // Parsed as parallel groups � Commands list will be empty
             var routine = new TerminalRoutine("{ cmd1; } { cmd2; }");
             routine.Unpack(lookup);
 

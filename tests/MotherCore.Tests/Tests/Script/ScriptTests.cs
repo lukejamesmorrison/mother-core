@@ -8,13 +8,14 @@ using SpaceEngineers.Game.ModAPI.Ingame;
 using System.Linq;
 using VRage.Game.ModAPI.Ingame;
 
-namespace MotherCore.Tests.Harness
+namespace MotherCore.Tests.Scripts
 {
     /// <summary>
     /// Verifies the <see cref="Script{TProgram}"/> test harness: boot lifecycle,
     /// fluent configuration, <see cref="Script{TProgram}.Run"/>, and
     /// <see cref="Script{TProgram}.CaptureEcho"/> / <see cref="PrintCapture.ShouldHavePrinted"/>.
     /// </summary>
+    [Category(TestCategories.LayerScript)]
     public class ScriptTests
     {
         class CountingCommand : BaseModuleCommand
@@ -362,7 +363,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void ConnectGridsViaMergeBlock_When_Locked_Rewrites_Blocks_Onto_One_Grid()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
             var carrierMerge = carrierGrid.AddBlock<IMyShipMergeBlock>("Carrier Merge");
@@ -388,7 +389,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void ConnectGridsViaMergeBlock_When_Unlocked_Restores_Separate_Grid_References()
         {
-            var world = new TestWorld();
+            var world = new MotherCore.Tests.Utilities.World();
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
 

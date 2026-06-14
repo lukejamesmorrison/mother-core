@@ -4,6 +4,7 @@ using VRageMath;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class ColorHelperTests
     {
         //[Test]

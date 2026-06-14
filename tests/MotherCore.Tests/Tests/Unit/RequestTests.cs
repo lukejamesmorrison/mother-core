@@ -1,4 +1,4 @@
-﻿using IngameScript;
+using IngameScript;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ using VRageMath;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class RequestTests
     {
 

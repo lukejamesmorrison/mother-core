@@ -6,6 +6,7 @@ using Sandbox.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category("Layer:Module")]
     public class MechanicalBlockModuleTests
     {
         [Test]

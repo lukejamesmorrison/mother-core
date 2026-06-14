@@ -19,7 +19,7 @@ namespace MotherCore.Tests.Utilities
     /// <remarks>
     /// Basic multi-script test:
     /// <code>
-    /// var world = new TestWorld();
+    /// var world = new MotherCore.Tests.Utilities.World();
     ///
     /// var shipA = world.CreateScript&lt;Program&gt;("ShipA").OnNetwork().Boot();
     /// var shipB = world.CreateScript&lt;Program&gt;("ShipB").OnNetwork().Boot();
@@ -34,7 +34,7 @@ namespace MotherCore.Tests.Utilities
     /// world.RunMany(5, UpdateType.Update10);
     /// </code>
     /// </remarks>
-    public class TestWorld
+    public class World
     {
         /// <summary>
         /// Records a block together with the grid that owns it in the world model.
@@ -69,6 +69,14 @@ namespace MotherCore.Tests.Utilities
         /// Dropped message telemetry captured by this world's shared IGC network.
         /// </summary>
         public IReadOnlyList<FakeIgcNetwork.DroppedMessage> DroppedMessages => _network.DroppedMessages;
+
+        /// <summary>
+        /// No-op world boot hook for fluent setup parity with Script/Module/Command fixtures.
+        /// </summary>
+        public World Boot()
+        {
+            return this;
+        }
 
         /// <summary>
         /// Asserts that this world contains a script with the supplied runtime name.
@@ -345,7 +353,7 @@ namespace MotherCore.Tests.Utilities
         /// <param name="firstBlock">One side of the merge-block pair.</param>
         /// <param name="secondBlock">The opposite side of the merge-block pair.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld Merge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
+        public World Merge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
         {
             var topology = GetTopologyForMerge(firstBlock, secondBlock);
 
@@ -362,7 +370,7 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         /// <param name="mergeBlock">One side of the merge-block pair to disable.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld Unmerge(IMyShipMergeBlock mergeBlock)
+        public World Unmerge(IMyShipMergeBlock mergeBlock)
         {
             if (mergeBlock == null)
                 throw new ArgumentNullException(nameof(mergeBlock));
@@ -384,7 +392,7 @@ namespace MotherCore.Tests.Utilities
         /// Call this between sending a command and running the receiving script.
         /// </summary>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld DispatchIgc()
+        public World DispatchIgc()
         {
             _network.Deliver();
 
@@ -398,7 +406,7 @@ namespace MotherCore.Tests.Utilities
         /// <param name="updateType">The game update type to pass to each script.</param>
         /// <param name="argument">The terminal argument to pass to each script.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld Run(UpdateType updateType = UpdateType.Update10, string argument = "")
+        public World Run(UpdateType updateType = UpdateType.Update10, string argument = "")
         {
             foreach (var script in _scripts)
                 script.Run(updateType, argument);
@@ -412,7 +420,7 @@ namespace MotherCore.Tests.Utilities
         /// let each script process its incoming message queue.
         /// </summary>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld RunIGC() => Run(UpdateType.IGC);
+        public World RunIGC() => Run(UpdateType.IGC);
 
         /// <summary>
         /// Runs one terminal update cycle for every script in this world with the
@@ -420,7 +428,7 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         /// <param name="argument">The terminal argument to pass to all scripts.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld RunTerminalAll(string argument = "")
+        public World RunTerminalAll(string argument = "")
         {
             return Run(UpdateType.Terminal, argument);
         }
@@ -432,7 +440,7 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         /// <param name="count">Number of world cycles to execute.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld Tick(int count = 1)
+        public World Tick(int count = 1)
         {
             if (count < 0)
                 throw new ArgumentOutOfRangeException(nameof(count), "Count must be zero or greater.");
@@ -456,7 +464,7 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         /// <param name="count">Number of world cycles to execute.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld TickMessages(int count = 2) => Tick(count);
+        public World TickMessages(int count = 2) => Tick(count);
 
         /// <summary>
         /// Advances the world until <paramref name="predicate"/> returns true or
@@ -465,7 +473,7 @@ namespace MotherCore.Tests.Utilities
         /// <param name="predicate">Completion condition evaluated before each tick.</param>
         /// <param name="maxTicks">Maximum number of ticks to execute.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld TickUntil(Func<bool> predicate, int maxTicks = 50)
+        public World TickUntil(Func<bool> predicate, int maxTicks = 50)
         {
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate));
@@ -577,7 +585,7 @@ namespace MotherCore.Tests.Utilities
         /// <param name="updateType">The game update type to pass to each cycle.</param>
         /// <param name="argument">The terminal argument to pass to each cycle.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public TestWorld RunMany(int count, UpdateType updateType, string argument = "")
+        public World RunMany(int count, UpdateType updateType, string argument = "")
         {
             for (int i = 0; i < count; i++)
                 Run(updateType, argument);

@@ -8,6 +8,7 @@ using VRageMath;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class DisplayTests
     {
         static List<MySprite> GetSprites(MySpriteDrawFrame frame)

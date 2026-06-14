@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class RouterTests
     {
         [Test]

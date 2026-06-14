@@ -8,12 +8,14 @@ using System.Linq;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category("Layer:Module")]
     public class BlockCatalogueTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]
         public void RegisterBlockForStateMonitoring_Detects_A_Changed_State_On_Run()
         {
-            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+            //var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+            var door = new FakeDoor(customName: "Hangar Door");
             var script = new Script()
                 .WithBlock(door)
                 .Boot();
@@ -26,7 +28,6 @@ namespace MotherCore.Tests.Integration
 
             catalogue.Run();
             state = DoorStatus.Closed;
-
             catalogue.Run();
 
             Assert.That(handler.ChangeCount, Is.EqualTo(1));

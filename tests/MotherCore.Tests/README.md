@@ -6,7 +6,7 @@ This test suite is a reusable harness for scripts that inherit from `MyGridProgr
 Primary goals:
 
 - keep setup friction low (`new Script<Program>().Boot()` for single-script tests)
-- keep world behavior realistic (`TestWorld` for multi-script integration)
+- keep world behavior realistic (`World` for multi-script integration)
 - keep compatibility with extension-script baselines (`netframework48`, C# 6)
 
 ## Compatibility contract
@@ -31,10 +31,10 @@ Create a test project that imports MotherCore shared source plus your script sou
 ## Harness model in 30 seconds
 
 - `Script<TProgram>`: one booted programmable block instance.
-- `TestWorld`: shared environment for multiple scripts.
+- `World`: shared environment for multiple scripts.
 - `TestGrid`: world-owned grid handle for topology and block registration.
 
-Use `Script<TProgram>` for single-script tests and `TestWorld` for multi-script tests.
+Use `Script<TProgram>` for single-script tests and `World` for multi-script tests.
 
 ## Most relevant scenarios
 
@@ -83,7 +83,7 @@ Two common setup paths are useful here.
 [Test]
 public void SameConstruct_Scripts_Can_Share_One_Grid()
 {
-    var world = new TestWorld();
+    var world = new World();
     var sharedGrid = world.CreateGrid("Carrier");
 
     var shipA = world.CreateScript<Program>(sharedGrid, "ShipA").OnNetwork().Boot();
@@ -104,7 +104,7 @@ Use this when each script should start on its own grid but still cooperate as on
 [Test]
 public void SameConstruct_Scripts_See_Shared_Topology()
 {
-    var world = new TestWorld();
+    var world = new World();
     var carrier = world.CreateGrid("Carrier");
     var cargo = world.CreateGrid("Cargo Pod");
 
@@ -127,7 +127,7 @@ Keep scripts on separate grids, opt into network, and progress with world ticks.
 [Test]
 public void Remote_Command_Delivers_Between_Separate_Constructs()
 {
-    var world = new TestWorld();
+    var world = new World();
     var senderGrid = world.CreateGrid("SenderGrid");
     var receiverGrid = world.CreateGrid("ReceiverGrid");
 
@@ -156,7 +156,7 @@ public void Remote_Command_Delivers_Between_Separate_Constructs()
 
 - `Unit/`: focused tests for isolated behavior.
 - `Integration/`: booted-script behavior and module collaboration.
-- `Harness/`: tests for the harness itself (`Script`, `TestWorld`, topology helpers).
+- `Harness/`: tests for the harness itself (`Script`, `World`, topology helpers).
 
 ## Running the suite
 
@@ -169,5 +169,5 @@ dotnet test .\MotherCore.Tests\MotherCore.Tests.csproj
 For a focused slice:
 
 ```powershell
-dotnet test --filter "FullyQualifiedName~ScriptTests|FullyQualifiedName~TestWorldTests"
+dotnet test --filter "FullyQualifiedName~ScriptTests|FullyQualifiedName~WorldTests"
 ```

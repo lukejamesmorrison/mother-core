@@ -8,6 +8,7 @@ using VRageMath;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category("Layer:Module")]
     public class AlmanacTests : ScriptTestBase<CoreTestProgram>
     {
 

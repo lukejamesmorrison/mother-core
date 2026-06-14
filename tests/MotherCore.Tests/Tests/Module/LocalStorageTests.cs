@@ -4,6 +4,7 @@ using MotherCore.Tests.Utilities;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category("Layer:Module")]
     public class LocalStorageTests
     {
         [Test]

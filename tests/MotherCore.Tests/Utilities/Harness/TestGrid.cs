@@ -12,9 +12,9 @@ namespace MotherCore.Tests.Utilities
     /// </summary>
     public sealed class TestGrid
     {
-        readonly TestWorld _world;
+        readonly World _world;
 
-        internal TestGrid(TestWorld world, IMyCubeGrid grid)
+        internal TestGrid(World world, IMyCubeGrid grid)
         {
             if (world == null)
                 throw new ArgumentNullException(nameof(world));

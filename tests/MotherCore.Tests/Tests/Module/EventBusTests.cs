@@ -7,6 +7,7 @@ using System.Linq;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category("Layer:Module")]
     public class EventBusTests : ScriptTestBase<CoreTestProgram>
     {
         class EventPayloadModule : BaseModule

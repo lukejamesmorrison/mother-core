@@ -6,6 +6,7 @@ using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class BaseModuleCommandTests
     {
         static readonly FakeModuleCommand Command = new FakeModuleCommand();

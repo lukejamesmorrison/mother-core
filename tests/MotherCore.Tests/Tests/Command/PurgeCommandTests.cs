@@ -3,8 +3,9 @@ using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using VRageMath;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Command
 {
+    [Category("Layer:Command")]
     public class PurgeCommandTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]

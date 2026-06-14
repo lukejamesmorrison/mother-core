@@ -1,4 +1,4 @@
-﻿using IngameScript;
+using IngameScript;
 using NUnit.Framework;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
@@ -16,6 +16,7 @@ namespace MotherCore.Tests.Tests.Unit
     ///     also make sure your Program class is public.
     /// </remarks>
     [TestFixture]
+    [Category("Layer:Unit")]
     public class ProgramInstanceTests
     {
         /// <summary>

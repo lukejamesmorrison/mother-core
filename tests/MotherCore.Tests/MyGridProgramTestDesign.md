@@ -125,7 +125,7 @@ The current answer is:
 
 In the current MotherCore harness, that world model now includes a small world-owned grid handle:
 
-- `TestWorld` owns shared environment state and topology orchestration
+- `World` owns shared environment state and topology orchestration
 - `TestGrid` is a world-bound handle used to register blocks onto a specific grid before boot
 - `MergePair` is an optional deferred topology descriptor for pre-registered merge-block pairs
 
@@ -312,9 +312,9 @@ MotherCore now has a working version of most of this model in the test utilities
 - `CommandBus` exposes compact execution counters through `GetExecutionCount(commandName, outcome)` so tests can assert command and routine processing against real commands without shared spy helpers.
 - `Script` is a convenience alias over `Script<CoreTestProgram>` for MotherCore-focused tests.
 - `FakeIgcNetwork` provides shared IGC transport, message capture, and automatic Almanac cross-registration for booted scripts.
-- `TestWorld` is now present as the shared multi-script environment for remote-network and world-topology tests.
-- `TestGrid` is the world-owned grid handle returned by `TestWorld.CreateGrid(...)`; it wraps an `IMyCubeGrid` and provides `AddBlock(...)` for world-owned block registration.
-- `MergePair` is a deferred merge-topology descriptor returned by `TestWorld.AddMergeBlockPair(...)` when a test wants merge blocks pre-registered before boot.
+- `World` is now present as the shared multi-script environment for remote-network and world-topology tests.
+- `TestGrid` is the world-owned grid handle returned by `World.CreateGrid(...)`; it wraps an `IMyCubeGrid` and provides `AddBlock(...)` for world-owned block registration.
+- `MergePair` is a deferred merge-topology descriptor returned by `World.AddMergeBlockPair(...)` when a test wants merge blocks pre-registered before boot.
 - `ClockDriver` provides assertion-friendly tick control for coroutine-driven behavior.
 - `PrintCapture` provides reusable output capture over `Program.Echo`.
 - `FakeModuleCommand` provides a reusable concrete `BaseModuleCommand` for command-bus wiring tests and protected-helper coverage.
@@ -416,7 +416,7 @@ Suggested role:
 
 Current closest type:
 
-- `TestWorld`
+- `World`
 
 Supporting transport:
 
@@ -457,7 +457,7 @@ Mother is intentionally agnostic to exact block type until modules begin to care
 The desired developer experience should be:
 
 ```csharp
-var world = new TestWorld();
+var world = new World();
 var grid = world.CreateGrid("Frigate");
 
 var door = grid.AddBlock(BlockFactory.Door("Airlock", b =>
@@ -552,7 +552,7 @@ Again, the exact method names are less important than the experience:
 
 The default mental model should move one step further:
 
-- every test starts conceptually in a `TestWorld`
+- every test starts conceptually in a `World`
 - every script is mounted on a `TestGrid`
 - every runtime seam comes from the harness, not from ad hoc test setup
 - every block is either a concrete fake or a consciously chosen fallback factory fake
@@ -578,7 +578,7 @@ That should be the default single-script experience.
 When a user wants multiple scripts, the mental model should become:
 
 ```csharp
-var world = new TestWorld();
+var world = new World();
 
 var os = world.CreateScript<MotherOS.Program>("ShipOS").Boot();
 var gui = world.CreateScript<MotherGUI.Program>("ShipGUI").Boot();
@@ -594,7 +594,7 @@ The next implementation wave should focus on ergonomics before breadth.
 
 ### Phase 1: make the harness model explicit
 
-- document `TestWorld` as the primary composition root even for single-script tests
+- document `World` as the primary composition root even for single-script tests
 - name and expose the harness-owned runtime components more directly
 - make `Script<TProgram>` read as a projection of world state rather than an owner of global setup
 - align docs and examples around world -> grid -> script -> blocks
@@ -687,7 +687,7 @@ And after boot:
 - `GetBlock(string blockName)` / `GetBlock<TBlock>(string blockName)`
 - `ContainsBlock(string blockName)` / `AssertHasBlock(string blockName)`
 
-`TestWorld` also exists today and provides:
+`World` also exists today and provides:
 
 - `CreateScript<TProgram>(string name = null)`
 - `CreateGrid(string name = null, long? entityId = null)`
@@ -860,7 +860,7 @@ Intent:
 Ideal shape:
 
 ```csharp
-var world = new TestWorld();
+var world = new World();
 var osGrid = world.CreateGrid("ShipOS Grid");
 var guiGrid = world.CreateGrid("ShipGUI Grid");
 
@@ -893,7 +893,7 @@ Intent:
 Ideal shape:
 
 ```csharp
-var world = new TestWorld();
+var world = new World();
 
 var shipA = world.CreateScript<MotherOS.Program>("ShipA").OnNetwork().Boot();
 var shipB = world.CreateScript<MotherGUI.Program>("ShipB").OnNetwork().Boot();
@@ -905,7 +905,7 @@ world.TickMessages();
 For world-topology tests that need grids before boot, the intended mental model now also includes grid handles:
 
 ```csharp
-var world = new TestWorld();
+var world = new World();
 var carrierGrid = world.CreateGrid("Carrier");
 var cargoGrid = world.CreateGrid("Cargo Pod");
 
@@ -1070,7 +1070,7 @@ The harness should hide `MyGridProgram` bootstrapping details by default while s
 For longer-running behavior, the intended mental model is:
 
 ```csharp
-var world = new TestWorld();
+var world = new World();
 var script = world.CreateScript<Program>().Boot();
 
 world.Run(UpdateType.Update10);
@@ -1080,7 +1080,7 @@ world.RunMany(30, UpdateType.Update10);
 For command-driven behavior, the intended mental model is:
 
 ```csharp
-var world = new TestWorld();
+var world = new World();
 var script = world.CreateScript<Program>().Boot();
 
 world.Run(UpdateType.Terminal, "rename Frigate");
@@ -1118,9 +1118,9 @@ Impact:
 - tests can observe messages delivered even after a listener is disabled
 - this diverges from expected game-like behavior and can hide routing defects
 
-### 2. `TestWorld` currently enforces one topology-backed primary grid
+### 2. `World` currently enforces one topology-backed primary grid
 
-`TestWorld.EnsureWorldTopology(...)` throws when a second script attempts to bind
+`World.EnsureWorldTopology(...)` throws when a second script attempts to bind
 using a different primary world grid.
 
 Impact:
@@ -1156,7 +1156,7 @@ Impact:
 
 ### 5. World-first guidance is present, but tests still mix styles heavily
 
-The docs describe `TestWorld` as the preferred multi-script path and position
+The docs describe `World` as the preferred multi-script path and position
 single-script `Script<TProgram>` as shorthand, but integration tests still use
 both world-scoped and standalone network/script setup in mixed ways.
 
@@ -1296,7 +1296,7 @@ Exit criteria:
 | `Sessions` | ✅ Done | Exposes all registered `IScript` instances |
 | `DispatchIgc()` | ✅ Done | Preferred alias for `Deliver()` |
 
-### TestWorld (multi-script environment)
+### World (multi-script environment)
 
 | Feature | Status | Notes |
 |---|---|---|
@@ -1325,7 +1325,7 @@ Exit criteria:
 |---|---|---|
 | `ScriptTestBase<TProgram>` | ✅ Done | Exposes `Script`, `Mother`, `Program`, `Bus`, `Clock` |
 | `ScriptFeatureTestBase<TProgram>` | ✅ Done | Adds `Echo` capture; `SetUp` wires it automatically |
-| `WorldTestBase` | ✅ Done | Exposes `World`; `SetUp` creates a fresh `TestWorld` |
+| `WorldTestBase` | ✅ Done | Exposes `World`; `SetUp` creates a fresh `World` |
 
 ### Script partial layer (script-specific seams)
 
@@ -1351,7 +1351,7 @@ Exit criteria:
 
 | Feature | Status | Notes |
 |---|---|---|
-| World-level shared clock / time advance | ✅ Done | `TestWorld.Tick(n)` advances full world cycles |
+| World-level shared clock / time advance | ✅ Done | `World.Tick(n)` advances full world cycles |
 | `world.CreateConstruct()` | ⏸ Deferred | Not required at this stage; same-construct coverage is assertion-driven via existing world/grid helpers |
 | Script runtime inspection helpers | ⬜ Pending | Instruction count, update frequency per script |
 | Focused event recorder helper | ⬜ Pending | Only if fixture-local effects are not sufficient for narrower event assertions |
@@ -1414,6 +1414,6 @@ This plan reflects the current MotherCore source and the executable suite as it 
 
 - Prefer `Unit/` for pure helpers and deterministic parsing behavior.
 - Prefer `Integration/` for module boot, event, command, and cross-module behavior inside one booted `Script`.
-- Prefer `WorldTestBase` and `TestWorld` for remote IGC scenarios that require more than one script.
+- Prefer `WorldTestBase` and `World` for remote IGC scenarios that require more than one script.
 - Reuse the examples in `Tests/README.md` as the canonical style guide for new tests.
 

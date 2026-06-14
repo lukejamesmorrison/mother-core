@@ -1,9 +1,10 @@
-﻿using IngameScript;
+using IngameScript;
 using NUnit.Framework;
 using System;
 
 namespace MotherCore.Tests.Tests.Unit
 {
+    [Category("Layer:Unit")]
     public class SecurityTests
     {
         [Test]

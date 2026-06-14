@@ -8,6 +8,7 @@ using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Integration
 {
+    [Category("Layer:Module")]
     public class MergeBlockModuleTests
     {
         sealed class MergeScriptArrangement

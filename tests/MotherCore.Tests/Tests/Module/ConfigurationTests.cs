@@ -5,8 +5,9 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
+    [Category("Layer:Module")]
     public class ConfigurationTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]

@@ -6,8 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Command
 {
+    [Category(TestCategories.LayerCommand)]
     public class CommandBusTests : ScriptTestBase<CoreTestProgram>
     {
         // --- Command registration ---
