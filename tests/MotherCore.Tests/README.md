@@ -1,173 +1,104 @@
 # MotherCore Test Suite
 
-This test suite is a reusable harness for scripts that inherit from `MyGridProgram`
-(for example MotherCore, MotherOS, and MotherGUI).
+This suite provides the shared programmable-block harness for Mother projects.
 
 Primary goals:
 
-- keep setup friction low (`new Script<Program>().Boot()` for single-script tests)
-- keep world behavior realistic (`World` for multi-script integration)
-- keep compatibility with extension-script baselines (`netframework48`, C# 6)
+- explicit setup in each test (fresh boot per test, no hidden fixture state)
+- realistic script/world behavior through harness fakes
+- compatibility with extension-script baseline (`netframework48`, C# 6)
 
 ## Compatibility contract
 
-When consuming this harness in other script projects (like MotherOS/MotherGUI),
-keep these contracts aligned:
+When consuming this harness in extension-script projects (MotherOS, MotherGUI):
 
 - `TargetFramework` = `netframework48`
 - `LangVersion` = `6`
 
-The MotherCore harness and tests are intentionally maintained against that baseline.
+## Current setup conventions
 
-## Quick start for extension-script projects
+Use explicit per-test boot via factory helpers.
 
-Create a test project that imports MotherCore shared source plus your script source. You can do this using Mother CLI, by important Mother Core as a shared project dependency:
-
-**Script.proj**
-```xml
-<Import Project="..\MotherCore\src\MotherCore.projitems" Label="Shared" />
-```
-
-## Harness model in 30 seconds
-
-- `Script<TProgram>`: one booted programmable block instance.
-- `World`: shared environment for multiple scripts.
-- `TestGrid`: world-owned grid handle for topology and block registration.
-
-Use `Script<TProgram>` for single-script tests and `World` for multi-script tests.
-
-## Most relevant scenarios
-
-### 1. Test one module/command in a single `Script`
+Single script tests:
 
 ```csharp
 [Test]
-public void Rename_Command_Executes_Once()
+public void Rename_Command_Executes_And_Updates_Name()
 {
-    var script = new Script<Program>().Boot();
+    var script = ScriptFactory().WithMother().Boot();
 
-    script.RunTerminal("rename Frigate").RunToIdle();
+    script.RunTerminal("rename Frigate");
+    script.RunToIdle();
 
     script.ShouldHaveExecuted("rename");
     script.ShouldHaveName("Frigate");
 }
 ```
 
-### 2. Test multiple modules inside one script
-
-This pattern validates interactions across real modules booted by your real `Program`.
+Module tests (direct module API):
 
 ```csharp
 [Test]
-public void Boot_Wires_CommandBus_And_EventBus_For_Merge_Module()
+public void OpenDoor_Opens_Target_Door()
 {
-  var script = new Script<Program>().Boot();
+    var script = ScriptFactory<Program>().WithMother().Boot();
+    var module = script.Mother.GetModule<DoorModule>();
 
-  var mergeModule = script.Mother.GetModule<MergeBlockModule>();
-  var eventBus = script.Mother.GetModule<EventBus>();
+    module.OpenDoor(door);
 
-  Assert.That(eventBus.IsSubscribed<ConstructRefreshedEvent>(mergeModule), Is.True);
-
-  script.RunTerminal("help").RunToIdle();
-  script.ShouldHaveExecuted("help");
+    Assert.That(door.Status, Is.EqualTo(DoorStatus.Open));
 }
 ```
 
-### 3. Test multiple scripts on the same construct (local/construct cooperation)
-
-Two common setup paths are useful here.
-
-#### Variant A: both scripts on the exact same grid
+World tests (multi-script):
 
 ```csharp
 [Test]
-public void SameConstruct_Scripts_Can_Share_One_Grid()
+public void Remote_Command_Delivers_To_Target()
 {
-    var world = new World();
-    var sharedGrid = world.CreateGrid("Carrier");
-
-    var shipA = world.CreateScript<Program>(sharedGrid, "ShipA").OnNetwork().Boot();
-    var shipB = world.CreateScript<Program>(sharedGrid, "ShipB").OnNetwork().Boot();
-
-    Assert.That(shipA.PrimaryGrid.EntityId, Is.EqualTo(shipB.PrimaryGrid.EntityId));
-    Assert.That(shipA.PrimaryGrid.IsSameConstructAs(shipB.PrimaryGrid), Is.True);
-    shipA.ShouldKnowGrid("ShipB");
-    shipB.ShouldKnowGrid("ShipA");
-}
-```
-
-#### Variant B: separate grids connected by the world
-
-Use this when each script should start on its own grid but still cooperate as one construct.
-
-```csharp
-[Test]
-public void SameConstruct_Scripts_See_Shared_Topology()
-{
-    var world = new World();
-    var carrier = world.CreateGrid("Carrier");
-    var cargo = world.CreateGrid("Cargo Pod");
-
-    world.ConnectGrids(carrier, cargo);
-
-    var shipA = world.CreateScript<Program>(carrier, "ShipA").OnNetwork().Boot();
-    var shipB = world.CreateScript<Program>(cargo, "ShipB").OnNetwork().Boot();
-
-    world.ShouldBeSameConstruct(shipA, shipB);
-    shipA.ShouldKnowGrid("ShipB");
-    shipB.ShouldKnowGrid("ShipA");
-}
-```
-
-### 4. Test multiple scripts on different constructs (remote cooperation)
-
-Keep scripts on separate grids, opt into network, and progress with world ticks.
-
-```csharp
-[Test]
-public void Remote_Command_Delivers_Between_Separate_Constructs()
-{
-    var world = new World();
-    var senderGrid = world.CreateGrid("SenderGrid");
-    var receiverGrid = world.CreateGrid("ReceiverGrid");
-
-    var sender = world.CreateScript<Program>(senderGrid, "Sender").OnNetwork().Boot();
-    var receiver = world.CreateScript<Program>(receiverGrid, "Receiver").OnNetwork().Boot();
+    var world = WorldFactory().Boot();
+    var sender = world.CreateScript("Sender").WithMother().OnNetwork().Boot();
+    var receiver = world.CreateScript("Receiver").WithMother().OnNetwork().Boot();
 
     sender.RunTerminal("@Receiver help");
+    world.DeliverMessages();
 
-    // force message distribution for world
-    world.TickMessages();
-
-    world.ShouldHaveDeliveredIgcMessage("Sender", "Receiver", "*");
+    world.ShouldHaveDeliveredIgcMessage(sender, receiver, "*");
     receiver.ShouldHaveExecuted("help");
-    world.ShouldHaveNoPendingMessages();
 }
 ```
 
-## Practical guidance
+## Important behavior notes
 
-- Prefer world-level progression in multi-script tests: `world.TickMessages(...)` and `world.Tick(...)`.
-- Prefer script-level progression in single-script tests: `script.RunToIdle()` or `script.Tick()`.
-- Use harness concrete fakes (`TerminalBlockFactory`, `TextSurfaceFactory`, typed fake blocks) instead of ad hoc mocking.
-- Use `world.ShouldHaveDeliveredIgcMessage(...)` and related helpers before inspecting low-level transport lists.
+- `World.CreateScript()` without a name now generates a unique random name to prevent collisions.
+- For message-routing tests, still prefer explicit names (`Sender`, `ReceiverA`, `ReceiverB`) to keep intent obvious.
+- Clock coroutines are removed immediately when they complete; avoid brittle assertions that depend on stale coroutine counts.
 
-## Folder map
+## Assertion guidance from the refactor
 
-- `Unit/`: focused tests for isolated behavior.
-- `Integration/`: booted-script behavior and module collaboration.
-- `Harness/`: tests for the harness itself (`Script`, `World`, topology helpers).
+- Prefer behavior assertions over brittle totals.
+- For command bus and routing checks, assert presence and outcomes rather than global absolute counts.
+- Use world/script helper assertions (`ShouldHaveDeliveredIgcMessage`, `ShouldHaveExecuted`, `ShouldHaveNoPendingMessages`) before inspecting low-level transport internals.
 
-## Running the suite
+## Layer map
 
-From `MotherCore/tests`:
+- `Tests/Unit`: pure value behavior, no script boot.
+- `Tests/Module`: booted script, direct module calls.
+- `Tests/Command`: terminal/command-bus execution path.
+- `Tests/Script`: single-script lifecycle/wiring behavior.
+- `Tests/World`: multi-script topology/network behavior.
+
+## Running tests
+
+From repo root:
 
 ```powershell
-dotnet test .\MotherCore.Tests\MotherCore.Tests.csproj
+dotnet test .\MotherCore\tests\MotherCore.Tests\MotherCore.Tests.csproj
 ```
 
-For a focused slice:
+Focused slices:
 
 ```powershell
-dotnet test --filter "FullyQualifiedName~ScriptTests|FullyQualifiedName~WorldTests"
+dotnet test .\MotherCore\tests\MotherCore.Tests\MotherCore.Tests.csproj --filter "FullyQualifiedName~WorldTests"
+dotnet test .\MotherCore\tests\MotherCore.Tests\MotherCore.Tests.csproj --filter "FullyQualifiedName~IntergridMessageServiceTests"
 ```
