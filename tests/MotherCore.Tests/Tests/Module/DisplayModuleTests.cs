@@ -8,7 +8,7 @@ using VRage.Game.ModAPI.Ingame.Utilities;
 namespace MotherCore.Tests.Integration
 {
     [Category("Layer:Module")]
-    public class DisplayModuleTests
+    public class DisplayModuleTests : TestBase
     {
         [Test]
         public void LoadTextSurfaces_Registers_Text_Panel_And_Text_Surface_Provider_Surfaces_By_View_Name()
@@ -26,7 +26,7 @@ namespace MotherCore.Tests.Integration
                 .AddSurface(providerSurface0.Surface)
                 .AddSurface(providerSurface1.Surface);
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(panel.Panel)
                 .WithBlock(provider)
                 .Boot();
@@ -52,7 +52,7 @@ namespace MotherCore.Tests.Integration
                 customName: "Remote Log",
                 customData: "[surfaces]\n0=LogView \"Other System\"");
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(matchingPanel.Panel)
                 .WithBlock(otherPanel.Panel)
                 .Boot();
@@ -74,7 +74,7 @@ namespace MotherCore.Tests.Integration
                 customName: "Flexible LCD",
                 customData: "[surfaces]\n0=OldView\n");
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(panel.Panel)
                 .Boot();
 

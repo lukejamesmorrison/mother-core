@@ -14,7 +14,7 @@ namespace MotherCore.Tests.World
     /// <see cref="FakeIgcNetwork.Scripts"/> roster.
     /// </summary>
     [Category(TestCategories.LayerWorld)]
-    public class FakeIgcNetworkTests
+    public class FakeIgcNetworkTests : TestBase
     {
         // =====================================================================
         // Endpoint allocation
@@ -25,8 +25,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().OnNetwork(network).Boot();
+            var shipB = ScriptFactory().OnNetwork(network).Boot();
 
             Assert.That(shipA.IGC.Me, Is.Not.EqualTo(shipB.IGC.Me));
         }
@@ -36,7 +36,9 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var script = new Script("ShipA").OnNetwork(network).Boot();
+            var script = ScriptFactory()
+                .OnNetwork(network)
+                .Boot();
 
             Assert.That(script.NetworkIGC, Is.Not.Null);
         }
@@ -44,7 +46,7 @@ namespace MotherCore.Tests.World
         [Test]
         public void Script_Not_On_Network_Has_Null_NetworkIGC()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.NetworkIGC, Is.Null);
         }
@@ -58,8 +60,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            var shipB = ScriptFactory().Boot();
 
             var almanac = shipA.Mother.GetModule<Almanac>();
             var record = almanac.GetRecord("ShipB");
@@ -73,9 +75,9 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
-            var shipC = new Script("ShipC").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            var shipB = ScriptFactory().Boot();
+            var shipC = ScriptFactory().Boot();
 
             var almanacA = shipA.Mother.GetModule<Almanac>();
             var almanacB = shipB.Mother.GetModule<Almanac>();
@@ -98,8 +100,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            var shipB = ScriptFactory().Boot();
 
             shipA.RunTerminal("@ShipB help");
             shipA.RunToIdle();
@@ -113,8 +115,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            new Script("ShipB").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            ScriptFactory("ShipB").OnNetwork(network).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -133,8 +135,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            var shipB = ScriptFactory().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -154,16 +156,16 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            var shipB = ScriptFactory().Boot();
 
-            shipA.Bus.RunTerminalCommand("@ShipB help");
-            shipA.Clock.RunToIdle();
+            shipA.RunTerminal("@ShipB help");
+            shipA.RunToIdle();
 
             network.Deliver();
 
-            shipA.Clock.RunToIdle();
-            shipB.Clock.RunToIdle();
+            shipA.RunToIdle();
+            shipB.RunToIdle();
 
             Assert.That(shipA.Bus.GetExecutionCount("help"), Is.EqualTo(0),
                 "The remote command should not execute locally on the sender.");
@@ -175,7 +177,7 @@ namespace MotherCore.Tests.World
         public void Deliver_On_Empty_Pending_Queue_Does_Not_Throw()
         {
             var network = new FakeIgcNetwork();
-            new Script("ShipA").OnNetwork(network).Boot();
+            ScriptFactory("ShipA").OnNetwork(network).Boot();
 
             Assert.DoesNotThrow(() => network.Deliver());
         }
@@ -189,8 +191,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            var shipB = ScriptFactory().Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -205,7 +207,7 @@ namespace MotherCore.Tests.World
         public void DispatchIgc_Returns_Network_For_Chaining()
         {
             var network = new FakeIgcNetwork();
-            new Script("ShipA").OnNetwork(network).Boot();
+            ScriptFactory("ShipA").OnNetwork(network).Boot();
 
             Assert.That(network.DispatchIgc(), Is.SameAs(network));
         }
@@ -324,7 +326,7 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            new Script("ShipA").OnNetwork(network).Boot();
+            ScriptFactory("ShipA").OnNetwork(network).Boot();
 
             Assert.That(network.Scripts.Count, Is.EqualTo(1));
         }
@@ -334,9 +336,9 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = new Script("ShipA").OnNetwork(network).Boot();
-            var shipB = new Script("ShipB").OnNetwork(network).Boot();
-            var shipC = new Script("ShipC").OnNetwork(network).Boot();
+            var shipA = ScriptFactory().Boot();
+            var shipB = ScriptFactory().Boot();
+            var shipC = ScriptFactory().Boot();
 
             Assert.That(network.Scripts.Count, Is.EqualTo(3));
             Assert.That(network.Scripts[0].Mother.Name, Is.EqualTo("ShipA"));
@@ -349,10 +351,11 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            new Script("ShipA").OnNetwork(network).Boot();
-            new Script("Standalone").Boot(); // not on the network
+            ScriptFactory("ShipA").OnNetwork(network).Boot();
+            ScriptFactory("Standalone").Boot(); // not on the network
 
             Assert.That(network.Scripts.Count, Is.EqualTo(1));
         }
     }
 }
+

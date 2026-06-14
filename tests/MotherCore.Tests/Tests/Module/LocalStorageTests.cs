@@ -5,12 +5,12 @@ using MotherCore.Tests.Utilities;
 namespace MotherCore.Tests.Integration
 {
     [Category("Layer:Module")]
-    public class LocalStorageTests
+    public class LocalStorageTests : TestBase
     {
         [Test]
         public void Set_Stores_A_Value_That_Get_Returns()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             bool changed = storage.Set("ship", "Frigate");
@@ -22,7 +22,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Get_Returns_Empty_String_For_A_Missing_Key()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             Assert.That(storage.Get("missing"), Is.EqualTo(string.Empty));
@@ -31,7 +31,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Clear_Removes_Stored_Values()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             storage.Set("ship", "Frigate");
@@ -46,7 +46,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Program_Save_Serializes_LocalStorage_Into_Program_Storage()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             storage.Set("ship", "Frigate");
@@ -61,7 +61,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Boot_Loads_Existing_Program_Storage_Into_LocalStorage()
         {
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithStorage("{\"ship\":\"Frigate\",\"status\":\"Ready\"}")
                 .Boot();
 
@@ -74,7 +74,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Set_Command_Stores_A_Key_And_Value()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             script.Bus.RunTerminalCommand("set ship Frigate");
@@ -86,7 +86,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Get_Command_Prints_The_Stored_Value()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
             var terminal = script.Mother.GetModule<Terminal>();
             var echo = script.CaptureEcho();
@@ -101,3 +101,5 @@ namespace MotherCore.Tests.Integration
         }
     }
 }
+
+

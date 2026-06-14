@@ -404,7 +404,7 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Single_Command_Creates_Exactly_One_Coroutine()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
             script.Bus.RunTerminalCommand("help");
@@ -426,7 +426,7 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Semicolon_Commands_Run_Sequentially_In_One_Coroutine()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
             script.Bus.RunTerminalCommand("help; help; help");
@@ -456,7 +456,7 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Parallel_Groups_Launch_One_Coroutine_Per_Group()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
             script.Bus.RunTerminalCommand("{ help; } { help; } { help; }");
@@ -484,7 +484,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C1
         public void Force_Local_Bypasses_Important_Construct_Command()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
 
             // Register "help" as an important command on a remote construct instance.
             long remoteId = script.Mother.Id + 1;
@@ -518,10 +518,11 @@ namespace MotherCore.Tests.Command
         [Test]  // C2
         public void Underscore_Prefix_Resolves_Local_Config_Command()
         {
-            var script = new Script<CoreTestProgram>()
-                .WithCustomData(new CustomDataComposer()
+            var script = ScriptFactory<CoreTestProgram>()
+                    .WithCustomData(new CustomDataComposer()
                     .WithCommand("myAction", "help")
-                    .Build())
+                    .Build()
+                )
                 .Boot();
 
             // Register "myAction" as an important command on a remote construct instance.
@@ -558,7 +559,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C7
         public void Unknown_Command_Prints_CommandNotFound_And_Does_Not_Throw()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             var capture = new PrintCapture(script);
             var terminal = script.Mother.GetModule<Terminal>();
 
@@ -596,7 +597,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C9
         public void Help_Command_Output_Lists_All_Registered_Commands()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             var capture = new PrintCapture(script);
             var terminal = script.Mother.GetModule<Terminal>();
 
@@ -617,7 +618,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C8
         public void Halt_Command_Clears_All_Coroutines()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             var clock = script.Mother.GetModule<Clock>();
 
             // Start long-running coroutines so there is something to clear.
@@ -661,7 +662,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C11
         public void RunTerminalCommand_With_Only_Whitespace_Returns_False()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
             bool result = false;
@@ -689,7 +690,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C5
         public void Wait_Blocks_Subsequent_Commands_In_Same_Coroutine()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             var fakeRuntime = script.Mother.Program.Runtime as FakeGridProgramRuntimeInfo;
 
             script.Bus.RunTerminalCommand("help; wait 2; rename CarrierRenamed");
@@ -729,7 +730,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C6
         public void Config_Command_Expanding_To_Parallel_Groups_Launches_Multiple_Coroutines()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             int bootCount = script.Clock.CoroutineCount;
 
             // Config command whose value is a parallel-group routine.
@@ -764,7 +765,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C12
         public void Wait_In_Parallel_Group_Does_Not_Block_Other_Parallel_Group()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
             int bootCount = script.Clock.CoroutineCount;
             var fakeRuntime = script.Mother.Program.Runtime as FakeGridProgramRuntimeInfo;
 
@@ -821,7 +822,7 @@ namespace MotherCore.Tests.Command
         [Test]  // C3
         public void Important_Config_Command_Is_Resolved_When_No_Construct_Owner()
         {
-            var script = new Script<CoreTestProgram>().Boot();
+            var script = ScriptFactory().Boot();
 
             // Register the important config command directly � no construct owner for "dock".
             script.Mother.ConfigCommands["!dock"] = "help";
@@ -856,5 +857,8 @@ namespace MotherCore.Tests.Command
 
     }
 }
+
+
+
 
 

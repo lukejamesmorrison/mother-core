@@ -7,7 +7,7 @@ using Sandbox.ModAPI.Ingame;
 namespace MotherCore.Tests.Integration
 {
     [Category("Layer:Module")]
-    public class ConnectorModuleTests
+    public class ConnectorModuleTests : TestBase
     {
         [Test]
         public void Run_When_A_Connector_Locks_Emits_Event_Runs_Hook_And_Does_Not_Add_The_Remote_Grid_To_The_Construct()
@@ -16,7 +16,7 @@ namespace MotherCore.Tests.Integration
             var dockedGrid = GridFactory.Create("Shuttle");
             var shuttleBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Shuttle Battery");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory(primaryGrid, "Carrier").Create();
             var connector = script.ConnectGridsViaConnector(
                 primaryGrid,
                 dockedGrid,
@@ -52,7 +52,7 @@ namespace MotherCore.Tests.Integration
             var primaryGrid = GridFactory.Create("Carrier");
             var dockedGrid = GridFactory.Create("Shuttle");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory(primaryGrid, "Carrier").Create();
             var connector = script.ConnectGridsViaConnector(
                 primaryGrid,
                 dockedGrid,
@@ -83,7 +83,7 @@ namespace MotherCore.Tests.Integration
             var primaryGrid = GridFactory.Create("Carrier");
             var dockedGrid = GridFactory.Create("Shuttle");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory(primaryGrid, "Carrier").Create();
             var connector = script.ConnectGridsViaConnector(
                 primaryGrid,
                 dockedGrid,

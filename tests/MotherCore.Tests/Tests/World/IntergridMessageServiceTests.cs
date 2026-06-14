@@ -139,7 +139,7 @@ namespace MotherCore.Tests.Integration
         public void SendRequestFromRoutine_Does_Not_Send_When_Target_Is_Missing()
         {
             var network = new FakeIgcNetwork();
-            var sender = new Script("Sender")
+            var sender = ScriptFactory("Sender")
                 .OnNetwork(network)
                 .Boot();
 
@@ -154,7 +154,7 @@ namespace MotherCore.Tests.Integration
         public void Ping_Does_Not_Send_When_Instance_Is_Not_Relay()
         {
             var network = new FakeIgcNetwork();
-            var script = new Script("RelayCandidate")
+            var script = ScriptFactory("RelayCandidate")
                 .OnNetwork(network)
                 .Boot();
 
@@ -173,7 +173,7 @@ namespace MotherCore.Tests.Integration
         {
             var network = new FakeIgcNetwork();
 
-            var script = new Script("Relay")
+            var script = ScriptFactory("Relay")
                 .OnNetwork(network)
                 .Boot();
 
@@ -193,7 +193,7 @@ namespace MotherCore.Tests.Integration
         public void ConstructPing_Sends_Sync_Request_On_Construct_Channel()
         {
             var network = new FakeIgcNetwork();
-            var script = new Script("ConstructNode")
+            var script = ScriptFactory("ConstructNode")
                 .OnNetwork(network)
                 .Boot();
 
@@ -224,7 +224,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void HandleIncomingIGCMessage_Encrypted_Request_On_Configured_Channel_Is_Processed()
         {
-            var script = new Script("DecryptNode")
+            var script = ScriptFactory("DecryptNode")
                 .WithCustomData(new CustomDataComposer().With("channels", "alpha", "key").Build())
                 .Boot();
 
@@ -251,7 +251,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void HandleIncomingIGCMessage_Encrypted_Request_On_Unknown_Channel_Is_Not_Processed()
         {
-            var script = new Script("DecryptNode")
+            var script = ScriptFactory("DecryptNode")
                 .WithCustomData(new CustomDataComposer().With("channels", "alpha", "key").Build())
                 .Boot();
 
@@ -278,7 +278,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void HandleIncomingIGCMessage_Encrypted_Request_On_Construct_Channel_Without_Passcode_Is_Not_Processed()
         {
-            var script = new Script("DecryptNode")
+            var script = ScriptFactory("DecryptNode")
                 .Boot();
 
             var service = script.Mother.GetModule<IntergridMessageService>();

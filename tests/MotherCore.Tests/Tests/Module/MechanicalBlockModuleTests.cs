@@ -7,7 +7,7 @@ using Sandbox.ModAPI.Ingame;
 namespace MotherCore.Tests.Integration
 {
     [Category("Layer:Module")]
-    public class MechanicalBlockModuleTests
+    public class MechanicalBlockModuleTests : TestBase
     {
         [Test]
         public void Run_When_A_Mechanical_Block_Detaches_Emits_Event_Runs_Hook_And_Prunes_The_Construct()
@@ -16,7 +16,7 @@ namespace MotherCore.Tests.Integration
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory().Create();
 
             var connection = script.ConnectGrids(primaryGrid, cargoGrid);
 
@@ -49,7 +49,7 @@ namespace MotherCore.Tests.Integration
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory().Create();
             var connection = script.ConnectGrids(primaryGrid, cargoGrid);
             connection.CustomData = new CustomDataComposer()
                 .With("hooks", "onAttach", "rename CarrierAttached")
@@ -87,7 +87,7 @@ namespace MotherCore.Tests.Integration
             var droneGrid = GridFactory.Create("Drone Pod");
             var droneBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Drone Battery");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory().Create();
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.Boot();
 
@@ -121,3 +121,6 @@ namespace MotherCore.Tests.Integration
         }
     }
 }
+
+
+

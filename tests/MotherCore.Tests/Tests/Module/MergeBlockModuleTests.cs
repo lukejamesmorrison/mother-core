@@ -9,17 +9,17 @@ using VRage.Game.ModAPI.Ingame;
 namespace MotherCore.Tests.Integration
 {
     [Category("Layer:Module")]
-    public class MergeBlockModuleTests
+    public class MergeBlockModuleTests : TestBase
     {
         sealed class MergeScriptArrangement
         {
-            public MergeScriptArrangement(Script script, IMyShipMergeBlock mergeBlock)
+            public MergeScriptArrangement(Script<CoreTestProgram> script, IMyShipMergeBlock mergeBlock)
             {
                 Script = script;
                 MergeBlock = mergeBlock;
             }
 
-            public Script Script { get; private set; }
+            public Script<CoreTestProgram> Script { get; private set; }
 
             public IMyShipMergeBlock MergeBlock { get; private set; }
         }
@@ -30,7 +30,7 @@ namespace MotherCore.Tests.Integration
             IMyCubeGrid cargoGrid,
             IMyBatteryBlock cargoBattery)
         {
-            var script = new Script("Carrier");
+            var script = ScriptFactory().Boot();
             var mergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
 
             mergeBlock.CustomData = new CustomDataComposer()
@@ -46,7 +46,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Boot_Subscribes_To_ConstructRefreshedEvent()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var mergeModule = script.Mother.GetModule<MergeBlockModule>();
             var eventBus = script.Mother.GetModule<EventBus>();
 
@@ -119,7 +119,7 @@ namespace MotherCore.Tests.Integration
             var scoutGrid = GridFactory.Create("Scout Pod");
             var scoutBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "ScoutBattery");
 
-            var script = new Script("Carrier");
+            var script = ScriptFactory().Boot();
             var firstMergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
             var secondMergeBlock = script.ConnectGridsViaMergeBlock(cargoGrid, scoutGrid);
 
@@ -146,3 +146,5 @@ namespace MotherCore.Tests.Integration
         }
     }
 }
+
+

@@ -13,7 +13,7 @@ namespace MotherCore.Tests.Harness
     /// <see cref="World.RunIGC"/> and <see cref="World.RunMany"/>.
     /// </summary>
     [Category(TestCategories.LayerWorld)]
-    public class WorldTests
+    public class WorldTests : TestBase
     {
         // =====================================================================
         // CreateScript
@@ -426,3 +426,4 @@ namespace MotherCore.Tests.Harness
         }
     }
 }
+

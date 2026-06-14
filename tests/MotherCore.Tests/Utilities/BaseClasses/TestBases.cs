@@ -2,9 +2,46 @@ using IngameScript;
 using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
+using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities
 {
+    /// <summary>
+    /// Common test base that exposes fluent script factory helpers without per-file imports.
+    /// </summary>
+    public abstract class TestBase
+    {
+        protected static ScriptBuilder<CoreTestProgram> ScriptFactory(
+            string gridName = null,
+            IMyCubeGrid primaryGrid = null)
+        {
+            return ScriptFactories.ScriptFactory(gridName, primaryGrid);
+        }
+
+        protected static ScriptBuilder<CoreTestProgram> ScriptFactory(
+            IMyCubeGrid primaryGrid,
+            string gridName = null)
+        {
+            return ScriptFactories.ScriptFactory(primaryGrid, gridName);
+        }
+
+        protected static ScriptBuilder<TProgram> ScriptFactory<TProgram>(
+            string gridName = null,
+            IMyCubeGrid primaryGrid = null)
+            where TProgram : MyGridProgram, new()
+        {
+            return ScriptFactories.ScriptFactory<TProgram>(gridName, primaryGrid);
+        }
+
+        protected static ScriptBuilder<TProgram> ScriptFactory<TProgram>(
+            IMyCubeGrid primaryGrid,
+            string gridName = null)
+            where TProgram : MyGridProgram, new()
+        {
+            return ScriptFactories.ScriptFactory<TProgram>(primaryGrid, gridName);
+        }
+    }
+
     /// <summary>
     /// Base class for integration tests that exercise a single booted script.
     /// Boots a fresh <see cref="Script{TProgram}"/> before each test and exposes
@@ -34,7 +71,7 @@ namespace MotherCore.Tests.Utilities
     /// MotherCore-only tests; use a real script's <c>Program</c> for targeted
     /// module tests inside that script.
     /// </typeparam>
-    public abstract class ScriptTestBase<TProgram>
+    public abstract class ScriptTestBase<TProgram> : TestBase
         where TProgram : MyGridProgram, new()
     {
         /// <summary>The booted script. Available after <see cref="SetUp"/>.</summary>
@@ -50,7 +87,7 @@ namespace MotherCore.Tests.Utilities
         [SetUp]
         public virtual void SetUp()
         {
-            Script = new Script<TProgram>().Boot();
+            Script = ScriptFactory<TProgram>().Boot();
         }
     }
 
@@ -79,7 +116,7 @@ namespace MotherCore.Tests.Utilities
     /// The script's <c>Program</c> type. Use <see cref="CoreTestProgram"/> for
     /// MotherCore-only tests; use a real script's <c>Program</c> for feature tests.
     /// </typeparam>
-    public abstract class ScriptFeatureTestBase<TProgram>
+    public abstract class ScriptFeatureTestBase<TProgram> : TestBase
         where TProgram : MyGridProgram, new()
     {
         /// <summary>The booted script. Available after <see cref="SetUp"/>.</summary>
@@ -102,7 +139,7 @@ namespace MotherCore.Tests.Utilities
         [SetUp]
         public virtual void SetUp()
         {
-            Script = new Script<TProgram>().Boot();
+            Script = ScriptFactory<TProgram>().Boot();
             Echo = Script.CaptureEcho();
         }
     }
@@ -131,7 +168,7 @@ namespace MotherCore.Tests.Utilities
     /// }
     /// </code>
     /// </remarks>
-    public abstract class WorldTestBase
+    public abstract class WorldTestBase : TestBase
     {
         /// <summary>The shared test world. Available after <see cref="SetUp"/>.</summary>
         protected World World { get; private set; }
@@ -149,7 +186,7 @@ namespace MotherCore.Tests.Utilities
     /// </summary>
     /// <typeparam name="TProgram">The script Program type used for boot.</typeparam>
     /// <typeparam name="TModule">The concrete module under test.</typeparam>
-    public abstract class ModuleTestBase<TProgram, TModule>
+    public abstract class ModuleTestBase<TProgram, TModule> : TestBase
         where TProgram : MyGridProgram, new()
         where TModule : BaseModule
     {
@@ -201,7 +238,7 @@ namespace MotherCore.Tests.Utilities
     /// Base class for command-layer tests that execute commands against one booted script.
     /// </summary>
     /// <typeparam name="TProgram">The script Program type used for boot.</typeparam>
-    public abstract class CommandTestBase<TProgram>
+    public abstract class CommandTestBase<TProgram> : TestBase
         where TProgram : MyGridProgram, new()
     {
         /// <summary>
@@ -225,7 +262,7 @@ namespace MotherCore.Tests.Utilities
         [SetUp]
         public virtual void SetUp()
         {
-            Script = ConfigureScript(new Script<TProgram>()).Boot();
+            Script = ConfigureScript(ScriptFactory<TProgram>().Create()).Boot();
         }
 
         /// <summary>

@@ -16,7 +16,7 @@ namespace MotherCore.Tests.Scripts
     /// <see cref="Script{TProgram}.CaptureEcho"/> / <see cref="PrintCapture.ShouldHavePrinted"/>.
     /// </summary>
     [Category(TestCategories.LayerScript)]
-    public class ScriptTests
+    public class ScriptTests : TestBase
     {
         class CountingCommand : BaseModuleCommand
         {
@@ -44,7 +44,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Boot_Exposes_A_Non_Null_CommandBus()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.Bus, Is.Not.Null);
         }
@@ -52,7 +52,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Boot_Exposes_A_Non_Null_ClockDriver()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.Clock, Is.Not.Null);
         }
@@ -60,7 +60,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Boot_Exposes_A_Non_Null_Configuration()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.Config, Is.Not.Null);
         }
@@ -68,7 +68,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Boot_Exposes_A_Non_Null_Program()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.Program, Is.Not.Null);
         }
@@ -76,7 +76,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Boot_Exposes_A_Non_Null_GridTerminalSystem()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.GridTerminalSystem, Is.Not.Null);
         }
@@ -84,7 +84,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Boot_Binds_The_Program_To_The_Harness_GridTerminalSystem()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.Program.GridTerminalSystem, Is.SameAs(script.GridTerminalSystem));
         }
@@ -92,7 +92,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Boot_Defaults_Runtime_UpdateFrequency_To_Update10()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.Program.Runtime.UpdateFrequency, Is.EqualTo(UpdateFrequency.Update10));
         }
@@ -100,7 +100,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void WithUpdateFrequency_Overrides_Runtime_UpdateFrequency_After_Boot()
         {
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithUpdateFrequency(UpdateFrequency.Update1)
                 .Boot();
 
@@ -111,7 +111,7 @@ namespace MotherCore.Tests.Scripts
         public void Boot_Can_Assign_The_Programmable_Block_To_A_Supplied_Primary_Grid()
         {
             var grid = GridFactory.Create("Carrier Grid");
-            var script = new Script(grid).Boot();
+            var script = ScriptFactory(grid).Boot();
 
             Assert.That(script.PrimaryGrid, Is.SameAs(grid));
             Assert.That(script.Program.Me.CubeGrid, Is.SameAs(grid));
@@ -129,7 +129,7 @@ namespace MotherCore.Tests.Scripts
                 .WithCommand("openDoor", "track")
                 .Build();
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithCustomData(customData)
                 .Boot();
 
@@ -145,7 +145,7 @@ namespace MotherCore.Tests.Scripts
         public void WithCommands_Registers_Command_With_Bus()
         {
             var tracker = new CountingCommand("myCmd");
-            var script = new Script().WithCommands(tracker).Boot();
+            var script = ScriptFactory().WithCommands(tracker).Boot();
 
             script.Bus.RunTerminalCommand("myCmd");
             script.Clock.Tick(2);
@@ -158,7 +158,7 @@ namespace MotherCore.Tests.Scripts
         {
             var trackerA = new CountingCommand("cmdA");
             var trackerB = new CountingCommand("cmdB");
-            var script = new Script().WithCommands(trackerA, trackerB).Boot();
+            var script = ScriptFactory().WithCommands(trackerA, trackerB).Boot();
 
             script.Bus.RunTerminalCommand("cmdA");
             script.Bus.RunTerminalCommand("cmdB");
@@ -175,7 +175,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void WithBlock_Registers_Block_In_GridTerminalSystem()
         {
-            var script = new Script();
+            var script = ScriptFactory().Create();
             var connector = script.WithBlock<IMyShipConnector>("Dock A");
 
             script.Boot();
@@ -186,7 +186,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void WithBlock_GenericOverload_Creates_And_Registers_A_Block_By_Type_And_Name()
         {
-            var script = new Script();
+            var script = ScriptFactory().Create();
 
             script.WithBlock<IMyDoor>("Hangar Door");
             script.Boot();
@@ -201,7 +201,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void WithBlock_GenericOverload_Can_Configure_Interface_Specific_State()
         {
-            var script = new Script();
+            var script = ScriptFactory().Create();
 
             var battery = script.WithBlock<IMyBatteryBlock>(
                 "Reserve Battery",
@@ -236,8 +236,9 @@ namespace MotherCore.Tests.Scripts
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var carrierBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Carrier Battery");
-            var script = new Script("Carrier")
-                .WithGrid(cargoGrid);
+            var script = ScriptFactory("Carrier")
+                .WithGrid(cargoGrid)
+                .Create();
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
             script.WithBlock(carrierBattery)
@@ -256,7 +257,7 @@ namespace MotherCore.Tests.Scripts
         public void CreateGrid_Uses_RotorConnection_By_Default()
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
-            var script = new Script("Carrier")
+            var script = ScriptFactory("Carrier")
                 .WithGrid(cargoGrid)
                 .Boot();
 
@@ -272,8 +273,9 @@ namespace MotherCore.Tests.Scripts
         public void CreateGrid_Can_Use_A_PistonConnection_When_Requested()
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
-            var script = new Script("Carrier")
-                .WithGrid(cargoGrid, connectionKind: MechanicalConnectionKind.Piston);
+            var script = ScriptFactory("Carrier")
+                .WithGrid(cargoGrid, connectionKind: MechanicalConnectionKind.Piston)
+                .Create();
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
             script.WithBlock(battery, cargoGrid)
@@ -291,7 +293,7 @@ namespace MotherCore.Tests.Scripts
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
 
-            var script = new Script("Carrier")
+            var script = ScriptFactory("Carrier")
                 .WithGrid(cargoGrid)
                 .Boot();
 
@@ -305,7 +307,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void WithGrid_Can_Create_And_Attach_A_Named_Subgrid_Without_Keeping_A_Reference()
         {
-            var script = new Script("Carrier")
+            var script = ScriptFactory("Carrier")
                 .WithGrid("Cargo Pod")
                 .Boot();
 
@@ -320,7 +322,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void ConnectGrids_Can_Create_A_HingeStyle_Connection_Explicitly()
         {
-            var script = new Script("Carrier");
+            var script = ScriptFactory().Create();
             var armGrid = GridFactory.Create("Arm Grid");
             var hinge = script.ConnectGrids(script.PrimaryGrid, armGrid, MechanicalConnectionKind.Hinge);
 
@@ -338,7 +340,7 @@ namespace MotherCore.Tests.Scripts
             var carrierBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Carrier Battery");
             var shuttleBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Shuttle Battery");
 
-            var script = new Script("Carrier");
+            var script = ScriptFactory().Boot();
             var dock = script.ConnectGridsViaConnector(
                 script.PrimaryGrid,
                 shuttleGrid,
@@ -423,7 +425,7 @@ namespace MotherCore.Tests.Scripts
             var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
             var rightDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Right Door");
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlocks(leftDoor, rightDoor)
                 .WithBlockGroup("Airlocks", leftDoor, rightDoor)
                 .Boot();
@@ -445,7 +447,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Run_Returns_Script_For_Chaining()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             var returned = script.Run(UpdateType.Update10);
 
@@ -455,7 +457,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Run_Terminal_Dispatches_Argument_To_CommandBus()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             script.Run(UpdateType.Terminal, "help");
             script.Clock.RunToIdle();
@@ -466,7 +468,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Run_Terminal_Does_Not_Throw_For_Unknown_Command()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.DoesNotThrow(() => script.Run(UpdateType.Terminal, "unknowncmd"));
         }
@@ -474,7 +476,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Run_Update10_Does_Not_Throw()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.DoesNotThrow(() => script.Run(UpdateType.Update10));
         }
@@ -482,7 +484,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void Run_Can_Be_Called_Multiple_Times()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             script.Run(UpdateType.Terminal, "help");
             script.Clock.RunToIdle();
@@ -499,7 +501,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void CaptureEcho_Returns_A_Non_Null_PrintCapture()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.That(script.CaptureEcho(), Is.Not.Null);
         }
@@ -507,7 +509,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void CaptureEcho_Called_Twice_Returns_Same_Instance()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             var first = script.CaptureEcho();
             var second = script.CaptureEcho();
@@ -518,7 +520,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void CaptureEcho_Captures_Output_Written_Via_Terminal_Echo()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             script.Program.Echo("hello from test");
 
@@ -528,7 +530,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void CaptureEcho_Starts_Empty_After_Boot()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             var capture = script.CaptureEcho();
 
             Assert.That(capture.Lines.Count, Is.EqualTo(0));
@@ -537,7 +539,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void AssertPrinted_Passes_When_Fragment_Is_Present()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
             
             script.Program.Echo("expected output");
 
@@ -547,7 +549,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void AssertPrinted_Throws_When_Fragment_Is_Absent()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             Assert.Throws<AssertionException>(() => script.ShouldHavePrinted("was never printed"));
         }
@@ -555,7 +557,7 @@ namespace MotherCore.Tests.Scripts
         [Test]
         public void ShouldNotHavePrinted_Throws_When_Fragment_Is_Present()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Boot();
 
             script.Program.Echo("present line");
 
@@ -563,3 +565,7 @@ namespace MotherCore.Tests.Scripts
         }
     }
 }
+
+
+
+

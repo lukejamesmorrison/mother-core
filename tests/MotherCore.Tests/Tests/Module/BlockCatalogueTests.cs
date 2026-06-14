@@ -16,7 +16,7 @@ namespace MotherCore.Tests.Integration
         {
             //var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
             var door = new FakeDoor(customName: "Hangar Door");
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
 
@@ -37,7 +37,7 @@ namespace MotherCore.Tests.Integration
         public void SetBlockWithTag_Adds_Tag_Targeting_And_Updates_Block_Configuration()
         {
             var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
 
@@ -58,7 +58,7 @@ namespace MotherCore.Tests.Integration
             var auxBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Aux Battery");
             var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlocks(primaryBattery, auxBattery, door)
                 .Boot();
 
@@ -77,7 +77,7 @@ namespace MotherCore.Tests.Integration
             var primaryBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Primary Battery");
             var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory().Create();
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.WithBlock(primaryBattery, primaryGrid);
             script.WithBlock(cargoBattery, cargoGrid);
@@ -101,7 +101,7 @@ namespace MotherCore.Tests.Integration
             var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
             var rightDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Right Door");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory().Create();
             script.ConnectGrids(primaryGrid, airlockGrid);
             script.WithBlock(leftDoor, primaryGrid);
             script.WithBlock(rightDoor, airlockGrid);
@@ -121,7 +121,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetBlockConfiguration_Returns_An_Empty_Ini_For_An_Untracked_Block()
         {
-            var script = new Script().Boot();
+            var script = ScriptFactory().Create();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
             var untrackedDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Loose Door");
 
@@ -138,7 +138,7 @@ namespace MotherCore.Tests.Integration
                 .With("status", "mode", "sealed")
                 .Build();
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
 
@@ -159,7 +159,7 @@ namespace MotherCore.Tests.Integration
                 .With("general", "tags", "airlock, hangar, cargo")
                 .Build();
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
 
@@ -176,7 +176,7 @@ namespace MotherCore.Tests.Integration
             var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
             var rightDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Right Door");
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlocks(leftDoor, rightDoor)
                 .WithBlockGroup("Airlocks", leftDoor, rightDoor)
                 .Boot();
@@ -200,7 +200,7 @@ namespace MotherCore.Tests.Integration
             var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
             var rightDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Right Door");
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlocks(leftDoor, rightDoor)
                 .Boot();
 
@@ -221,7 +221,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void OnMechanicalBlockAttached_Adds_Newly_Connected_Grid_Blocks_To_The_Construct()
         {
-            var script = new Script("Carrier").Boot();
+            var script = ScriptFactory().Create();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
             var cargoGrid = GridFactory.Create("Cargo Pod");
@@ -248,7 +248,7 @@ namespace MotherCore.Tests.Integration
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory().Create();
 
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.WithBlock(battery, cargoGrid);
@@ -274,7 +274,7 @@ namespace MotherCore.Tests.Integration
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            var script = new Script(primaryGrid, "Carrier");
+            var script = ScriptFactory().Create();
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.WithBlock(battery, cargoGrid);
             script.Boot();
@@ -298,7 +298,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void RefreshConstruct_Adds_New_Connected_Grid_And_Emits_ConstructRefreshedEvent()
         {
-            var script = new Script("Carrier").Boot();
+            var script = ScriptFactory().Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
             var scoutGrid = GridFactory.Create("Scout Pod");
@@ -325,7 +325,7 @@ namespace MotherCore.Tests.Integration
                 .With("hooks", "opened", "rename HangarOpen")
                 .Build();
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
 
@@ -341,7 +341,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void HandleEvent_For_MergeBlockLocked_Refreshes_Construct_And_Emits_ConstructRefreshedEvent()
         {
-            var script = new Script("Carrier").Boot();
+            var script = ScriptFactory().Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
             var scoutGrid = GridFactory.Create("Scout Pod");
@@ -364,7 +364,7 @@ namespace MotherCore.Tests.Integration
         {
             var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
 
-            var script = new Script()
+            var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
 
@@ -382,3 +382,6 @@ namespace MotherCore.Tests.Integration
         }
     }
 }
+
+
+
