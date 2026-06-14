@@ -6,13 +6,17 @@ using VRageMath;
 namespace MotherCore.Tests.Command
 {
     [Category(TestCategories.LayerCommand)]
-    public class PurgeCommandTests : ScriptTestBase<CoreTestProgram>
+    public class PurgeCommandTests : TestBase
     {
         [Test]
         public void Execute_Without_Force_Returns_Force_Guidance_And_Does_Not_Purge()
         {
-            var command = new PurgeCommand(Mother);
-            var storage = Mother.GetModule<LocalStorage>();
+            var script = ScriptFactory().WithMother().Boot();
+            var mother = script.Mother;
+
+
+            var command = new PurgeCommand(mother);
+            var storage = mother.GetModule<LocalStorage>();
 
             storage.Set("ship", "Frigate");
 
@@ -25,7 +29,10 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Execute_With_Force_And_No_Arguments_Returns_NoArgumentsProvided()
         {
-            var command = new PurgeCommand(Mother);
+            var script = ScriptFactory().WithMother().Boot();
+            var mother = script.Mother;
+
+            var command = new PurgeCommand(mother);
 
             var result = command.Execute(new TerminalCommand("purge --force"));
 
@@ -35,7 +42,9 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Execute_With_Force_And_Unknown_Module_Returns_No_Modules_Purged()
         {
-            var command = new PurgeCommand(Mother);
+            var script = ScriptFactory().WithMother().Boot();
+            var mother = script.Mother;
+            var command = new PurgeCommand(mother);
 
             var result = command.Execute(new TerminalCommand("purge unknown --force"));
 
@@ -45,8 +54,10 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Execute_With_Force_Purges_Storage_Module()
         {
-            var command = new PurgeCommand(Mother);
-            var storage = Mother.GetModule<LocalStorage>();
+            var script = ScriptFactory().WithMother().Boot();
+            var mother = script.Mother;
+            var command = new PurgeCommand(mother);
+            var storage = mother.GetModule<LocalStorage>();
 
             storage.Set("ship", "Frigate");
 
@@ -59,8 +70,10 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Execute_With_Force_Purges_Almanac_Module()
         {
-            var command = new PurgeCommand(Mother);
-            var almanac = Mother.GetModule<Almanac>();
+            var script = ScriptFactory().WithMother().Boot();
+            var mother = script.Mother;
+            var command = new PurgeCommand(mother);
+            var almanac = mother.GetModule<Almanac>();
 
             almanac.AddRecord(new AlmanacRecord("wp-1", "waypoint", new Vector3D(1, 2, 3)));
 
@@ -72,9 +85,11 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Execute_With_Force_And_Wildcard_Purges_Almanac_And_Storage()
         {
-            var command = new PurgeCommand(Mother);
-            var almanac = Mother.GetModule<Almanac>();
-            var storage = Mother.GetModule<LocalStorage>();
+            var script = ScriptFactory().WithMother().Boot();
+            var mother = script.Mother;
+            var command = new PurgeCommand(mother);
+            var almanac = mother.GetModule<Almanac>();
+            var storage = mother.GetModule<LocalStorage>();
 
             almanac.AddRecord(new AlmanacRecord("wp-1", "waypoint", new Vector3D(1, 2, 3)));
             storage.Set("ship", "Frigate");
@@ -88,8 +103,10 @@ namespace MotherCore.Tests.Command
         [Test]
         public void Execute_Does_Not_Keep_Force_State_Between_Invocations()
         {
-            var command = new PurgeCommand(Mother);
-            var storage = Mother.GetModule<LocalStorage>();
+            var script = ScriptFactory().WithMother().Boot();
+            var mother = script.Mother;
+            var command = new PurgeCommand(mother);
+            var storage = mother.GetModule<LocalStorage>();
 
             storage.Set("first", "value");
             var forced = command.Execute(new TerminalCommand("purge storage --force"));
