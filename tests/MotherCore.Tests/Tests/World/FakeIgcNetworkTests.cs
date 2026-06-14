@@ -60,8 +60,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
-            var shipB = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
+            var shipB = ScriptFactory("ShipB").OnNetwork(network).Boot();
 
             var almanac = shipA.Mother.GetModule<Almanac>();
             var record = almanac.GetRecord("ShipB");
@@ -75,9 +75,9 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
-            var shipB = ScriptFactory().Boot();
-            var shipC = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
+            var shipB = ScriptFactory("ShipB").OnNetwork(network).Boot();
+            var shipC = ScriptFactory("ShipC").OnNetwork(network).Boot();
 
             var almanacA = shipA.Mother.GetModule<Almanac>();
             var almanacB = shipB.Mother.GetModule<Almanac>();
@@ -100,8 +100,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
-            var shipB = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
+            var shipB = ScriptFactory("ShipB").OnNetwork(network).Boot();
 
             shipA.RunTerminal("@ShipB help");
             shipA.RunToIdle();
@@ -115,7 +115,7 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
             ScriptFactory("ShipB").OnNetwork(network).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
@@ -135,8 +135,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
-            var shipB = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
+            var shipB = ScriptFactory("ShipB").OnNetwork(network).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -156,8 +156,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
-            var shipB = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
+            var shipB = ScriptFactory("ShipB").OnNetwork(network).Boot();
 
             shipA.RunTerminal("@ShipB help");
             shipA.RunToIdle();
@@ -191,8 +191,8 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
-            var shipB = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
+            var shipB = ScriptFactory("ShipB").OnNetwork(network).Boot();
 
             shipA.Bus.RunTerminalCommand("@ShipB help");
             shipA.Clock.RunToIdle();
@@ -336,14 +336,14 @@ namespace MotherCore.Tests.World
         {
             var network = new FakeIgcNetwork();
 
-            var shipA = ScriptFactory().Boot();
-            var shipB = ScriptFactory().Boot();
-            var shipC = ScriptFactory().Boot();
+            var shipA = ScriptFactory("ShipA").OnNetwork(network).Boot();
+            var shipB = ScriptFactory("ShipB").OnNetwork(network).Boot();
+            var shipC = ScriptFactory("ShipC").OnNetwork(network).Boot();
 
             Assert.That(network.Scripts.Count, Is.EqualTo(3));
-            Assert.That(network.Scripts[0].Mother.Name, Is.EqualTo("ShipA"));
-            Assert.That(network.Scripts[1].Mother.Name, Is.EqualTo("ShipB"));
-            Assert.That(network.Scripts[2].Mother.Name, Is.EqualTo("ShipC"));
+            Assert.That(network.Scripts[0].Name, Is.EqualTo("ShipA"));
+            Assert.That(network.Scripts[1].Name, Is.EqualTo("ShipB"));
+            Assert.That(network.Scripts[2].Name, Is.EqualTo("ShipC"));
         }
 
         [Test]

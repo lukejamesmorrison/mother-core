@@ -20,6 +20,17 @@ need a transport-only phase.
 
 The utilities root stays in `MotherCore.Tests.Utilities`; focused sub-areas such as `Factories` and `Mocks` use child namespaces when that makes the role clearer.
 
+Timing model used by the harness follows the game loop target of 60 ticks per second:
+
+- `Update1` corresponds to 1/60 second.
+- `Update10` corresponds to 10/60 second.
+- `Update100` corresponds to 100/60 second.
+
+Execution and clock helpers are intentionally split:
+
+- `Run(...)` methods execute script logic (`Program.Main`) using either the default runtime update type or an explicit `UpdateType` argument.
+- `Tick()` advances clock time only and does not execute `Program.Main`.
+
 The current harness direction is explicit over generic: common game-facing interfaces
 should be represented by concrete fake types, and unsupported families should fail
 fast so new coverage gets added deliberately.

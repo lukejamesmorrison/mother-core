@@ -15,7 +15,9 @@ using VRage.Game.ModAPI.Ingame.Utilities;
 namespace MotherCore.Tests.Utilities
 {
     /// <summary>
-    /// Orchestrates a complete Mother script boot cycle for use in tests.
+    /// Orchestrates programmable block script boot and execution for tests.
+    /// Supports both Mother-backed scripts and plain <see cref="MyGridProgram"/>
+    /// implementations.
     /// </summary>
     /// <typeparam name="TProgram">
     /// The script's <c>Program</c> type. Must be a <see cref="MyGridProgram"/> subclass
@@ -83,13 +85,16 @@ namespace MotherCore.Tests.Utilities
     /// }
     /// </code>
     /// </remarks>
-    public class Script<TProgram> : IScript
+    public class Script<TProgram> : IScript, IAlmanacSyncTarget
         where TProgram : MyGridProgram, new()
     {
+        const double TickRateHz = 60d;
+
         Mother _mother;
         string _customData;
         string _storage;
         IMyIntergridCommunicationSystem _igc;
+        IMyIntergridCommunicationSystem _resolvedIgc;
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
         FakeIgcNetwork _network;
         FakeIgcNetwork _defaultNetwork;
@@ -98,6 +103,7 @@ namespace MotherCore.Tests.Utilities
         PrintCapture _printCapture;
         bool _ensureDefaultPublicChannel;
         UpdateFrequency? _requestedUpdateFrequency;
+        string _resolvedName;
 
         const string ChannelsSectionName = "channels";
         const string PublicChannelName = "*";
@@ -160,6 +166,21 @@ namespace MotherCore.Tests.Utilities
         public Mother Mother => _mother;
 
         /// <summary>
+        /// True when this script booted with a Mother runtime.
+        /// </summary>
+        public bool HasMother => _mother != null;
+
+        /// <summary>
+        /// Non-generic view of the underlying program for runtime services.
+        /// </summary>
+        public Sandbox.ModAPI.IMyGridProgram ProgramInstance => Program;
+
+        /// <summary>
+        /// Runtime script name used for world-level lookup and addressing.
+        /// </summary>
+        public string Name => _resolvedName ?? _gridName ?? PrimaryGrid?.CustomName ?? "Unknown";
+
+        /// <summary>
         /// The booted <typeparamref name="TProgram"/> instance.
         /// Use this to access script-specific state after boot.
         /// Available after <see cref="Boot"/> is called.
@@ -171,7 +192,16 @@ namespace MotherCore.Tests.Utilities
         /// When joined to a <see cref="FakeIgcNetwork"/> this is the script's
         /// <see cref="FakeIgc"/>; use <see cref="NetworkIGC"/> for the typed reference.
         /// </summary>
-        public IMyIntergridCommunicationSystem IGC => _mother.IGC;
+        public IMyIntergridCommunicationSystem IGC
+        {
+            get
+            {
+                if (_mother != null)
+                    return _mother.IGC;
+
+                return _resolvedIgc;
+            }
+        }
 
         /// <summary>
         /// The typed <see cref="FakeIgc"/> for this script.
@@ -271,27 +301,32 @@ namespace MotherCore.Tests.Utilities
 
         void SyncConstructCommandsOnBoot()
         {
-            if (_network == null)
+            if (_network == null || _mother == null)
                 return;
 
             var selfBus = _mother.GetModule<CommandBus>();
             var selfCommands = selfBus.GetSelfCommandNames();
 
-            foreach (var session in _network.Scripts)
+            foreach (var runtimeScript in _network.Scripts)
             {
-                if (ReferenceEquals(session, this))
+                if (ReferenceEquals(runtimeScript, this))
                     continue;
 
-                if (!session.Mother.CubeGrid.IsSameConstructAs(_mother.CubeGrid))
+                var script = runtimeScript as IScript;
+
+                if (script == null || script.Mother == null)
                     continue;
 
-                var remoteBus = session.Mother.GetModule<CommandBus>();
+                if (!script.Mother.CubeGrid.IsSameConstructAs(_mother.CubeGrid))
+                    continue;
+
+                var remoteBus = script.Mother.GetModule<CommandBus>();
                 var remoteCommands = remoteBus.GetSelfCommandNames();
 
                 // Mirror construct sync results immediately after boot so tests
                 // start from a construct-aware state without requiring manual
                 // scheduler priming.
-                selfBus.RegisterRemoteCommands(session.Mother.Id, remoteCommands);
+                selfBus.RegisterRemoteCommands(script.Mother.Id, remoteCommands);
                 remoteBus.RegisterRemoteCommands(_mother.Id, selfCommands);
             }
         }
@@ -526,11 +561,12 @@ namespace MotherCore.Tests.Utilities
         /// Called after the <typeparamref name="TProgram"/> constructor has run
         /// (so all script modules are already registered) but before any module
         /// is booted. Override to inject test-only modules or perform pre-boot setup.
+        /// For non-Mother programs, <paramref name="mother"/> is null.
         /// </summary>
         protected virtual void OnBeforeBoot(Mother mother) { }
 
         /// <summary>
-        /// Runs one <c>Mother.Run</c> cycle using the script runtime's current
+        /// Runs one script cycle using the script runtime's current
         /// <see cref="UpdateFrequency"/> mapped to its runtime <see cref="UpdateType"/>
         /// counterpart. Defaults to <see cref="UpdateType.Update10"/> when no runtime
         /// frequency is available.
@@ -562,20 +598,28 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// Runs one <c>Mother.Run</c> cycle, mirroring a real
+        /// Runs one script cycle, mirroring a real
         /// <c>Program.Main(argument, updateType)</c> call.
         /// Returns <c>this</c> for chaining. Must be called after <see cref="Boot"/>.
         /// </summary>
         public Script<TProgram> Run(UpdateType updateType, string argument = "")
         {
-            _mother.Run(argument, updateType);
+            Assert.That(Program, Is.Not.Null,
+                "Expected a booted script, but Program was null.");
+
+            ApplyRunDelta(updateType);
+
+            if (_mother != null)
+                _mother.Run(argument, updateType);
+            else
+                InvokeProgramMain(argument ?? string.Empty, updateType);
+
             return this;
         }
 
         /// <summary>
-        /// Runs one <c>Mother.Run</c> cycle using argument-first ordering,
-        /// which reads closer to user-entered command flow.
-        /// Returns <c>this</c> for chaining.
+        /// Runs one script cycle using argument-first ordering, which reads
+        /// closer to user-entered command flow. Returns <c>this</c> for chaining.
         /// </summary>
         public Script<TProgram> Run(string argument, UpdateType updateType)
         {
@@ -600,22 +644,29 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// Advances this script's clock by one cycle.
+        /// Advances this script's clock by one game tick (1/60s) without running
+        /// <c>Program.Main</c>. Use <see cref="Run"/> methods to execute script logic.
         /// </summary>
         public Script<TProgram> Tick()
         {
-            Clock.Tick();
+            if (Clock != null)
+                Clock.Tick();
+            else
+                AdvanceRuntimeByTicks(1);
+
             return this;
         }
 
         /// <summary>
-        /// Runs full script cycles using the default runtime update type
-        /// (<see cref="UpdateType.Update10"/>) until clock work is drained
-        /// (no active coroutines and no queued tasks), or <paramref name="maxTicks"/>
-        /// is reached.
+        /// Mother-only helper that runs full script cycles using the default runtime
+        /// update type until Mother's clock work is drained (no active coroutines and
+        /// no queued tasks), or <paramref name="maxTicks"/> is reached.
         /// </summary>
         public Script<TProgram> RunToIdle(int maxTicks = 100)
         {
+            Assert.That(_mother, Is.Not.Null,
+                "RunToIdle requires a Mother runtime. For non-Mother scripts, drive execution with Run(...) and advance time with Tick().");
+
             var clock = _mother.GetModule<Clock>();
 
             for (int i = 0; i < maxTicks; i++)
@@ -630,25 +681,43 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// 
+        /// Advances runtime time by one world tick (1/60 second) without invoking
+        /// script logic.
         /// </summary>
-        void IScript.Tick()
+        void IRuntimeScript.Tick()
         {
             Tick();
         }
 
         /// <summary>
+        /// Executes one script update with the supplied update type and argument.
         /// </summary>
-        void IScript.Run(UpdateType updateType, string argument)
+        void IRuntimeScript.Run(UpdateType updateType, string argument)
         {
             Run(updateType, argument);
         }
 
         /// <summary>
+        /// Optional Almanac sync hook used by <see cref="FakeIgcNetwork"/>.
+        /// No-op for non-Mother scripts or when Almanac is unavailable.
         /// </summary>
-        void IScript.RunToIdle(int maxTicks)
+        public void SyncPeerToAlmanac(string peerName, long peerUnicastId)
         {
-            RunToIdle(maxTicks);
+            var almanac = _mother != null ? _mother.GetModule<Almanac>() : null;
+
+            if (almanac == null)
+                return;
+
+            almanac.UpdateOrCreateFromMessage(
+                peerName,
+                peerUnicastId,
+                peerName,
+                new VRageMath.Vector3D(0, 0, 0),
+                0f,
+                new HashSet<string>(),
+                true,
+                null,
+                null);
         }
 
         /// <summary>
@@ -916,7 +985,7 @@ namespace MotherCore.Tests.Utilities
         /// Walks the type hierarchy so scripts that use partial classes or base classes
         /// are handled transparently.
         /// </summary>
-        static Mother FindMother(MyGridProgram program)
+        static Mother TryFindMother(MyGridProgram program)
         {
             var type = program.GetType();
 
@@ -933,18 +1002,92 @@ namespace MotherCore.Tests.Utilities
                 type = type.BaseType;
             }
 
-            throw new System.InvalidOperationException(
-                $"No field of type Mother was found on {program.GetType().Name}. " +
-                "Ensure the Program constructor creates a Mother instance and stores it in a field.");
+            return null;
+        }
+
+        static TimeSpan GetDeltaForUpdateType(UpdateType updateType)
+        {
+            if ((updateType & UpdateType.Update100) != 0)
+                return TimeSpan.FromSeconds(100d / TickRateHz);
+
+            if ((updateType & UpdateType.Update10) != 0)
+                return TimeSpan.FromSeconds(10d / TickRateHz);
+
+            if ((updateType & UpdateType.Update1) != 0)
+                return TimeSpan.FromSeconds(1d / TickRateHz);
+
+            return TimeSpan.FromSeconds(1d / TickRateHz);
+        }
+
+        void ApplyRunDelta(UpdateType updateType)
+        {
+            var runtime = Program?.Runtime as FakeGridProgramRuntimeInfo;
+
+            if (runtime == null)
+                return;
+
+            runtime.TimeSinceLastRun = GetDeltaForUpdateType(updateType);
+            runtime.LifetimeTicks += 1;
+        }
+
+        void AdvanceRuntimeByTicks(int tickCount)
+        {
+            var runtime = Program?.Runtime as FakeGridProgramRuntimeInfo;
+
+            if (runtime == null)
+                return;
+
+            runtime.TimeSinceLastRun = runtime.TimeSinceLastRun + TimeSpan.FromSeconds(tickCount / TickRateHz);
+            runtime.LifetimeTicks += tickCount;
+        }
+
+        void ResolveScriptName()
+        {
+            if (_mother != null)
+            {
+                if (!string.IsNullOrEmpty(_gridName))
+                    _mother.Name = _gridName;
+                else if (string.IsNullOrEmpty(_mother.Name))
+                    _mother.Name = $"grid-{_mother.Id}";
+
+                _resolvedName = _mother.Name;
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(_gridName))
+                _resolvedName = _gridName;
+            else if (!string.IsNullOrEmpty(PrimaryGrid?.CustomName))
+                _resolvedName = PrimaryGrid.CustomName;
+            else
+                _resolvedName = $"grid-{Program?.Me?.EntityId ?? 0}";
+        }
+
+        void InvokeProgramMain(string argument, UpdateType updateType)
+        {
+            var mainMethod = Program.GetType().GetMethod(
+                "Main",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null,
+                new[] { typeof(string), typeof(UpdateType) },
+                null);
+
+            if (mainMethod == null)
+            {
+                throw new InvalidOperationException(
+                    "Program does not expose Main(string, UpdateType). " +
+                    "Ensure the script follows the programmable block Main signature.");
+            }
+
+            mainMethod.Invoke(Program, new object[] { argument, updateType });
         }
 
         /// <summary>
         /// Constructs the <typeparamref name="TProgram"/> (injecting a
-        /// <see cref="FakeIgc"/> when joined to a network), extracts the
-        /// <see cref="Mother"/> the constructor created, applies
-        /// <c>CustomData</c>, calls <see cref="OnBeforeBoot"/>, boots all
-        /// registered modules, and — if on a network — cross-registers this
-        /// script in every other booted script's Almanac.
+        /// <see cref="FakeIgc"/> when joined to a network), resolves the optional
+        /// <see cref="Mother"/> created by the program constructor, applies
+        /// <c>CustomData</c>, calls <see cref="OnBeforeBoot"/>, and boots the
+        /// Mother runtime when present. If on a network, the script is registered
+        /// for peer discovery using its resolved runtime name.
         /// Returns <c>this</c> so the call can be chained inline.
         /// </summary>
         public Script<TProgram> Boot()
@@ -960,10 +1103,12 @@ namespace MotherCore.Tests.Utilities
             if (_network != null)
             {
                 NetworkIGC = _network.CreateNetworkEndpoint();
+                _resolvedIgc = NetworkIGC;
                 builder = builder.WithIgc(NetworkIGC);
             }
             else if (_igc != null)
             {
+                _resolvedIgc = _igc;
                 builder = builder.WithIgc(_igc);
             }
 
@@ -981,47 +1126,51 @@ namespace MotherCore.Tests.Utilities
             TProgram program = builder.Build();
 
             Program = program;
-            _mother = FindMother(program);
+            _mother = TryFindMother(program);
             _printCapture = new PrintCapture(this);
 
             var effectiveCustomData = BuildEffectiveCustomData();
-            if (effectiveCustomData != null)
+            if (_mother != null && effectiveCustomData != null)
                 _mother.ProgrammableBlock.CustomData = effectiveCustomData;
+            else if (effectiveCustomData != null)
+                Program.Me.CustomData = effectiveCustomData;
 
             OnBeforeBoot(_mother);
 
-            // Delegate to Mother's own boot sequence, then drive the clock tick by tick
-            // until the system reaches WORKING state. We stop at WORKING rather than
-            // RunToIdle() so persistent module coroutines (e.g. BlockCatalogue refresh)
-            // are not over-driven and do not interfere with per-test clock assertions.
-            _mother.Boot();
+            if (_mother != null)
+            {
+                // Delegate to Mother's own boot sequence, then drive the clock tick by tick
+                // until the system reaches WORKING state. We stop at WORKING rather than
+                // RunToIdle() so persistent module coroutines (e.g. BlockCatalogue refresh)
+                // are not over-driven and do not interfere with per-test clock assertions.
+                _mother.Boot();
+            }
 
             if (_requestedUpdateFrequency.HasValue)
                 Program.Runtime.UpdateFrequency = _requestedUpdateFrequency.Value;
 
-            var clock = _mother.GetModule<Clock>();
+            if (_mother != null)
+            {
+                var clock = _mother.GetModule<Clock>();
 
-            for (int i = 0; i < 500 && _mother.SystemState != Mother.SystemStates.WORKING; i++)
-                clock.Run();
+                for (int i = 0; i < 500 && _mother.SystemState != Mother.SystemStates.WORKING; i++)
+                    clock.Run();
 
-            if (!string.IsNullOrEmpty(_gridName))
-                _mother.Name = _gridName;
+                foreach (var command in _commands)
+                    _mother.GetModule<CommandBus>().RegisterCommand(command);
 
-            else if (string.IsNullOrEmpty(_mother.Name))
-                _mother.Name = $"grid-{_mother.Id}";
+                Config = _mother.GetModule<Configuration>();
+                Bus = _mother.GetModule<CommandBus>();
+                Clock = new ClockDriver(clock);
+            }
 
-            foreach (var command in _commands)
-                _mother.GetModule<CommandBus>().RegisterCommand(command);
-
-            Config = _mother.GetModule<Configuration>();
-            Bus = _mother.GetModule<CommandBus>();
-            Clock = new ClockDriver(clock);
+            ResolveScriptName();
 
             // Start each test with a clean echo buffer while still capturing
             // anything printed after boot without extra setup.
             _printCapture.Clear();
 
-            _network?.RegisterScript(this, _mother.Name);
+            _network?.RegisterScript(this, Name);
             SyncConstructCommandsOnBoot();
 
             return this;

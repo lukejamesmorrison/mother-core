@@ -5,6 +5,7 @@ using MotherCore.Tests.Utilities.Factories;
 using MotherCore.Tests.Utilities.Mocks;
 using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
+using System;
 using System.Linq;
 using VRage.Game.ModAPI.Ingame;
 
@@ -18,6 +19,28 @@ namespace MotherCore.Tests.Scripts
     [Category(TestCategories.LayerScript)]
     public class ScriptTests : TestBase
     {
+        class PlainProgram : MyGridProgram
+        {
+            public int MainCalls { get; private set; }
+
+            public string LastArgument { get; private set; }
+
+            public UpdateType LastUpdateType { get; private set; }
+
+            public void Main(string argument, UpdateType updateType)
+            {
+                MainCalls++;
+                LastArgument = argument;
+                LastUpdateType = updateType;
+                Echo("plain-main");
+            }
+
+            public void Save()
+            {
+                Storage = "Plain storage string";
+            }
+        }
+
         class CountingCommand : BaseModuleCommand
         {
             readonly string _name;
@@ -71,6 +94,76 @@ namespace MotherCore.Tests.Scripts
             var script = ScriptFactory().Boot();
 
             Assert.That(script.Program, Is.Not.Null);
+        }
+
+        [Test]
+        public void Boot_With_NonMother_Program_Completes_And_Leaves_Mother_Null()
+        {
+            var script = ScriptFactory<PlainProgram>().Boot();
+
+            Assert.That(script.Program, Is.Not.Null);
+            Assert.That(script.Mother, Is.Null);
+            Assert.That(script.HasMother, Is.False);
+        }
+
+        [Test]
+        public void Tick_On_NonMother_Program_Advances_Time_Without_Running_Main()
+        {
+            var script = ScriptFactory<PlainProgram>().Boot();
+
+            script.Tick();
+
+            Assert.That(script.Program.MainCalls, Is.EqualTo(0));
+            Assert.That(script.Program.Runtime.TimeSinceLastRun,
+                Is.EqualTo(TimeSpan.FromSeconds(1d / 60d)).Within(TimeSpan.FromMilliseconds(1)));
+        }
+
+        [Test]
+        public void Run_Default_On_NonMother_Program_Uses_Runtime_UpdateFrequency()
+        {
+            var script = ScriptFactory<PlainProgram>()
+                .WithUpdateFrequency(UpdateFrequency.Update1)
+                .Boot();
+
+            script.Run("ping");
+
+            Assert.That(script.Program.MainCalls, Is.EqualTo(1));
+            Assert.That(script.Program.LastArgument, Is.EqualTo("ping"));
+            Assert.That(script.Program.LastUpdateType, Is.EqualTo(UpdateType.Update1));
+        }
+
+        [Test]
+        public void Run_With_Explicit_UpdateType_On_NonMother_Program_Uses_Provided_Value()
+        {
+            var script = ScriptFactory<PlainProgram>().Boot();
+
+            script.Run(UpdateType.Update100, "pulse");
+
+            Assert.That(script.Program.MainCalls, Is.EqualTo(1));
+            Assert.That(script.Program.LastArgument, Is.EqualTo("pulse"));
+            Assert.That(script.Program.LastUpdateType, Is.EqualTo(UpdateType.Update100));
+            Assert.That(script.Program.Runtime.TimeSinceLastRun,
+                Is.EqualTo(TimeSpan.FromSeconds(100d / 60d)).Within(TimeSpan.FromMilliseconds(1)));
+        }
+
+        [Test]
+        public void RunToIdle_On_NonMother_Program_Throws_With_Guidance()
+        {
+            var script = ScriptFactory<PlainProgram>().Boot();
+
+            Assert.That(
+                () => script.RunToIdle(),
+                Throws.Exception.With.Message.Contains("RunToIdle requires a Mother runtime"));
+        }
+
+        [Test]
+        public void CaptureEcho_Works_For_NonMother_Program()
+        {
+            var script = ScriptFactory<PlainProgram>().Boot();
+
+            script.RunTerminal("hello");
+
+            script.ShouldHavePrinted("plain-main");
         }
 
         [Test]

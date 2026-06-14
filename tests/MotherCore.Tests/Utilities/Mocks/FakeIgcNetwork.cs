@@ -41,13 +41,13 @@ namespace MotherCore.Tests.Utilities.Mocks
     {
         sealed class RegisteredScript
         {
-            public RegisteredScript(IScript session, string gridName)
+            public RegisteredScript(IRuntimeScript script, string gridName)
             {
-                Session = session;
+                Script = script;
                 GridName = gridName;
             }
 
-            public IScript Session { get; private set; }
+            public IRuntimeScript Script { get; private set; }
 
             public string GridName { get; private set; }
         }
@@ -91,7 +91,7 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// <summary>
         /// Registered scripts ordered by registration time.
         /// </summary>
-        public IReadOnlyList<IScript> Scripts => _scripts.Select(s => s.Session).ToList();
+        public IReadOnlyList<IRuntimeScript> Scripts => _scripts.Select(s => s.Script).ToList();
 
         /// <summary>
         /// Number of queued transport deliveries waiting for <see cref="Deliver"/>.
@@ -130,12 +130,12 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// </summary>
         /// <param name="script">The newly booted script to register.</param>
         /// <param name="gridName">The script name used for Almanac identity and addressing.</param>
-        internal void RegisterScript(IScript script, string gridName)
+        internal void RegisterScript(IRuntimeScript script, string gridName)
         {
             foreach (var existing in _scripts)
             {
-                SyncToAlmanac(script, existing.Session, existing.GridName);
-                SyncToAlmanac(existing.Session, script, gridName);
+                SyncToAlmanac(script, existing.Script, existing.GridName);
+                SyncToAlmanac(existing.Script, script, gridName);
             }
 
             _scripts.Add(new RegisteredScript(script, gridName));
@@ -147,20 +147,14 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// <param name="recipient">The script that will receive the Almanac update.</param>
         /// <param name="subject">The script that is the subject of the Almanac update.</param>
         /// <param name="subjectName">The grid name of the subject script.</param>
-        static void SyncToAlmanac(IScript recipient, IScript subject, string subjectName)
+        static void SyncToAlmanac(IRuntimeScript recipient, IRuntimeScript subject, string subjectName)
         {
-            var almanac = recipient.Mother.GetModule<Almanac>();
+            var syncTarget = recipient as IAlmanacSyncTarget;
 
-            if (almanac == null) return;
+            if (syncTarget == null)
+                return;
 
-            almanac.UpdateOrCreateFromMessage(
-                subjectName, subject.IGC.Me, subjectName,
-                new VRageMath.Vector3D(0, 0, 0), 0f,
-                new HashSet<string>(), 
-                true, 
-                null, 
-                null
-            );
+            syncTarget.SyncPeerToAlmanac(subjectName, subject.IGC.Me);
         }
 
         /// <summary>
@@ -196,7 +190,7 @@ namespace MotherCore.Tests.Utilities.Mocks
 
             foreach (var registration in _scripts)
             {
-                var script = registration.Session;
+                var script = registration.Script;
                 var igc = script.IGC as FakeIgc;
 
                 if (igc?.HasPendingMessages == true)

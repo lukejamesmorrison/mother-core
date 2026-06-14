@@ -48,7 +48,7 @@ namespace MotherCore.Tests.Utilities
         }
 
         readonly FakeIgcNetwork _network = new FakeIgcNetwork();
-        readonly List<IScript> _scripts = new List<IScript>();
+        readonly List<IRuntimeScript> _scripts = new List<IRuntimeScript>();
         readonly List<WorldBlockRegistration> _worldBlocks = new List<WorldBlockRegistration>();
         readonly List<MergePair> _mergePairs = new List<MergePair>();
         readonly Dictionary<long, FakeGridTerminalSystem> _topologies = new Dictionary<long, FakeGridTerminalSystem>();
@@ -84,7 +84,7 @@ namespace MotherCore.Tests.Utilities
         public void ShouldHaveScript(string name)
         {
             Assert.That(
-                _scripts.Any(script => string.Equals(script.Mother?.Name, name, StringComparison.OrdinalIgnoreCase)),
+                _scripts.Any(script => string.Equals(script.Name, name, StringComparison.OrdinalIgnoreCase)),
                 Is.True,
                 $"Expected world to contain script '{name}', but no matching script was found.");
         }
@@ -105,9 +105,9 @@ namespace MotherCore.Tests.Utilities
         public void ShouldHaveDeliveredIgcMessage(string sourceName, string targetName, string tag)
         {
             var source = _scripts.FirstOrDefault(script =>
-                string.Equals(script.Mother?.Name, sourceName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(script.Name, sourceName, StringComparison.OrdinalIgnoreCase));
             var target = _scripts.FirstOrDefault(script =>
-                string.Equals(script.Mother?.Name, targetName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(script.Name, targetName, StringComparison.OrdinalIgnoreCase));
 
             Assert.That(source, Is.Not.Null,
                 $"Expected world to contain source script '{sourceName}', but none was found.");
@@ -144,7 +144,7 @@ namespace MotherCore.Tests.Utilities
         public void ShouldHaveBroadcast(string tag, string sourceName)
         {
             var source = _scripts.FirstOrDefault(script =>
-                string.Equals(script.Mother?.Name, sourceName, StringComparison.OrdinalIgnoreCase));
+                string.Equals(script.Name, sourceName, StringComparison.OrdinalIgnoreCase));
 
             Assert.That(source, Is.Not.Null,
                 $"Expected world to contain source script '{sourceName}', but none was found.");
@@ -400,8 +400,8 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// Runs one <c>Mother.Run</c> cycle on every script registered in this world.
-        /// Mirrors a single real game update tick across all scripts.
+        /// Runs one script cycle on every script registered in this world.
+        /// Mirrors a single real game update pass across all scripts.
         /// </summary>
         /// <param name="updateType">The game update type to pass to each script.</param>
         /// <param name="argument">The terminal argument to pass to each script.</param>
@@ -552,7 +552,7 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         /// <param name="firstScript">The first script to compare.</param>
         /// <param name="secondScript">The second script to compare.</param>
-        public void ShouldBeSameConstruct(IScript firstScript, IScript secondScript)
+        public void ShouldBeSameConstruct(IRuntimeScript firstScript, IRuntimeScript secondScript)
         {
             if (firstScript == null)
                 throw new ArgumentNullException(nameof(firstScript));
@@ -560,21 +560,16 @@ namespace MotherCore.Tests.Utilities
             if (secondScript == null)
                 throw new ArgumentNullException(nameof(secondScript));
 
-            Assert.That(firstScript.Mother, Is.Not.Null,
-                "Expected first script to be booted, but Mother was null.");
-            Assert.That(secondScript.Mother, Is.Not.Null,
-                "Expected second script to be booted, but Mother was null.");
-
-            var firstGrid = firstScript.Mother.CubeGrid;
-            var secondGrid = secondScript.Mother.CubeGrid;
+            var firstGrid = firstScript.PrimaryGrid;
+            var secondGrid = secondScript.PrimaryGrid;
 
             Assert.That(firstGrid, Is.Not.Null,
-                $"Expected script '{firstScript.Mother.Name}' to have a primary grid, but CubeGrid was null.");
+                $"Expected script '{firstScript.Name}' to have a primary grid, but PrimaryGrid was null.");
             Assert.That(secondGrid, Is.Not.Null,
-                $"Expected script '{secondScript.Mother.Name}' to have a primary grid, but CubeGrid was null.");
+                $"Expected script '{secondScript.Name}' to have a primary grid, but PrimaryGrid was null.");
 
             Assert.That(firstGrid.IsSameConstructAs(secondGrid), Is.True,
-                $"Expected scripts '{firstScript.Mother.Name}' and '{secondScript.Mother.Name}' to be on the same construct, but they were not.");
+                $"Expected scripts '{firstScript.Name}' and '{secondScript.Name}' to be on the same construct, but they were not.");
         }
 
         /// <summary>

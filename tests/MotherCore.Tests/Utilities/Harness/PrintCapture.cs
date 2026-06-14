@@ -33,7 +33,15 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         public PrintCapture(IScript script)
         {
-            ((Sandbox.ModAPI.IMyGridProgram) script.Mother.Program).Echo = message => Lines.Add(message);
+            if (script == null)
+                throw new System.ArgumentNullException(nameof(script));
+
+            var program = script.ProgramInstance;
+
+            if (program == null)
+                throw new System.InvalidOperationException("Expected a booted script with a non-null program instance.");
+
+            program.Echo = message => Lines.Add(message);
         }
 
         /// <summary>
