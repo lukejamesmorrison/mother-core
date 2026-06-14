@@ -22,7 +22,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void CreateScript_Returns_Booted_Script()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var script = world.CreateScript().Boot();
 
@@ -32,7 +32,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void CreateScript_With_Grid_Name_Sets_Mother_Name_After_Boot()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var script = world.CreateScript("Flagship").Boot();
 
@@ -43,7 +43,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void CreateScript_On_Existing_World_Grid_Binds_The_Program_To_That_Grid()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
             var script = world.CreateScript(carrierGrid, "Carrier").Boot();
 
@@ -54,7 +54,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void CreateScript_On_Different_World_Grids_Binds_Each_Script_To_Its_Own_Primary_Grid()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
             var escortGrid = world.CreateGrid("Escort");
 
@@ -71,7 +71,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void ConnectGrids_Binds_World_Grids_To_The_Same_Construct()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
 
@@ -83,7 +83,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void ShouldBeSameConstruct_Passes_For_Scripts_On_Connected_World_Grids()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
 
@@ -98,7 +98,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void ShouldBeSameConstruct_Fails_For_Scripts_On_Separate_Constructs()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
 
@@ -111,7 +111,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void TestGrid_Can_Create_And_Register_A_Block_By_Type_And_Name()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
 
             var door = carrierGrid.AddBlock<IMyDoor>("Hangar Door");
@@ -125,7 +125,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void TestGrid_AddBlock_Configure_Can_Set_Interface_Specific_State()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
 
             var battery = carrierGrid.AddBlock<IMyBatteryBlock>(
@@ -139,7 +139,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Merge_Rewrites_World_Blocks_When_Standalone_Merge_Blocks_Are_Merged()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var carrierGrid = world.CreateGrid("Carrier");
             var cargoGrid = world.CreateGrid("Cargo Pod");
 
@@ -159,7 +159,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Scripts_Created_Via_World_Cross_Register_In_Each_Others_Almanac()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
@@ -176,7 +176,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Scripts_Created_Via_World_Do_Not_Cross_Register_When_Not_On_Network()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").Boot();
             var shipB = world.CreateScript("ShipB").Boot();
@@ -193,7 +193,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void DispatchIgc_Delivers_Queued_Messages_To_Recipient()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
@@ -212,7 +212,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void DispatchIgc_Returns_World_For_Chaining()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             Assert.That(world.DispatchIgc(), Is.SameAs(world));
         }
@@ -220,7 +220,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void ShouldHaveBroadcast_Matches_World_Broadcast_Traffic()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
 
             shipA.Mother.GetModule<IntergridMessageService>().ConstructPing();
@@ -235,7 +235,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void TickMessages_Auto_Dispatches_Igc_Before_Advancing_Clocks()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
@@ -253,7 +253,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Tick_Returns_World_For_Chaining()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             Assert.That(world.Tick(), Is.SameAs(world));
         }
@@ -261,7 +261,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void ShouldHaveNoPendingMessages_Passes_After_Idle_Tick()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             world.CreateScript("ShipA")
                 .OnNetwork()
@@ -275,7 +275,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void TickMessages_Processes_Remote_Command_Flow()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
@@ -292,7 +292,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void TickMessages_Returns_World_For_Chaining()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             Assert.That(world.TickMessages(), Is.SameAs(world));
         }
@@ -304,7 +304,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Run_Terminal_Dispatches_Command_On_All_Scripts()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").Boot();
             var shipB = world.CreateScript("ShipB").Boot();
@@ -321,7 +321,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void RunTerminalAll_Dispatches_Command_On_All_Scripts()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").Boot();
             var shipB = world.CreateScript("ShipB").Boot();
@@ -337,7 +337,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Run_Does_Not_Throw_For_Update10()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             world.CreateScript("ShipA").Boot();
 
             Assert.DoesNotThrow(() => world.Run(UpdateType.Update10));
@@ -346,7 +346,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void Run_Returns_World_For_Chaining()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             Assert.That(world.Run(UpdateType.Update10), Is.SameAs(world));
         }
@@ -358,7 +358,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void RunIGC_Does_Not_Throw_After_DispatchIgc()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").OnNetwork().Boot();
             world.CreateScript("ShipB").OnNetwork().Boot();
@@ -378,7 +378,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void RunMany_Update10_Advances_Clock_And_Executes_Queued_Coroutines()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript("ShipA").Boot();
 
@@ -398,7 +398,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void RunMany_Does_Not_Throw_For_Zero_Cycles()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             world.CreateScript("ShipA").Boot();
 
             Assert.DoesNotThrow(() => world.RunMany(0, UpdateType.Update10));
@@ -407,7 +407,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void RunMany_Returns_World_For_Chaining()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
             Assert.That(world.RunMany(1, UpdateType.Update10), Is.SameAs(world));
         }
@@ -415,7 +415,7 @@ namespace MotherCore.Tests.Harness
         [Test]
         public void TickUntil_Stops_When_Condition_Becomes_True()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
             var shipA = world.CreateScript("ShipA").Boot();
 
             shipA.RunTerminal("rename ShipA-Renamed");

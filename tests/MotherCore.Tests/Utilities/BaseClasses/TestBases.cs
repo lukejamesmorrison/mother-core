@@ -11,6 +11,11 @@ namespace MotherCore.Tests.Utilities
     /// </summary>
     public abstract class TestBase
     {
+        protected static WorldFactory WorldFactory()
+        {
+            return new WorldFactory();
+        }
+
         protected static ScriptBuilder<CoreTestProgram> ScriptFactory(
             string gridName = null,
             IMyCubeGrid primaryGrid = null)
@@ -177,7 +182,7 @@ namespace MotherCore.Tests.Utilities
         [SetUp]
         public virtual void SetUp()
         {
-            World = new MotherCore.Tests.Utilities.World();
+            World = WorldFactory().Boot();
         }
     }
 
