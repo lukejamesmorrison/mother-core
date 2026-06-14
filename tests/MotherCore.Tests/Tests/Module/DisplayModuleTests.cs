@@ -5,7 +5,7 @@ using MotherCore.Tests.Utilities.Mocks;
 using NUnit.Framework;
 using VRage.Game.ModAPI.Ingame.Utilities;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
     [Category(TestCategories.LayerModule)]
     public class DisplayModuleTests : TestBase
@@ -27,6 +27,7 @@ namespace MotherCore.Tests.Integration
                 .AddSurface(providerSurface1.Surface);
 
             var script = ScriptFactory()
+                .WithMother()
                 .WithBlock(panel.Panel)
                 .WithBlock(provider)
                 .Boot();
@@ -53,6 +54,7 @@ namespace MotherCore.Tests.Integration
                 customData: "[surfaces]\n0=LogView \"Other System\"");
 
             var script = ScriptFactory()
+                .WithMother()
                 .WithBlock(matchingPanel.Panel)
                 .WithBlock(otherPanel.Panel)
                 .Boot();
@@ -75,6 +77,7 @@ namespace MotherCore.Tests.Integration
                 customData: "[surfaces]\n0=OldView\n");
 
             var script = ScriptFactory()
+                .WithMother()
                 .WithBlock(panel.Panel)
                 .Boot();
 

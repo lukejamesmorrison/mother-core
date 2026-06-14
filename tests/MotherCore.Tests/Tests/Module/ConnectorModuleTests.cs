@@ -4,7 +4,7 @@ using MotherCore.Tests.Utilities.Factories;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
     [Category(TestCategories.LayerModule)]
     public class ConnectorModuleTests : TestBase
@@ -12,17 +12,21 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Connector_Locks_Emits_Event_Runs_Hook_And_Does_Not_Add_The_Remote_Grid_To_The_Construct()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
-            var dockedGrid = GridFactory.Create("Shuttle");
+            var primaryGrid = GridFactory.Create();
+            var dockedGrid = GridFactory.Create();
             var shuttleBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Shuttle Battery");
 
-            var script = ScriptFactory(primaryGrid, "Carrier").Create();
+            var script = ScriptFactory(primaryGrid)
+                .WithMother()
+                .Create();
+
             var connector = script.ConnectGridsViaConnector(
                 primaryGrid,
                 dockedGrid,
                 baseConnectorName: "CarrierDock",
                 otherConnectorName: "ShuttleDock",
-                initialStatus: MyShipConnectorStatus.Connectable);
+                initialStatus: MyShipConnectorStatus.Connectable
+            );
 
             connector.CustomData = new CustomDataComposer()
                 .With("hooks", "onLock", "rename CarrierLocked")
@@ -49,10 +53,13 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Connector_Unlocks_Emits_Event_Runs_Hook_And_Does_Not_Prune_The_Local_Construct()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
-            var dockedGrid = GridFactory.Create("Shuttle");
+            var primaryGrid = GridFactory.Create();
+            var dockedGrid = GridFactory.Create();
 
-            var script = ScriptFactory(primaryGrid, "Carrier").Create();
+            var script = ScriptFactory(primaryGrid)
+                .WithMother()
+                .Create();
+
             var connector = script.ConnectGridsViaConnector(
                 primaryGrid,
                 dockedGrid,
@@ -80,10 +87,12 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Connector_Becomes_Ready_Emits_Event_And_Runs_Hook()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
-            var dockedGrid = GridFactory.Create("Shuttle");
+            var primaryGrid = GridFactory.Create();
+            var dockedGrid = GridFactory.Create();
 
-            var script = ScriptFactory(primaryGrid, "Carrier").Create();
+            var script = ScriptFactory(primaryGrid)
+                .WithMother()
+                .Create();
             var connector = script.ConnectGridsViaConnector(
                 primaryGrid,
                 dockedGrid,

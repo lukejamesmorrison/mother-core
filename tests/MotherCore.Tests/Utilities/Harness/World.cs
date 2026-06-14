@@ -241,7 +241,8 @@ namespace MotherCore.Tests.Utilities
         public Script<TProgram> CreateScript<TProgram>(string scriptName = null)
             where TProgram : MyGridProgram, new()
         {
-            var script = new Script<TProgram>(scriptName).WithDefaultNetwork(_network);
+            var resolvedScriptName = ResolveScriptName(scriptName);
+            var script = new Script<TProgram>(resolvedScriptName).WithDefaultNetwork(_network);
             _scripts.Add(script);
             return script;
         }
@@ -456,11 +457,32 @@ namespace MotherCore.Tests.Utilities
                 throw new ArgumentNullException(nameof(primaryGrid));
 
             var topology = EnsureWorldTopology(primaryGrid.Grid);
+            var resolvedScriptName = ResolveScriptName(scriptName);
 
-            var script = new Script<TProgram>(topology, scriptName).WithDefaultNetwork(_network);
+            var script = new Script<TProgram>(topology, resolvedScriptName).WithDefaultNetwork(_network);
             _scripts.Add(script);
 
             return script;
+        }
+
+        static string BuildGeneratedScriptName()
+            => $"Script-{Guid.NewGuid():N}";
+
+        string ResolveScriptName(string requestedName)
+        {
+            if (!string.IsNullOrWhiteSpace(requestedName))
+                return requestedName;
+
+            string generatedName;
+
+            do
+            {
+                generatedName = BuildGeneratedScriptName();
+            }
+            while (_scripts.Any(script =>
+                string.Equals(script.Name, generatedName, StringComparison.OrdinalIgnoreCase)));
+
+            return generatedName;
         }
 
         /// <summary>

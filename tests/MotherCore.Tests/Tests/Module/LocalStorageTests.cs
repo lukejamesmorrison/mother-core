@@ -10,7 +10,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Set_Stores_A_Value_That_Get_Returns()
         {
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             bool changed = storage.Set("ship", "Frigate");
@@ -22,7 +22,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Get_Returns_Empty_String_For_A_Missing_Key()
         {
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             Assert.That(storage.Get("missing"), Is.EqualTo(string.Empty));
@@ -31,7 +31,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Clear_Removes_Stored_Values()
         {
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             storage.Set("ship", "Frigate");
@@ -46,7 +46,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Program_Save_Serializes_LocalStorage_Into_Program_Storage()
         {
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
             storage.Set("ship", "Frigate");
@@ -74,11 +74,11 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Set_Command_Stores_A_Key_And_Value()
         {
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
 
-            script.Bus.RunTerminalCommand("set ship Frigate");
-            script.Clock.RunToIdle();
+            script.RunTerminal("set ship Frigate");
+            script.RunToIdle();
 
             Assert.That(storage.Get("ship"), Is.EqualTo("Frigate"));
         }
@@ -86,15 +86,15 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Get_Command_Prints_The_Stored_Value()
         {
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var storage = script.Mother.GetModule<LocalStorage>();
             var terminal = script.Mother.GetModule<Terminal>();
             var echo = script.CaptureEcho();
 
             storage.Set("ship", "Frigate");
 
-            script.Bus.RunTerminalCommand("get ship");
-            script.Clock.RunToIdle();
+            script.RunTerminal("get ship");
+            script.RunToIdle();
             terminal.UpdateTerminal();
 
             script.AssertPrinted("Frigate");

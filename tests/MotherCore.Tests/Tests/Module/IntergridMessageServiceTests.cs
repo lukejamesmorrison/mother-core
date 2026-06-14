@@ -11,7 +11,7 @@ using VRageMath;
 namespace MotherCore.Tests.Module
 {
     [Category(TestCategories.LayerModule)]
-    public class IntergridMessageServiceTests : ScriptTestBase<CoreTestProgram>
+    public class IntergridMessageServiceTests : TestBase
     {
         static string BuildAlphaChannelCustomData(string alias = null, string command = null)
         {
@@ -27,7 +27,11 @@ namespace MotherCore.Tests.Module
         [Test]
         public void CreateResponse_Sets_Request_Correlation_Headers()
         {
-            IntergridMessageService service = Mother.GetModule<IntergridMessageService>();
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
 
             Request request = new Request(
                 new Dictionary<string, object> { { "Command", "ping" } },
@@ -50,16 +54,20 @@ namespace MotherCore.Tests.Module
         [Test]
         public void CreateRequest_Includes_Path_And_Standard_Header()
         {
-            IntergridMessageService service = Mother.GetModule<IntergridMessageService>();
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
 
             Request request = service.CreateRequest("ping",
                 new Dictionary<string, object> { { "Command", "help" } },
                 new Dictionary<string, object> { { "Custom", "Value" } });
 
             Assert.That(request.HString("Path"), Is.EqualTo("ping"));
-            Assert.That(request.HString("OriginId"), Is.EqualTo($"{Mother.Id}"));
-            Assert.That(request.HString("GridId"), Is.EqualTo($"{Mother.GridId}"));
-            Assert.That(request.HString("OriginName"), Is.EqualTo(Mother.Name));
+            Assert.That(request.HString("OriginId"), Is.EqualTo($"{script.Mother.Id}"));
+            Assert.That(request.HString("GridId"), Is.EqualTo($"{script.Mother.GridId}"));
+            Assert.That(request.HString("OriginName"), Is.EqualTo(script.Mother.Name));
             Assert.That(request.HString("Custom"), Is.EqualTo("Value"));
             Assert.That(request.BString("Command"), Is.EqualTo("help"));
         }
@@ -89,12 +97,16 @@ namespace MotherCore.Tests.Module
         [Test]
         public void SendUnicastRequest_Emits_RequestSentEvent_On_Success()
         {
-            IntergridMessageService service = Mother.GetModule<IntergridMessageService>();
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
             Request request = service.CreateRequest("ping");
 
             service.SendUnicastRequest(123456789, request, null);
 
-            Script.AssertEventEmitted<RequestSentEvent>();
+            script.AssertEventEmitted<RequestSentEvent>();
         }
 
         [Test]
@@ -102,9 +114,11 @@ namespace MotherCore.Tests.Module
         {
             var world = WorldFactory().Boot();
             var sender = world.CreateScript()
+                .WithMother()
                 .OnNetwork()
                 .Boot();
             var receiver = world.CreateScript()
+                .WithMother()
                 .OnNetwork()
                 .Boot();
 
@@ -135,6 +149,7 @@ namespace MotherCore.Tests.Module
         {
             var network = new FakeIgcNetwork();
             var sender = ScriptFactory()
+                .WithMother()
                 .OnNetwork(network)
                 .Boot();
 
@@ -150,6 +165,7 @@ namespace MotherCore.Tests.Module
         {
             var network = new FakeIgcNetwork();
             var script = ScriptFactory("RelayCandidate")
+                .WithMother()
                 .OnNetwork(network)
                 .Boot();
 
@@ -169,6 +185,7 @@ namespace MotherCore.Tests.Module
             var network = new FakeIgcNetwork();
 
             var script = ScriptFactory("Relay")
+                .WithMother()
                 .OnNetwork(network)
                 .Boot();
 
@@ -188,7 +205,8 @@ namespace MotherCore.Tests.Module
         public void ConstructPing_Sends_Sync_Request_On_Construct_Channel()
         {
             var network = new FakeIgcNetwork();
-            var script = ScriptFactory("ConstructNode")
+            var script = ScriptFactory()
+                .WithMother()
                 .OnNetwork(network)
                 .Boot();
 
@@ -207,20 +225,28 @@ namespace MotherCore.Tests.Module
         [Test]
         public void HandleIncomingIGCMessage_For_Request_Emits_RequestReceivedEvent()
         {
-            IntergridMessageService service = Mother.GetModule<IntergridMessageService>();
+            var script = ScriptFactory()
+                .WithMother()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
             Request request = service.CreateRequest("ping");
             var message = new MyIGCMessage(request.Serialize(), ".construct", 9999);
 
             service.HandleIncomingIGCMessage(message);
 
-            Script.AssertEventEmitted<RequestReceivedEvent>();
+            script.AssertEventEmitted<RequestReceivedEvent>();
         }
 
         [Test]
         public void HandleIncomingIGCMessage_Encrypted_Request_On_Configured_Channel_Is_Processed()
         {
-            var script = ScriptFactory("DecryptNode")
-                .WithCustomData(new CustomDataComposer().With("channels", "alpha", "key").Build())
+            var script = ScriptFactory()
+                .WithMother()
+                .WithCustomData(new CustomDataComposer()
+                    .With("channels", "alpha", "key")
+                    .Build())
                 .Boot();
 
             var service = script.Mother.GetModule<IntergridMessageService>();
@@ -246,8 +272,11 @@ namespace MotherCore.Tests.Module
         [Test]
         public void HandleIncomingIGCMessage_Encrypted_Request_On_Unknown_Channel_Is_Not_Processed()
         {
-            var script = ScriptFactory("DecryptNode")
-                .WithCustomData(new CustomDataComposer().With("channels", "alpha", "key").Build())
+            var script = ScriptFactory()
+                .WithMother()
+                .WithCustomData(new CustomDataComposer()
+                    .With("channels", "alpha", "key")
+                    .Build())
                 .Boot();
 
             var service = script.Mother.GetModule<IntergridMessageService>();
@@ -273,7 +302,8 @@ namespace MotherCore.Tests.Module
         [Test]
         public void HandleIncomingIGCMessage_Encrypted_Request_On_Construct_Channel_Without_Passcode_Is_Not_Processed()
         {
-            var script = ScriptFactory("DecryptNode")
+            var script = ScriptFactory()
+                .WithMother()
                 .Boot();
 
             var service = script.Mother.GetModule<IntergridMessageService>();
@@ -301,8 +331,13 @@ namespace MotherCore.Tests.Module
         [Test]
         public void HandleIncomingIGCMessage_ExternalRequest_Updates_Almanac_With_GridId_And_Orientation()
         {
-            var service = Mother.GetModule<IntergridMessageService>();
-            var almanac = Mother.GetModule<Almanac>();
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            var almanac = script.Mother.GetModule<Almanac>();
+
             almanac.Clear();
 
             var message = new Request(
@@ -348,8 +383,13 @@ namespace MotherCore.Tests.Module
         [Test]
         public void HandleIncomingIGCMessage_ExternalRequest_Falls_Back_To_OriginId_When_GridId_Missing()
         {
-            var service = Mother.GetModule<IntergridMessageService>();
-            var almanac = Mother.GetModule<Almanac>();
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            var almanac = script.Mother.GetModule<Almanac>();
+
             almanac.Clear();
 
             var message = new Request(
@@ -383,10 +423,12 @@ namespace MotherCore.Tests.Module
             var world = WorldFactory().Boot();
 
             var sender = world.CreateScript()
+                .WithMother()
                 .OnNetwork()
                 .Boot();
 
             var receiver = world.CreateScript()
+                .WithMother()
                 .OnNetwork()
                 .WithCustomData(new CustomDataComposer()
                     .WithCommand("dock", "help")
@@ -413,7 +455,7 @@ namespace MotherCore.Tests.Module
             var incoming = new MyIGCMessage(syncRequest.Serialize(), ".construct", sender.IGC.Me);
             receiver.Mother.GetModule<IntergridMessageService>().HandleIncomingIGCMessage(incoming);
 
-            world.DispatchIgc();
+            world.DeliverMessages();
 
             Assert.That(receiver.Bus.ConstructCommands.ContainsKey(sender.IGC.Me), Is.True);
             Assert.That(receiver.Bus.ConstructCommands[sender.IGC.Me], Contains.Item("dock"));
@@ -443,11 +485,13 @@ namespace MotherCore.Tests.Module
             var sharedGrid = world.CreateGrid("SharedConstruct");
 
             var sender = world.CreateScript(sharedGrid)
+                .WithMother()
                 .OnNetwork()
                 .WithCustomData(BuildAlphaChannelCustomData())
                 .Boot();
 
             var receiver = world.CreateScript(sharedGrid)
+                .WithMother()
                 .OnNetwork()
                 .WithCustomData(BuildAlphaChannelCustomData("renameMe", "rename ReceiverRenamed"))
                 .Boot();
@@ -468,8 +512,14 @@ namespace MotherCore.Tests.Module
         {
             var world = WorldFactory().Boot();
 
-            var sender = world.CreateScript("Sender").OnNetwork().Boot();
-            var receiver = world.CreateScript("Receiver").OnNetwork().Boot();
+            var sender = world.CreateScript()
+                .WithMother()
+                .OnNetwork()
+                .Boot();
+            var receiver = world.CreateScript("Receiver")
+                .WithMother()
+                .OnNetwork()
+                .Boot();
 
             sender.RunTerminal("@Receiver help");
 
@@ -486,9 +536,9 @@ namespace MotherCore.Tests.Module
         public void Remote_Communication_Can_Broadcast_To_All_And_Executes_On_All_Remotes()
         {
             var world = WorldFactory().Boot();
-            var sender = world.CreateScript("Sender").OnNetwork().Boot();
-            var receiverA = world.CreateScript("ReceiverA").OnNetwork().Boot();
-            var receiverB = world.CreateScript("ReceiverB").OnNetwork().Boot();
+            var sender = world.CreateScript("Sender").WithMother().OnNetwork().Boot();
+            var receiverA = world.CreateScript("ReceiverA").WithMother().OnNetwork().Boot();
+            var receiverB = world.CreateScript("ReceiverB").WithMother().OnNetwork().Boot();
             
             sender.RunTerminal("@* help");
 

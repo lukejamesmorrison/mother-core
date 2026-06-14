@@ -45,6 +45,27 @@ namespace MotherCore.Tests.Utilities
         {
             return ScriptFactories.ScriptFactory<TProgram>(primaryGrid, gridName);
         }
+
+        protected static Module<TModule> ModuleFactory<TModule>(
+            string gridName = null,
+            IMyCubeGrid primaryGrid = null)
+            where TModule : BaseModule
+        {
+            return primaryGrid == null
+                ? new Module<TModule>(gridName)
+                : new Module<TModule>(primaryGrid, gridName);
+        }
+
+        protected static Module<TModule, TProgram> ModuleFactory<TModule, TProgram>(
+            string gridName = null,
+            IMyCubeGrid primaryGrid = null)
+            where TModule : BaseModule
+            where TProgram : MyGridProgram, new()
+        {
+            return primaryGrid == null
+                ? new Module<TModule, TProgram>(gridName)
+                : new Module<TModule, TProgram>(primaryGrid, gridName);
+        }
     }
 
     /// <summary>

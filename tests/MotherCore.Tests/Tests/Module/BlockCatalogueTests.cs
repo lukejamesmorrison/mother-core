@@ -6,16 +6,15 @@ using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 using System.Linq;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
     [Category(TestCategories.LayerModule)]
-    public class BlockCatalogueTests : ScriptTestBase<CoreTestProgram>
+    public class BlockCatalogueTests : TestBase
     {
         [Test]
         public void RegisterBlockForStateMonitoring_Detects_A_Changed_State_On_Run()
         {
-            //var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
-            var door = new FakeDoor(customName: "Hangar Door");
+            var door = TerminalBlockFactory.Create<IMyDoor>();
             var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
@@ -27,7 +26,9 @@ namespace MotherCore.Tests.Integration
             catalogue.RegisterBlockForStateMonitoring(door, handler);
 
             catalogue.Run();
+
             state = DoorStatus.Closed;
+
             catalogue.Run();
 
             Assert.That(handler.ChangeCount, Is.EqualTo(1));
@@ -36,7 +37,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void SetBlockWithTag_Adds_Tag_Targeting_And_Updates_Block_Configuration()
         {
-            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+            var door = TerminalBlockFactory.Create<IMyDoor>();
             var script = ScriptFactory()
                 .WithBlock(door)
                 .Boot();
@@ -55,8 +56,8 @@ namespace MotherCore.Tests.Integration
         public void GetBlocks_Returns_Filtered_Construct_Blocks_Of_A_Given_Type()
         {
             var primaryBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Primary Battery");
-            var auxBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Aux Battery");
-            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+            var auxBattery = TerminalBlockFactory.Create<IMyBatteryBlock>();
+            var door = TerminalBlockFactory.Create<IMyDoor>();
 
             var script = ScriptFactory()
                 .WithBlocks(primaryBattery, auxBattery, door)
@@ -72,12 +73,13 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetBlocks_Returns_All_Construct_Blocks_When_Booted_On_A_Two_Grid_Mechanical_Construct()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
-            var cargoGrid = GridFactory.Create("Cargo Pod");
             var primaryBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Primary Battery");
-            var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
+            var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>();
 
             var script = ScriptFactory().Create();
+            var primaryGrid = script.PrimaryGrid;
+            var cargoGrid = script.CreateGrid();
+
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.WithBlock(primaryBattery, primaryGrid);
             script.WithBlock(cargoBattery, cargoGrid);
@@ -90,18 +92,19 @@ namespace MotherCore.Tests.Integration
                 catalogue.ConstructGridIds,
                 Is.EquivalentTo(new[] { primaryGrid.EntityId, cargoGrid.EntityId }));
             Assert.That(batteries, Is.EquivalentTo(new[] { primaryBattery, cargoBattery }));
-            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Cargo Battery"), Is.EqualTo(new[] { cargoBattery }));
+            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Primary Battery"), Is.EqualTo(new[] { primaryBattery }));
         }
 
         [Test]
         public void GetBlocksByName_Returns_Block_Groups_When_Booted_On_A_Two_Grid_Mechanical_Construct()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
-            var airlockGrid = GridFactory.Create("Airlock Pod");
             var leftDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Left Door");
             var rightDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Right Door");
 
             var script = ScriptFactory().Create();
+            var primaryGrid = script.PrimaryGrid;
+            var airlockGrid = script.CreateGrid();
+
             script.ConnectGrids(primaryGrid, airlockGrid);
             script.WithBlock(leftDoor, primaryGrid);
             script.WithBlock(rightDoor, airlockGrid);
@@ -113,6 +116,7 @@ namespace MotherCore.Tests.Integration
             Assert.That(
                 catalogue.ConstructGridIds,
                 Is.EquivalentTo(new[] { primaryGrid.EntityId, airlockGrid.EntityId }));
+
             Assert.That(
                 catalogue.GetBlocksByName<IMyDoor>("Airlocks").Select(block => block.CustomName).ToList(),
                 Is.EquivalentTo(new[] { "Left Door", "Right Door" }));
@@ -121,7 +125,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetBlockConfiguration_Returns_An_Empty_Ini_For_An_Untracked_Block()
         {
-            var script = ScriptFactory().Create();
+            var script = ScriptFactory().Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
             var untrackedDoor = TerminalBlockFactory.Create<IMyDoor>(customName: "Loose Door");
 
@@ -135,7 +139,7 @@ namespace MotherCore.Tests.Integration
 
             door.CustomData = new CustomDataComposer()
                 .With("general", "tags", "airlock")
-                .With("status", "mode", "sealed")
+                .With("commands", "startEngine", "block/on MainThrusters")
                 .Build();
 
             var script = ScriptFactory()
@@ -145,7 +149,7 @@ namespace MotherCore.Tests.Integration
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
             var blockConfig = catalogue.GetBlockConfiguration(door);
 
-            Assert.That(blockConfig.Get("status", "mode").ToString(), Is.EqualTo("sealed"));
+            Assert.That(blockConfig.Get("commands", "startEngine").ToString(), Is.EqualTo("block/on MainThrusters"));
             Assert.That(blockConfig.Get("general", "tags").ToString(), Is.EqualTo("airlock"));
             Assert.That(catalogue.GetBlocksByName<IMyDoor>("#airlock"), Is.EqualTo(new[] { door }));
         }
@@ -221,10 +225,10 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void OnMechanicalBlockAttached_Adds_Newly_Connected_Grid_Blocks_To_The_Construct()
         {
-            var script = ScriptFactory().Create();
+            var script = ScriptFactory().Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
-            var cargoGrid = GridFactory.Create("Cargo Pod");
+            var cargoGrid = script.CreateGrid();
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
             script.ConnectGrids(script.PrimaryGrid, cargoGrid);
             script.WithBlock(battery, cargoGrid);
@@ -244,11 +248,11 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void OnMechanicalBlockDetached_Prunes_Disconnected_Grid_Blocks_From_The_Construct()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
-            var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
             var script = ScriptFactory().Create();
+            var primaryGrid = script.PrimaryGrid;
+            var cargoGrid = script.CreateGrid();
 
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.WithBlock(battery, cargoGrid);
@@ -270,11 +274,11 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void RefreshConstruct_Prunes_Disconnected_Grid_And_Emits_ConstructRefreshedEvent()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
-            var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
             var script = ScriptFactory().Create();
+            var primaryGrid = script.PrimaryGrid;
+            var cargoGrid = script.CreateGrid();
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.WithBlock(battery, cargoGrid);
             script.Boot();
@@ -301,7 +305,7 @@ namespace MotherCore.Tests.Integration
             var script = ScriptFactory().Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
-            var scoutGrid = GridFactory.Create("Scout Pod");
+            var scoutGrid = script.CreateGrid();
             var reactor = TerminalBlockFactory.Create<IMyReactor>(customName: "Scout Reactor");
 
             script.ConnectGrids(script.PrimaryGrid, scoutGrid);
@@ -320,7 +324,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void RunHook_Executes_A_Command_From_Block_Custom_Data_Hooks()
         {
-            var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");
+            var door = TerminalBlockFactory.Create<IMyDoor>();
+
             door.CustomData = new CustomDataComposer()
                 .With("hooks", "opened", "rename HangarOpen")
                 .Build();
@@ -332,7 +337,7 @@ namespace MotherCore.Tests.Integration
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
             catalogue.RunHook(door, "opened");
-            script.Clock.RunToIdle();
+            script.RunToIdle();
 
             script.AssertCommandExecuted("rename");
             Assert.That(script.Mother.Name, Is.EqualTo("HangarOpen"));
@@ -344,18 +349,20 @@ namespace MotherCore.Tests.Integration
             var script = ScriptFactory().Boot();
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
-            var scoutGrid = GridFactory.Create("Scout Pod");
+            var scoutGrid = script.CreateGrid();
             var reactor = TerminalBlockFactory.Create<IMyReactor>(customName: "Scout Reactor");
+
             script.ConnectGrids(script.PrimaryGrid, scoutGrid);
             script.WithBlock(reactor, scoutGrid);
 
             Assert.That(catalogue.GetBlocksByName<IMyReactor>("Scout Reactor"), Is.Empty);
 
             catalogue.HandleEvent(new MergeBlockLockedEvent(), null);
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             Assert.That(catalogue.ConstructGridIds, Contains.Item(scoutGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyReactor>("Scout Reactor"), Has.Count.EqualTo(1));
+
             script.AssertEventEmitted<ConstructRefreshedEvent>();
         }
 
@@ -375,7 +382,7 @@ namespace MotherCore.Tests.Integration
 
             catalogue.HandleEvent(new SystemConfigChangedEvent(), null);
             catalogue.RunHook(door, "opened");
-            script.Clock.RunToIdle();
+            script.RunToIdle();
 
             script.AssertCommandExecuted("rename");
             Assert.That(script.Mother.Name, Is.EqualTo("HangarConfigured"));

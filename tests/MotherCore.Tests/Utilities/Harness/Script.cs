@@ -101,6 +101,7 @@ namespace MotherCore.Tests.Utilities
         readonly string _gridName;
         readonly FakeGridTerminalSystem _gridTerminalSystem;
         PrintCapture _printCapture;
+        bool _requireMother;
         bool _ensureDefaultPublicChannel;
         UpdateFrequency? _requestedUpdateFrequency;
         string _resolvedName;
@@ -349,6 +350,17 @@ namespace MotherCore.Tests.Utilities
         public Script<TProgram> WithStorage(string storage)
         {
             _storage = storage;
+            return this;
+        }
+
+        /// <summary>
+        /// Requires this harness to resolve a Mother instance at boot time.
+        /// Use this when tests rely on Mother modules and should fail fast if
+        /// the selected program does not initialize Mother.
+        /// </summary>
+        public Script<TProgram> WithMother()
+        {
+            _requireMother = true;
             return this;
         }
 
@@ -1140,6 +1152,13 @@ namespace MotherCore.Tests.Utilities
 
             Program = program;
             _mother = TryFindMother(program);
+
+            if (_requireMother && _mother == null)
+            {
+                throw new InvalidOperationException(
+                    "WithMother was requested, but the booted program did not expose a Mother instance.");
+            }
+
             _printCapture = new PrintCapture(this);
 
             var effectiveCustomData = BuildEffectiveCustomData();
@@ -1213,6 +1232,13 @@ namespace MotherCore.Tests.Utilities
         public new Script WithUpdateFrequency(UpdateFrequency updateFrequency)
         {
             base.WithUpdateFrequency(updateFrequency);
+            return this;
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.WithMother"/>
+        public new Script WithMother()
+        {
+            base.WithMother();
             return this;
         }
 

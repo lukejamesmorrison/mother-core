@@ -5,7 +5,7 @@ using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
     /// <summary>
     /// Tests for the Clock module's coroutine, scheduled task, and queued task
@@ -13,14 +13,14 @@ namespace MotherCore.Tests.Integration
     /// during iteration and correct timing behavior.
     /// </summary>
     [Category(TestCategories.LayerModule)]
-    public class ClockTests : ScriptTestBase<CoreTestProgram>
+    public class ClockTests : TestBase
     {
         // --- Construction and reset ---
 
         [Test]
         public void It_Can_Be_Accessed_Via_Mother()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
 
             Assert.That(clock, Is.Not.Null);
         }
@@ -28,7 +28,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Reset_Clears_All_Coroutines_And_Tasks()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
 
             bool taskRan = false;
             clock.Schedule(() => taskRan = true, 0);
@@ -46,7 +46,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Scheduled_Task_Executes_When_Interval_Elapses()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int counter = 0;
@@ -60,7 +60,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Scheduled_Task_Repeats_On_Each_Cycle_When_Interval_Is_Zero()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int counter = 0;
@@ -78,7 +78,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Queued_Task_Executes_After_Wait_Time()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             bool executed = false;
@@ -92,7 +92,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Queued_Task_Is_Removed_After_Execution()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int counter = 0;
@@ -108,7 +108,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void QueuedTaskCount_Reflects_Pending_Tasks()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             clock.QueueForLater(() => { }, 999);
@@ -124,7 +124,7 @@ namespace MotherCore.Tests.Integration
         /// This tests the basic functionality of coroutine execution and completion.
         public void Coroutine_Executes_To_Completion()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int step = 0;
@@ -144,7 +144,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Coroutine_With_Wait_Pauses_Execution()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int step = 0;
@@ -164,7 +164,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Multiple_Coroutines_Run_Independently()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int counterA = 0;
@@ -183,7 +183,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Completed_Coroutine_Is_Removed()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int counter = 0;
@@ -204,7 +204,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Adding_Coroutine_During_Iteration_Does_Not_Throw()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int childExecuted = 0;
@@ -231,7 +231,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Multiple_Coroutines_Completing_Same_Tick_Are_Cleaned_Up()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
             clock.Reset();
 
             int completedCount = 0;
@@ -250,7 +250,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetLoader_Alternates_Between_Slash_And_Backslash()
         {
-            Clock clock = Mother.GetModule<Clock>();
+            Clock clock = ModuleFactory<Clock>().Boot();
 
             string first = clock.GetLoader();
             // We can't easily test alternation without Boot + scheduled ticks,

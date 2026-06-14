@@ -121,6 +121,11 @@ namespace MotherCore.Tests.Utilities
             return Configure(script => script.WithStorage(storage));
         }
 
+        public ScriptBuilder<TProgram> WithMother()
+        {
+            return Configure(script => script.WithMother());
+        }
+
         public ScriptBuilder<TProgram> WithGrid(
             string gridName,
             long? entityId = null,

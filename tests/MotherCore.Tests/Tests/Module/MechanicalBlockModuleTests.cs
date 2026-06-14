@@ -12,15 +12,15 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Mechanical_Block_Detaches_Emits_Event_Runs_Hook_And_Prunes_The_Construct()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            var script = ScriptFactory().Create();
+            var script = ScriptFactory().WithMother().Boot();
+            var primaryGrid = script.PrimaryGrid;
 
-            var connection = script.ConnectGrids(primaryGrid, cargoGrid);
+            var connector = script.ConnectGrids(primaryGrid, cargoGrid);
 
-            connection.CustomData = new CustomDataComposer()
+            connector.CustomData = new CustomDataComposer()
                 .With("hooks", "onDetach", "rename CarrierDetached")
                 .Build();
 
@@ -30,9 +30,9 @@ namespace MotherCore.Tests.Integration
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 
-            connection.Detach();
+            connector.Detach();
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.AssertEventEmitted<MechanicalBlockDetachedEvent>();
             script.AssertEventEmitted<MechanicalBlockDetachedEvent>(catalogue);
@@ -45,12 +45,13 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_A_Mechanical_Block_Attaches_Emits_Event_Runs_Hook_And_Adds_The_Grid_To_The_Construct()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var battery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Cargo Battery");
 
-            var script = ScriptFactory().Create();
+            var script = ScriptFactory().WithMother().Boot();
+            var primaryGrid = script.PrimaryGrid;
             var connection = script.ConnectGrids(primaryGrid, cargoGrid);
+
             connection.CustomData = new CustomDataComposer()
                 .With("hooks", "onAttach", "rename CarrierAttached")
                 .Build();
@@ -63,11 +64,11 @@ namespace MotherCore.Tests.Integration
 
             connection.Detach();
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             connection.Attach();
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.AssertEventEmitted<MechanicalBlockAttachedEvent>();
             script.AssertEventEmitted<MechanicalBlockAttachedEvent>(catalogue);
@@ -80,14 +81,14 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Construct_Refresh_Registers_Newly_Discovered_Mechanical_Blocks_For_State_Monitoring()
         {
-            var primaryGrid = GridFactory.Create("Carrier");
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var scoutGrid = GridFactory.Create("Scout Pod");
 
             var droneGrid = GridFactory.Create("Drone Pod");
             var droneBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Drone Battery");
 
-            var script = ScriptFactory().Create();
+            var script = ScriptFactory().WithMother().Boot();
+            var primaryGrid = script.PrimaryGrid;
             script.ConnectGrids(primaryGrid, cargoGrid);
             script.Boot();
 
@@ -99,7 +100,7 @@ namespace MotherCore.Tests.Integration
             script.ConnectGrids(cargoGrid, scoutGrid);
 
             catalogue.OnMechanicalBlockAttached(scoutGrid);
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             /// The catalogue should discover both mechanical blocks and register them for state monitoring, resulting in the drone 
             /// battery being tracked as well. When the drone grid is detached, the catalogue should prune it from the 
@@ -112,7 +113,7 @@ namespace MotherCore.Tests.Integration
 
             nestedConnection.Detach();
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.AssertEventEmitted<MechanicalBlockDetachedEvent>();
             Assert.That(catalogue.ConstructGridIds, Contains.Item(scoutGrid.EntityId));

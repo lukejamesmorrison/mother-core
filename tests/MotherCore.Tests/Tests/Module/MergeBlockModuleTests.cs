@@ -11,42 +11,10 @@ namespace MotherCore.Tests.Integration
     [Category(TestCategories.LayerModule)]
     public class MergeBlockModuleTests : TestBase
     {
-        sealed class MergeScriptArrangement
-        {
-            public MergeScriptArrangement(Script<CoreTestProgram> script, IMyShipMergeBlock mergeBlock)
-            {
-                Script = script;
-                MergeBlock = mergeBlock;
-            }
-
-            public Script<CoreTestProgram> Script { get; private set; }
-
-            public IMyShipMergeBlock MergeBlock { get; private set; }
-        }
-
-        static MergeScriptArrangement BootHookedMergeScript(
-            string hookName,
-            string hookAction,
-            IMyCubeGrid cargoGrid,
-            IMyBatteryBlock cargoBattery)
-        {
-            var script = ScriptFactory().Boot();
-            var mergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
-
-            mergeBlock.CustomData = new CustomDataComposer()
-                .With("hooks", hookName, hookAction)
-                .Build();
-
-            script.WithBlock(cargoBattery, cargoGrid)
-                .Boot();
-
-            return new MergeScriptArrangement(script, mergeBlock);
-        }
-
         [Test]
         public void Boot_Subscribes_To_ConstructRefreshedEvent()
         {
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var mergeModule = script.Mother.GetModule<MergeBlockModule>();
             var eventBus = script.Mother.GetModule<EventBus>();
 
@@ -58,11 +26,15 @@ namespace MotherCore.Tests.Integration
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "CargoBattery");
+            var script = ScriptFactory().WithMother().Boot();
+            var mergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
 
-            var arrangement = BootHookedMergeScript("onMerge", "rename CarrierMerged", cargoGrid, cargoBattery);
+            mergeBlock.CustomData = new CustomDataComposer()
+                .With("hooks", "onMerge", "rename CarrierMerged")
+                .Build();
 
-            var script = arrangement.Script;
-            var mergeBlock = arrangement.MergeBlock;
+            script.WithBlock(cargoBattery, cargoGrid)
+                .Boot();
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
             var mergeModule = script.Mother.GetModule<MergeBlockModule>();
@@ -71,7 +43,7 @@ namespace MotherCore.Tests.Integration
 
             mergeModule.LockMergeBlock(mergeBlock);
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.AssertEventEmitted<MergeBlockLockedEvent>();
             script.AssertEventEmitted<ConstructRefreshedEvent>();
@@ -86,23 +58,28 @@ namespace MotherCore.Tests.Integration
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
             var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "CargoBattery");
+            var script = ScriptFactory().WithMother().Boot();
+            var mergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
 
-            var arrangement = BootHookedMergeScript("onUnmerge", "rename CarrierDetached", cargoGrid, cargoBattery);
-            var script = arrangement.Script;
-            var mergeBlock = arrangement.MergeBlock;
+            mergeBlock.CustomData = new CustomDataComposer()
+                .With("hooks", "onUnmerge", "rename CarrierDetached")
+                .Build();
+
+            script.WithBlock(cargoBattery, cargoGrid)
+                .Boot();
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
             var mergeModule = script.Mother.GetModule<MergeBlockModule>();
 
             mergeModule.LockMergeBlock(mergeBlock);
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.Mother.GetModule<EventBus>().Emissions.Clear();
 
             mergeModule.UnlockMergeBlock(mergeBlock);
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.AssertEventEmitted<MergeBlockOffEvent>(2);
             script.AssertEventEmitted<ConstructRefreshedEvent>();
@@ -119,7 +96,7 @@ namespace MotherCore.Tests.Integration
             var scoutGrid = GridFactory.Create("Scout Pod");
             var scoutBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "ScoutBattery");
 
-            var script = ScriptFactory().Boot();
+            var script = ScriptFactory().WithMother().Boot();
             var firstMergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
             var secondMergeBlock = script.ConnectGridsViaMergeBlock(cargoGrid, scoutGrid);
 
@@ -133,13 +110,13 @@ namespace MotherCore.Tests.Integration
 
             mergeModule.LockMergeBlock(firstMergeBlock);
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.Mother.GetModule<EventBus>().Emissions.Clear();
 
             mergeModule.LockMergeBlock(secondMergeBlock);
             catalogue.Run();
-            script.Clock.RunToIdle(50);
+            script.RunToIdle();
 
             script.AssertEventEmitted<MergeBlockLockedEvent>();
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("ScoutBattery"), Has.Count.EqualTo(1));

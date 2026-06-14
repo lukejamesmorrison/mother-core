@@ -33,6 +33,19 @@ namespace MotherCore.Tests.Harness
         }
 
         [Test]
+        public void CreateScript_Without_Name_Generates_Unique_Runtime_Names()
+        {
+            var world = WorldFactory().Boot();
+
+            var first = world.CreateScript().Boot();
+            var second = world.CreateScript().Boot();
+
+            Assert.That(first.Name, Is.Not.Null.And.Not.Empty);
+            Assert.That(second.Name, Is.Not.Null.And.Not.Empty);
+            Assert.That(first.Name, Is.Not.EqualTo(second.Name));
+        }
+
+        [Test]
         public void CreateScript_With_Grid_Name_Sets_Mother_Name_After_Boot()
         {
             var world = WorldFactory().Boot();
@@ -286,7 +299,7 @@ namespace MotherCore.Tests.Harness
             var world = WorldFactory().Boot();
 
             var shipA = world.CreateScript().OnNetwork().Boot();
-            var shipB = world.CreateScript().OnNetwork().Boot();
+            var shipB = world.CreateScript("ShipB").OnNetwork().Boot();
 
             shipA.RunTerminal("@ShipB help").RunToIdle();
 

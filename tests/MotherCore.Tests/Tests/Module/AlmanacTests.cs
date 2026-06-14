@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using VRageMath;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
     [Category(TestCategories.LayerModule)]
-    public class AlmanacTests : ScriptTestBase<CoreTestProgram>
+    public class AlmanacTests : TestBase
     {
 
         // --- Construction ---
@@ -17,7 +17,9 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void It_Can_Be_Accessed_Via_Mother()
         {
-            Assert.That(Mother.GetModule<Almanac>(), Is.Not.Null);
+            var almanac = ModuleFactory<Almanac>().Boot();
+
+            Assert.That(almanac, Is.Not.Null);
         }
 
         // --- GetRecord ---
@@ -25,7 +27,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetRecord_Returns_Null_When_Record_Does_Not_Exist()
         {
-            var result = Mother.GetModule<Almanac>().GetRecord("nonexistent");
+            var almanac = ModuleFactory<Almanac>().Boot();
+            var result = almanac.GetRecord("nonexistent");
 
             Assert.That(result, Is.Null);
         }
@@ -33,7 +36,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetRecord_Returns_Record_By_Id()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
 
             var record = new AlmanacRecord("ship-001", "grid", new Vector3D(10, 20, 30), 0)
             {
@@ -50,7 +53,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetRecord_Returns_Record_By_DisplayName()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             var record = new AlmanacRecord("ship-002", "grid", new Vector3D(0, 0, 0), 0)
             {
                 UnicastId = 2,
@@ -69,7 +73,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void AddRecord_Adds_New_Record()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             int countBefore = almanac.Records.Count;
 
             var record = new AlmanacRecord("waypoint-A", "waypoint", new Vector3D(100, 200, 300));
@@ -81,7 +85,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void AddRecord_Does_Not_Duplicate_Existing_Record()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             var record = new AlmanacRecord("waypoint-B", "waypoint", new Vector3D(0, 0, 0));
             almanac.AddRecord(record);
 
@@ -97,7 +101,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void AddRecord_Replaces_Existing_Record_When_New_Record_Is_Newer()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             var original = new AlmanacRecord("ship-003", "grid", new Vector3D(0, 0, 0), 10f)
             {
                 UnicastId = 3
@@ -119,7 +123,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void AddRecord_Does_Not_Replace_Existing_Record_When_New_Record_Is_Older()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             var original = new AlmanacRecord("ship-004", "grid", new Vector3D(99, 0, 0), 15f)
             {
                 UnicastId = 4
@@ -142,7 +146,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetRecordsByType_Returns_Only_Records_Of_Requested_Type()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             almanac.Clear();
 
             var waypoint = new AlmanacRecord("wp-1", "waypoint", new Vector3D(0, 0, 0));
@@ -161,7 +165,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void GetRecordsByType_Returns_Empty_List_When_No_Matching_Records()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             almanac.Clear();
 
             var results = almanac.GetRecordsByType("waypoint");
@@ -174,7 +178,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Clear_Removes_All_Records()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             almanac.AddRecord(new AlmanacRecord("wp-2", "waypoint", new Vector3D(0, 0, 0)));
             almanac.AddRecord(new AlmanacRecord("wp-3", "waypoint", new Vector3D(0, 0, 0)));
 
@@ -188,8 +192,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateCurrentPosition_Creates_Record_For_Own_Grid()
         {
-            var almanac = Mother.GetModule<Almanac>();
-            string ownId = $"{Mother.Id}";
+            var almanac = ModuleFactory<Almanac>().Boot();
+            string ownId = $"{almanac.Mother.Id}";
 
             // Remove any pre-existing self record to test creation path
             almanac.Records.RemoveAll(r => r.Id == ownId);
@@ -204,8 +208,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateCurrentPosition_Updates_Existing_Own_Grid_Record()
         {
-            var almanac = Mother.GetModule<Almanac>();
-            string ownId = $"{Mother.Id}";
+            var almanac = ModuleFactory<Almanac>().Boot();
+            string ownId = $"{almanac.Mother.Id}";
 
             // Ensure a record exists first
             almanac.UpdateCurrentPosition();
@@ -223,12 +227,15 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Boot_Registers_Two_Scheduled_Tasks_With_Clock()
         {
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             // After Script.Boot(), the clock is NOT reset, so Almanac's tasks remain.
             // Clock itself registers UpdateLoader (1), Almanac adds UpdateCurrentPosition (2)
             // and RemoveStaleRecords (3).
             var field = typeof(Clock).GetField("SystemTasks",
                 BindingFlags.NonPublic | BindingFlags.Instance);
-            var tasks = (System.Collections.IList)field.GetValue(Mother.GetModule<Clock>());
+
+            var tasks = (System.Collections.IList)field.GetValue(almanac.Mother.GetModule<Clock>());
 
             Assert.That(tasks.Count, Is.GreaterThanOrEqualTo(3),
                 "Clock should have at least 3 system tasks: UpdateLoader + UpdateCurrentPosition + RemoveStaleRecords.");
@@ -239,7 +246,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateOrCreateFromMessage_Creates_New_Record_From_Remote_Grid()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             almanac.Clear();
 
             var result = almanac.UpdateOrCreateFromMessage(
@@ -262,7 +269,7 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateOrCreateFromMessage_Updates_Position_And_Speed_For_Existing_Record()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
             almanac.UpdateOrCreateFromMessage(
                 "remote-002", 888L, "Rover",
                 new Vector3D(0, 0, 0), 0f,
@@ -283,7 +290,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateOrCreateFromMessage_Sets_Friendly_IFF_For_Non_Public_Channel()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             almanac.Clear();
 
             var result = almanac.UpdateOrCreateFromMessage(
@@ -299,7 +307,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateOrCreateFromMessage_Sets_Neutral_IFF_For_Public_Channel()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             almanac.Clear();
 
             var result = almanac.UpdateOrCreateFromMessage(
@@ -315,7 +324,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateOrCreateFromMessage_Sets_Construct_IFF_When_On_Same_Construct()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             almanac.Clear();
 
             var result = almanac.UpdateOrCreateFromMessage(
@@ -331,7 +341,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateOrCreateFromMessage_Merges_Channels_For_Existing_Record()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             almanac.UpdateOrCreateFromMessage(
                 "remote-006", 444L, "MultiChannel",
                 new Vector3D(0, 0, 0), 0f,
@@ -347,6 +358,7 @@ namespace MotherCore.Tests.Integration
             );
 
             var record = almanac.GetRecord("remote-006");
+
             Assert.That(record.Channels, Contains.Item("ch-1"));
             Assert.That(record.Channels, Contains.Item("ch-2"));
         }
@@ -354,7 +366,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UpdateOrCreateFromMessage_Sets_Forward_And_Up_On_New_Record()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             almanac.Clear();
 
             var forward = new Vector3D(1, 0, 0);
@@ -378,7 +391,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Stale_Grid_Records_Are_Removed_Via_Scheduled_Cleanup()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             almanac.Clear();
 
             var stale = new AlmanacRecord("stale-grid", "grid", new Vector3D(0, 0, 0), 0f)
@@ -386,11 +400,13 @@ namespace MotherCore.Tests.Integration
                 UnicastId = 1
             };
             stale.UpdatedAt = DateTime.Now.AddSeconds(-400);
+
             almanac.Records.Add(stale);
 
             // Invoke the private RemoveStaleRecords method directly
             var method = typeof(Almanac).GetMethod("RemoveStaleRecords",
                 BindingFlags.NonPublic | BindingFlags.Instance);
+
             method.Invoke(almanac, null);
 
             Assert.That(almanac.GetRecord("stale-grid"), Is.Null);
@@ -399,15 +415,18 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Waypoint_Records_Are_Never_Removed_By_Stale_Cleanup()
         {
-            var almanac = Mother.GetModule<Almanac>();
+            var almanac = ModuleFactory<Almanac>().Boot();
+
             almanac.Clear();
 
             var waypoint = new AlmanacRecord("old-waypoint", "waypoint", new Vector3D(0, 0, 0));
             waypoint.UpdatedAt = DateTime.Now.AddSeconds(-9999);
+
             almanac.Records.Add(waypoint);
 
             var method = typeof(Almanac).GetMethod("RemoveStaleRecords",
                 BindingFlags.NonPublic | BindingFlags.Instance);
+
             method.Invoke(almanac, null);
 
             Assert.That(almanac.GetRecord("old-waypoint"), Is.Not.Null);
@@ -416,8 +435,9 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Own_Grid_Record_Is_Never_Removed_By_Stale_Cleanup()
         {
-            var almanac = Mother.GetModule<Almanac>();
-            string ownId = $"{Mother.Id}";
+            var almanac = ModuleFactory<Almanac>().Boot();
+            string ownId = $"{almanac.Mother.Id}";
+
             almanac.UpdateCurrentPosition();
 
             var own = almanac.GetRecord(ownId);
@@ -425,6 +445,7 @@ namespace MotherCore.Tests.Integration
 
             var method = typeof(Almanac).GetMethod("RemoveStaleRecords",
                 BindingFlags.NonPublic | BindingFlags.Instance);
+
             method.Invoke(almanac, null);
 
             Assert.That(almanac.GetRecord(ownId), Is.Not.Null);

@@ -4,25 +4,25 @@ using MotherCore.Tests.Utilities.Factories;
 using NUnit.Framework;
 using Sandbox.ModAPI.Ingame;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
     [Category(TestCategories.LayerModule)]
-    public class ActivityMonitorTests : ScriptTestBase<CoreTestProgram>
+    public class ActivityMonitorTests : TestBase
     {
         [Test]
         public void Constructor_Initializes_ActiveBlocks_As_Empty()
         {
-            var monitor = new ActivityMonitor(Mother);
+            var module = ModuleFactory<ActivityMonitor>().Boot();
 
-            Assert.That(monitor.ActiveBlocks, Is.Not.Null);
-            Assert.That(monitor.ActiveBlocks, Is.Empty);
+            Assert.That(module.ActiveBlocks, Is.Not.Null);
+            Assert.That(module.ActiveBlocks, Is.Empty);
         }
 
         [Test]
         public void RegisterBlock_Adds_A_New_Block_To_ActiveBlocks()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Docking Rotor");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var block = TerminalBlockFactory.Create<IMyTerminalBlock>();
 
             monitor.RegisterBlock(block, _ => false, _ => { });
 
@@ -32,8 +32,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void RegisterBlock_Overwrites_An_Existing_Block_Registration()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Docking Rotor");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var block = TerminalBlockFactory.Create<IMyTerminalBlock>();
 
             bool firstCallbackInvoked = false;
             bool secondCallbackInvoked = false;
@@ -50,8 +50,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UnregisterBlock_Removes_A_Registered_Block()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Docking Rotor");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var block = TerminalBlockFactory.Create<IMyTerminalBlock>();
 
             monitor.RegisterBlock(block, _ => false, _ => { });
             monitor.UnregisterBlock(block);
@@ -62,8 +62,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void UnregisterBlock_For_Missing_Block_Does_Not_Throw()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Docking Rotor");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var block = TerminalBlockFactory.Create<IMyTerminalBlock>();
 
             Assert.DoesNotThrow(() => monitor.UnregisterBlock(block));
             Assert.That(monitor.ActiveBlocks, Is.Empty);
@@ -72,8 +72,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_Condition_Is_False_Does_Not_Invoke_Callback_Or_Remove_Block()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Docking Rotor");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var block = TerminalBlockFactory.Create<IMyTerminalBlock>();
             bool callbackInvoked = false;
 
             monitor.RegisterBlock(block, _ => false, _ => callbackInvoked = true);
@@ -87,8 +87,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_Condition_Is_True_Invokes_Callback_And_Unregisters_Block()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Docking Rotor");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var block = TerminalBlockFactory.Create<IMyTerminalBlock>();
             int callbackCount = 0;
             IMyTerminalBlock callbackBlock = null;
 
@@ -108,8 +108,8 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_When_Callback_Is_Null_Still_Unregisters_Block_At_Terminal_State()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var block = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Docking Rotor");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var block = TerminalBlockFactory.Create<IMyTerminalBlock>();
 
             monitor.RegisterBlock(block, _ => true, null);
 
@@ -120,9 +120,10 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Run_Processes_Multiple_Blocks_And_Removes_Only_Completed_Ones()
         {
-            var monitor = new ActivityMonitor(Mother);
-            var completedBlock = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Completed");
-            var pendingBlock = TerminalBlockFactory.Create<IMyTerminalBlock>(customName: "Pending");
+            var monitor = ModuleFactory<ActivityMonitor>().Boot();
+            var completedBlock = TerminalBlockFactory.Create<IMyTerminalBlock>();
+            var pendingBlock = TerminalBlockFactory.Create<IMyTerminalBlock>();
+
             int callbackCount = 0;
 
             monitor.RegisterBlock(completedBlock, _ => true, _ => callbackCount++);

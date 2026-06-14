@@ -5,12 +5,13 @@ using MotherCore.Tests.Utilities;
 namespace MotherCore.Tests.Tests.Module
 {
     [Category(TestCategories.LayerModule)]
-    public class TerminalTests : ScriptTestBase<CoreTestProgram>
+    public class TerminalTests : TestBase
     {
         [Test]
         public void It_Can_Have_Highlights()
         {
-            Terminal terminal = new Terminal(Mother);
+            var script = ScriptFactory().WithMother().Boot();
+            var terminal = script.Mother.GetModule<Terminal>();
 
             terminal.Highlight("Test Highlight 1");
             terminal.Highlight("Test Highlight 2");
@@ -23,8 +24,8 @@ namespace MotherCore.Tests.Tests.Module
         [Test]
         public void It_Can_Be_Cleared()
         {
-            Terminal terminal = new Terminal(Mother);
-            var capture = new PrintCapture(Script);
+            var script = ScriptFactory().WithMother().Boot();
+            var terminal = script.Mother.GetModule<Terminal>();
 
             terminal.Print("Test Print 1");
 
