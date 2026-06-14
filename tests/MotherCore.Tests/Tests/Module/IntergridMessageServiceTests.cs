@@ -8,9 +8,9 @@ using System.Collections.Generic;
 using System.Linq;
 using VRageMath;
 
-namespace MotherCore.Tests.Integration
+namespace MotherCore.Tests.Module
 {
-    [Category(TestCategories.LayerWorld)]
+    [Category(TestCategories.LayerModule)]
     public class IntergridMessageServiceTests : ScriptTestBase<CoreTestProgram>
     {
         static string BuildAlphaChannelCustomData(string alias = null, string command = null)
@@ -67,18 +67,13 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void SendUnicastRequest_With_Empty_Channels_Falls_Back_To_Construct_Channel()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
-            var sender = world.CreateScript("Sender")
-                .OnNetwork()
-                .Boot();
-
-            var receiver = world.CreateScript("Receiver")
-                .OnNetwork()
-                .Boot();
-
+            var sender = world.CreateScript().OnNetwork().Boot();
+            var receiver = world.CreateScript().OnNetwork().Boot();
             var service = sender.Mother.GetModule<IntergridMessageService>();
             Request request = service.CreateRequest("ping");
+
             request.Channels.Clear();
 
             world.Network.ClearSentMessages();
@@ -105,11 +100,11 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void SendRequestFromRoutine_Uses_UnicastId_When_Present()
         {
-            var world = new MotherCore.Tests.Utilities.World();
-            var sender = world.CreateScript("Sender")
+            var world = WorldFactory().Boot();
+            var sender = world.CreateScript()
                 .OnNetwork()
                 .Boot();
-            var receiver = world.CreateScript("Receiver")
+            var receiver = world.CreateScript()
                 .OnNetwork()
                 .Boot();
 
@@ -139,7 +134,7 @@ namespace MotherCore.Tests.Integration
         public void SendRequestFromRoutine_Does_Not_Send_When_Target_Is_Missing()
         {
             var network = new FakeIgcNetwork();
-            var sender = ScriptFactory("Sender")
+            var sender = ScriptFactory()
                 .OnNetwork(network)
                 .Boot();
 
@@ -385,13 +380,13 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Construct_Sync_Request_Registers_Remote_Commands_And_Sends_Construct_Response()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
-            var sender = world.CreateScript("Sender")
+            var sender = world.CreateScript()
                 .OnNetwork()
                 .Boot();
 
-            var receiver = world.CreateScript("Receiver")
+            var receiver = world.CreateScript()
                 .OnNetwork()
                 .WithCustomData(new CustomDataComposer()
                     .WithCommand("dock", "help")
@@ -410,7 +405,7 @@ namespace MotherCore.Tests.Integration
                 {
                     { "Id", "sync-test-1" },
                     { "OriginId", $"{sender.IGC.Me}" },
-                    { "OriginName", "Sender" },
+                    { "OriginName", $"{sender.Name}" },
                     { "Path", "sync" }
                 }
             );
@@ -443,26 +438,27 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Construct_Communication_Delegates_Command_To_Owning_Construct_Instance()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
+
             var sharedGrid = world.CreateGrid("SharedConstruct");
 
-            var sender = world.CreateScript(sharedGrid, "Sender")
+            var sender = world.CreateScript(sharedGrid)
                 .OnNetwork()
                 .WithCustomData(BuildAlphaChannelCustomData())
                 .Boot();
 
-            var receiver = world.CreateScript(sharedGrid, "Receiver")
+            var receiver = world.CreateScript(sharedGrid)
                 .OnNetwork()
                 .WithCustomData(BuildAlphaChannelCustomData("renameMe", "rename ReceiverRenamed"))
                 .Boot();
 
-            world.TickMessages();
+            world.DeliverMessages();
 
             sender.RunTerminal("renameMe");
 
             sender.ShouldHaveExecuted("renameMe", CommandExecutionOutcome.DelegatedToConstruct);
 
-            world.TickMessages();
+            world.DeliverMessages();
 
             receiver.ShouldHaveName("ReceiverRenamed");
         }
@@ -470,22 +466,17 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Remote_Communication_Can_Send_And_Executes_On_Remote_Script()
         {
-            var world = new MotherCore.Tests.Utilities.World();
+            var world = WorldFactory().Boot();
 
-            var sender = world.CreateScript("Sender")
-                .OnNetwork()
-                .Boot();
-
-            var receiver = world.CreateScript("Receiver")
-                .OnNetwork()
-                .Boot();
+            var sender = world.CreateScript("Sender").OnNetwork().Boot();
+            var receiver = world.CreateScript("Receiver").OnNetwork().Boot();
 
             sender.RunTerminal("@Receiver help");
 
             sender.ShouldHaveExecuted(string.Empty, CommandExecutionOutcome.RemoteRoutineSent);
-            world.ShouldHaveDeliveredIgcMessage("Sender", "Receiver", "*");
+            world.ShouldHaveDeliveredIgcMessage(sender, receiver, "*");
 
-            world.TickMessages();
+            world.DeliverMessages();
 
             receiver.ShouldHaveExecuted("help");
             world.ShouldHaveNoPendingMessages();
@@ -494,26 +485,17 @@ namespace MotherCore.Tests.Integration
         [Test]
         public void Remote_Communication_Can_Broadcast_To_All_And_Executes_On_All_Remotes()
         {
-            var world = new MotherCore.Tests.Utilities.World();
-
-            var sender = world.CreateScript("Sender")
-                .OnNetwork()
-                .Boot();
-
-            var receiverA = world.CreateScript("ReceiverA")
-                .OnNetwork()
-                .Boot();
-
-            var receiverB = world.CreateScript("ReceiverB")
-                .OnNetwork()
-                .Boot();
-
+            var world = WorldFactory().Boot();
+            var sender = world.CreateScript("Sender").OnNetwork().Boot();
+            var receiverA = world.CreateScript("ReceiverA").OnNetwork().Boot();
+            var receiverB = world.CreateScript("ReceiverB").OnNetwork().Boot();
+            
             sender.RunTerminal("@* help");
 
-            world.ShouldHaveDeliveredIgcMessage("Sender", "ReceiverA", "*");
-            world.ShouldHaveDeliveredIgcMessage("Sender", "ReceiverB", "*");
+            world.ShouldHaveDeliveredIgcMessage(sender, receiverA, "*");
+            world.ShouldHaveDeliveredIgcMessage(sender, receiverB, "*");
 
-            world.TickMessages();
+            world.DeliverMessages();
 
             receiverA.ShouldHaveExecuted("help");
             receiverB.ShouldHaveExecuted("help");

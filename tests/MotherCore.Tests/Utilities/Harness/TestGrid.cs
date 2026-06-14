@@ -95,12 +95,49 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Reports whether this grid currently contains the supplied block instance.
+        /// </summary>
+        public bool ContainsBlock(IMyTerminalBlock block)
+        {
+            return _world.ContainsBlock(Grid, block);
+        }
+
+        /// <summary>
+        /// Reports whether this grid currently contains a block of the supplied type.
+        /// </summary>
+        public bool ContainsBlock<TBlock>()
+            where TBlock : class, IMyTerminalBlock
+        {
+            return _world.ContainsBlock<TBlock>(Grid);
+        }
+
+        /// <summary>
         /// Assertion helper for world-oriented tests that care about grid-local block registration.
         /// </summary>
         public void ShouldContainBlock(string blockName)
         {
             Assert.That(ContainsBlock(blockName), Is.True,
                 $"Expected grid '{Name}' to contain block '{blockName}', but it was not registered.");
+        }
+
+        /// <summary>
+        /// Assertion helper for world-oriented tests that care about grid-local block registration by instance.
+        /// </summary>
+        public void ShouldContainBlock(IMyTerminalBlock block)
+        {
+            Assert.That(block, Is.Not.Null, "Expected block instance, but it was null.");
+            Assert.That(ContainsBlock(block), Is.True,
+                $"Expected grid '{Name}' to contain block instance '{block.CustomName ?? block.DisplayNameText ?? block.GetType().Name}', but it was not registered.");
+        }
+
+        /// <summary>
+        /// Assertion helper for world-oriented tests that care about grid-local block registration by type.
+        /// </summary>
+        public void ShouldContainBlock<TBlock>()
+            where TBlock : class, IMyTerminalBlock
+        {
+            Assert.That(ContainsBlock<TBlock>(), Is.True,
+                $"Expected grid '{Name}' to contain a block assignable to '{typeof(TBlock).Name}', but none was registered.");
         }
 
         /// <summary>

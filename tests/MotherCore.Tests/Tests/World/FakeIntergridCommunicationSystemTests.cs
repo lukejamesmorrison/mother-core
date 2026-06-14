@@ -14,7 +14,7 @@ namespace MotherCore.Tests.World
     /// <see cref="FakeIgcNetwork.Scripts"/> roster.
     /// </summary>
     [Category(TestCategories.LayerWorld)]
-    public class FakeIgcNetworkTests : TestBase
+    public class FakeIntergridCommunicationSystemTests : TestBase
     {
         // =====================================================================
         // Endpoint allocation

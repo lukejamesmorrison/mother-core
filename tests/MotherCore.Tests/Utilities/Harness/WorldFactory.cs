@@ -48,6 +48,15 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Adds a world grid during creation.
+        /// Mirrors <see cref="World.CreateGrid(string, long?)"/>.
+        /// </summary>
+        public WorldFactory WithGrid(string gridName = null, long? entityId = null)
+        {
+            return Configure(world => world.CreateGrid(gridName, entityId));
+        }
+
+        /// <summary>
         /// Creates an unbooted world harness with all queued configuration applied.
         /// </summary>
         public World Create()

@@ -49,6 +49,7 @@ namespace MotherCore.Tests.Utilities
 
         readonly FakeIgcNetwork _network = new FakeIgcNetwork();
         readonly List<IRuntimeScript> _scripts = new List<IRuntimeScript>();
+        readonly List<TestGrid> _grids = new List<TestGrid>();
         readonly List<WorldBlockRegistration> _worldBlocks = new List<WorldBlockRegistration>();
         readonly List<MergePair> _mergePairs = new List<MergePair>();
         readonly Dictionary<long, FakeGridTerminalSystem> _topologies = new Dictionary<long, FakeGridTerminalSystem>();
@@ -71,6 +72,11 @@ namespace MotherCore.Tests.Utilities
         public IReadOnlyList<FakeIgcNetwork.DroppedMessage> DroppedMessages => _network.DroppedMessages;
 
         /// <summary>
+        /// World grids created via <see cref="CreateGrid"/>.
+        /// </summary>
+        public IReadOnlyList<TestGrid> Grids => _grids;
+
+        /// <summary>
         /// No-op world boot hook for fluent setup parity with Script/Module/Command fixtures.
         /// </summary>
         public World Boot()
@@ -90,6 +96,16 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Asserts that this world contains the supplied script instance.
+        /// </summary>
+        public void ShouldHaveScript(IScript script)
+        {
+            Assert.That(script, Is.Not.Null, "Expected script instance, but it was null.");
+            Assert.That(_scripts.Contains(script), Is.True,
+                $"Expected world to contain script '{script.Name}', but it was not registered in this world.");
+        }
+
+        /// <summary>
         /// Asserts the number of scripts registered in this world.
         /// </summary>
         public void ShouldHaveScriptCount(int count)
@@ -99,10 +115,59 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
-        /// Asserts that the captured IGC traffic contains a unicast message from
-        /// <paramref name="sourceName"/> to <paramref name="targetName"/> on <paramref name="tag"/>.
+        /// Asserts that captured IGC traffic includes at least one delivered unicast
+        /// message from <paramref name="source"/> to <paramref name="target"/>.
+        /// Message matching is based on runtime endpoint IDs
+        /// (<see cref="IMyIntergridCommunicationSystem.Me"/>), with optional tag filtering.
         /// </summary>
-        public void ShouldHaveDeliveredIgcMessage(string sourceName, string targetName, string tag)
+        public void ShouldHaveDeliveredIgcMessage(IRuntimeScript source, IRuntimeScript target, string tag = null)
+        {
+            Assert.That(source, Is.Not.Null, "Expected source script instance, but it was null.");
+            Assert.That(target, Is.Not.Null, "Expected target script instance, but it was null.");
+
+            var sourceId = source.IGC.Me;
+            var targetId = target.IGC.Me;
+            var anyTag = string.IsNullOrWhiteSpace(tag) || tag == "*";
+
+            Func<FakeIgcNetwork.SentMessage, bool> isMatchingUnicast = message =>
+                !message.IsBroadcast
+                && message.SourceId == sourceId
+                && message.TargetId == targetId
+                && (anyTag || message.Tag == tag);
+
+            Func<FakeIgcNetwork.SentMessage, bool> isMatchingBroadcast = message =>
+                message.IsBroadcast
+                && message.SourceId == sourceId
+                && (anyTag || message.Tag == tag);
+
+            Func<FakeIgcNetwork.DroppedMessage, bool> isMatchingDroppedUnicast = message =>
+                !message.IsBroadcast
+                && message.SourceId == sourceId
+                && message.TargetId == targetId
+                && (anyTag || message.Tag == tag);
+
+            Func<FakeIgcNetwork.DroppedMessage, bool> isMatchingDroppedBroadcast = message =>
+                message.IsBroadcast
+                && message.SourceId == sourceId
+                && (anyTag || message.Tag == tag);
+
+            Assert.That(
+                SentMessages.Any(message => isMatchingUnicast(message) || isMatchingBroadcast(message)),
+                Is.True,
+                $"Expected world IGC traffic to include unicast or broadcast from '{source.Name}' ({sourceId}) deliverable to '{target.Name}' ({targetId}) on tag '{tag ?? "*"}', but no matching message was captured.");
+
+            Assert.That(
+                DroppedMessages.Any(message => isMatchingDroppedUnicast(message) || isMatchingDroppedBroadcast(message)),
+                Is.False,
+                $"Expected world IGC traffic from '{source.Name}' ({sourceId}) deliverable to '{target.Name}' ({targetId}) on tag '{tag ?? "*"}' to avoid transport drops, but a matching drop was recorded.");
+        }
+
+        /// <summary>
+        /// Asserts that the captured IGC traffic contains a unicast message from
+        /// <paramref name="sourceName"/> to <paramref name="targetName"/>.
+        /// Name-based lookup is retained for compatibility; matching still uses endpoint IDs.
+        /// </summary>
+        public void ShouldHaveDeliveredIgcMessage(string sourceName, string targetName, string tag = null)
         {
             var source = _scripts.FirstOrDefault(script =>
                 string.Equals(script.Name, sourceName, StringComparison.OrdinalIgnoreCase));
@@ -114,32 +179,30 @@ namespace MotherCore.Tests.Utilities
             Assert.That(target, Is.Not.Null,
                 $"Expected world to contain target script '{targetName}', but none was found.");
 
-            var sourceId = source.IGC.Me;
-            var targetId = target.IGC.Me;
-            var anyTag = string.IsNullOrWhiteSpace(tag) || tag == "*";
+            ShouldHaveDeliveredIgcMessage(source, target, tag);
+        }
+
+        /// <summary>
+        /// Asserts that captured traffic includes a broadcast from <paramref name="source"/>
+        /// on the provided <paramref name="tag"/>.
+        /// </summary>
+        public void ShouldHaveBroadcast(string tag, IRuntimeScript source)
+        {
+            Assert.That(source, Is.Not.Null, "Expected source script instance, but it was null.");
 
             Assert.That(
                 SentMessages.Any(message =>
-                    !message.IsBroadcast
-                    && message.SourceId == sourceId
-                    && message.TargetId == targetId
-                    && (anyTag || message.Tag == tag)),
+                    message.IsBroadcast
+                    && message.SourceId == source.IGC.Me
+                    && message.Tag == tag),
                 Is.True,
-                $"Expected world IGC traffic to include '{sourceName}' -> '{targetName}' on tag '{tag}', but no matching unicast message was captured.");
-
-            Assert.That(
-                DroppedMessages.Any(message =>
-                    !message.IsBroadcast
-                    && message.SourceId == sourceId
-                    && message.TargetId == targetId
-                    && (anyTag || message.Tag == tag)),
-                Is.False,
-                $"Expected world IGC message '{sourceName}' -> '{targetName}' on tag '{tag}' to avoid transport drops, but a matching drop was recorded.");
+                $"Expected world IGC traffic to include broadcast from '{source.Name}' ({source.IGC.Me}) on tag '{tag}', but no matching broadcast was captured.");
         }
 
         /// <summary>
         /// Asserts that captured traffic includes a broadcast from <paramref name="sourceName"/>
         /// on the provided <paramref name="tag"/>.
+        /// Name-based lookup is retained for compatibility.
         /// </summary>
         public void ShouldHaveBroadcast(string tag, string sourceName)
         {
@@ -149,13 +212,7 @@ namespace MotherCore.Tests.Utilities
             Assert.That(source, Is.Not.Null,
                 $"Expected world to contain source script '{sourceName}', but none was found.");
 
-            Assert.That(
-                SentMessages.Any(message =>
-                    message.IsBroadcast
-                    && message.SourceId == source.IGC.Me
-                    && message.Tag == tag),
-                Is.True,
-                $"Expected world IGC traffic to include broadcast from '{sourceName}' on tag '{tag}', but no matching broadcast was captured.");
+            ShouldHaveBroadcast(tag, source);
         }
 
         /// <summary>
@@ -198,7 +255,42 @@ namespace MotherCore.Tests.Utilities
         /// <returns>A grid handle that owns subsequent block registrations.</returns>
         public TestGrid CreateGrid(string gridName = null, long? entityId = null)
         {
-            return new TestGrid(this, GridFactory.Create(gridName ?? "Test Grid", entityId));
+            var grid = new TestGrid(this, GridFactory.Create(gridName ?? "Test Grid", entityId));
+            _grids.Add(grid);
+            return grid;
+        }
+
+        /// <summary>
+        /// Looks up a world grid by name using case-insensitive matching.
+        /// </summary>
+        public TestGrid GetGrid(string gridName)
+        {
+            if (string.IsNullOrWhiteSpace(gridName))
+                throw new ArgumentException("Grid name is required.", nameof(gridName));
+
+            var grid = _grids.FirstOrDefault(candidate =>
+                string.Equals(candidate.Grid?.CustomName, gridName, StringComparison.OrdinalIgnoreCase));
+
+            if (grid == null)
+                throw new InvalidOperationException($"Expected world to contain grid '{gridName}', but no matching grid was found.");
+
+            return grid;
+        }
+
+        /// <summary>
+        /// Gets a world grid by creation index.
+        /// </summary>
+        public TestGrid GetGridByIndex(int index)
+        {
+            if (index < 0 || index >= _grids.Count)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    $"Grid index {index} is out of range. World contains {_grids.Count} grid(s).");
+            }
+
+            return _grids[index];
         }
 
         /// <summary>
@@ -271,6 +363,31 @@ namespace MotherCore.Tests.Utilities
         internal bool ContainsBlock(IMyCubeGrid grid, string blockName)
         {
             return FindBlock(grid, blockName) != null;
+        }
+
+        internal bool ContainsBlock(IMyCubeGrid grid, IMyTerminalBlock block)
+        {
+            if (grid == null)
+                throw new ArgumentNullException(nameof(grid));
+
+            if (block == null)
+                throw new ArgumentNullException(nameof(block));
+
+            return _worldBlocks.Any(registration =>
+                registration.Grid?.EntityId == grid.EntityId
+                && ReferenceEquals(registration.Block, block));
+        }
+
+        internal bool ContainsBlock<TBlock>(IMyCubeGrid grid)
+            where TBlock : class, IMyTerminalBlock
+        {
+            if (grid == null)
+                throw new ArgumentNullException(nameof(grid));
+
+            return _worldBlocks
+                .Where(registration => registration.Grid?.EntityId == grid.EntityId)
+                .Select(registration => registration.Block)
+                .Any(block => block is TBlock);
         }
 
         /// <summary>
@@ -464,7 +581,7 @@ namespace MotherCore.Tests.Utilities
         /// </summary>
         /// <param name="count">Number of world cycles to execute.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public World TickMessages(int count = 2) => Tick(count);
+        public World DeliverMessages(int count = 2) => Tick(count);
 
         /// <summary>
         /// Advances the world until <paramref name="predicate"/> returns true or

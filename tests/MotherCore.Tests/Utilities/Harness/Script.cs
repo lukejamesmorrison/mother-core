@@ -807,6 +807,19 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Asserts that this script's Almanac knows the supplied grid instance.
+        /// Grid lookup uses the grid's custom name.
+        /// </summary>
+        public void ShouldKnowGrid(IMyCubeGrid grid)
+        {
+            Assert.That(grid, Is.Not.Null, "Expected grid instance, but it was null.");
+            Assert.That(string.IsNullOrWhiteSpace(grid.CustomName), Is.False,
+                "Expected grid to have a CustomName for Almanac lookup, but it was null or whitespace.");
+
+            ShouldKnowGrid(grid.CustomName);
+        }
+
+        /// <summary>
         /// Looks up a registered block by custom or display name.
         /// </summary>
         public IMyTerminalBlock GetBlock(string blockName)
@@ -1496,6 +1509,12 @@ namespace MotherCore.Tests.Utilities
         public new void ShouldKnowGrid(string gridName)
         {
             base.ShouldKnowGrid(gridName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldKnowGrid(IMyCubeGrid)"/>
+        public new void ShouldKnowGrid(IMyCubeGrid grid)
+        {
+            base.ShouldKnowGrid(grid);
         }
 
         /// <inheritdoc cref="Script{TProgram}.GetBlock(string)"/>
