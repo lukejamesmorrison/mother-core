@@ -5,7 +5,7 @@ using VRageMath;
 
 namespace MotherCore.Tests.Command
 {
-    [Category("Layer:Command")]
+    [Category(TestCategories.LayerCommand)]
     public class PurgeCommandTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]

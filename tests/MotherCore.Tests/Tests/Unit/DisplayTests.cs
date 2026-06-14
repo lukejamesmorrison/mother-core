@@ -1,4 +1,5 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
 using NUnit.Framework;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using VRageMath;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class DisplayTests
     {
         static List<MySprite> GetSprites(MySpriteDrawFrame frame)

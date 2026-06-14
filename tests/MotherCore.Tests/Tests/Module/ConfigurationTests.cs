@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace MotherCore.Tests.Module
 {
-    [Category("Layer:Module")]
+    [Category(TestCategories.LayerModule)]
     public class ConfigurationTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]

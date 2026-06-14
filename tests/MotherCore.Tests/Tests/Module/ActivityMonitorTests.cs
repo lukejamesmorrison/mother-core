@@ -6,7 +6,7 @@ using Sandbox.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Integration
 {
-    [Category("Layer:Module")]
+    [Category(TestCategories.LayerModule)]
     public class ActivityMonitorTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]

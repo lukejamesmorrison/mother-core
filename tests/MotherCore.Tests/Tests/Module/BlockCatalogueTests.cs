@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace MotherCore.Tests.Integration
 {
-    [Category("Layer:Module")]
+    [Category(TestCategories.LayerModule)]
     public class BlockCatalogueTests : ScriptTestBase<CoreTestProgram>
     {
         [Test]

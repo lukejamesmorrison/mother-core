@@ -7,30 +7,23 @@ using System;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class MotherTests
     {
-        private CoreTestProgram _program;
-
-        [SetUp]
-        public void Setup()
-        {
-            _program = ProgramFactory.CreateProgram<CoreTestProgram>().Build();
-        }
-
         [Test]
         public void Mother_Can_Be_Created_With_A_Program_Instance()
         {
-            Mother mother = new Mother(_program);
+            var program = ProgramFactory.CreateProgram<CoreTestProgram>().Build();
+            Mother mother = new Mother(program);
 
-            Assert.That(mother.Program, Is.SameAs(_program));
-            Assert.That(mother.IGC, Is.SameAs(_program.IGC));
-            Assert.That(mother.GridTerminalSystem, Is.SameAs(_program.GridTerminalSystem));
-            Assert.That(mother.Runtime, Is.SameAs(_program.Runtime));
-            Assert.That(mother.ProgrammableBlock, Is.SameAs(_program.Me));
-            Assert.That(mother.CubeGrid, Is.SameAs(_program.Me.CubeGrid));
-            Assert.That(mother.Id, Is.EqualTo(_program.IGC.Me));
-            Assert.That(mother.Name, Is.SameAs(_program.Me.CubeGrid.CustomName));
+            Assert.That(mother.Program, Is.SameAs(program));
+            Assert.That(mother.IGC, Is.SameAs(program.IGC));
+            Assert.That(mother.GridTerminalSystem, Is.SameAs(program.GridTerminalSystem));
+            Assert.That(mother.Runtime, Is.SameAs(program.Runtime));
+            Assert.That(mother.ProgrammableBlock, Is.SameAs(program.Me));
+            Assert.That(mother.CubeGrid, Is.SameAs(program.Me.CubeGrid));
+            Assert.That(mother.Id, Is.EqualTo(program.IGC.Me));
+            Assert.That(mother.Name, Is.SameAs(program.Me.CubeGrid.CustomName));
         }
     }
 }

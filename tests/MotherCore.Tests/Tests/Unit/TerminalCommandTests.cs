@@ -1,11 +1,12 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class TerminalCommandTests
     {
         // --- Basic parsing ---
@@ -298,5 +299,6 @@ namespace MotherCore.Tests.Tests.Unit
         }
     }
 }
+
 
 

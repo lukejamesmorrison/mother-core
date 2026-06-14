@@ -1,10 +1,11 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class RouterTests
     {
         [Test]
@@ -37,4 +38,5 @@ namespace MotherCore.Tests.Tests.Unit
         }
     }
 }
+
 

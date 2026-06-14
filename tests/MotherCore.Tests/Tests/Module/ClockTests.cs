@@ -12,7 +12,7 @@ namespace MotherCore.Tests.Integration
     /// management. These tests are critical for verifying safe list mutation
     /// during iteration and correct timing behavior.
     /// </summary>
-    [Category("Layer:Module")]
+    [Category(TestCategories.LayerModule)]
     public class ClockTests : ScriptTestBase<CoreTestProgram>
     {
         // --- Construction and reset ---

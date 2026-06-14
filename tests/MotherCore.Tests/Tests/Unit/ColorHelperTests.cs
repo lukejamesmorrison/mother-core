@@ -1,10 +1,11 @@
 using IngameScript;
 using NUnit.Framework;
+using MotherCore.Tests.Utilities;
 using VRageMath;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class ColorHelperTests
     {
         //[Test]

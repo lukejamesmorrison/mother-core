@@ -2,10 +2,11 @@ using IngameScript;
 using NUnit.Framework;
 using System;
 using VRageMath;
+using MotherCore.Tests.Utilities;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class GeometryTests
     {
         [Test]

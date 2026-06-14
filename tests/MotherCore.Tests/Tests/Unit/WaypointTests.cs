@@ -1,10 +1,11 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using VRageMath;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class WaypointTests
     {
         [Test]
@@ -49,4 +50,5 @@ namespace MotherCore.Tests.Tests.Unit
         }
     }
 }
+
 

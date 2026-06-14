@@ -16,7 +16,7 @@ namespace MotherCore.Tests.Tests.Unit
     ///     also make sure your Program class is public.
     /// </remarks>
     [TestFixture]
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class ProgramInstanceTests
     {
         /// <summary>

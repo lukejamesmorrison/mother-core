@@ -1,4 +1,5 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Mocks;
 using NUnit.Framework;
 using System;
@@ -6,7 +7,7 @@ using System.Collections.Generic;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class BaseModuleCommandTests
     {
         static readonly FakeModuleCommand Command = new FakeModuleCommand();

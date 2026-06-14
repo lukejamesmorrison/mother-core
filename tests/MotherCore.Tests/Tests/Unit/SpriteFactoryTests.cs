@@ -1,11 +1,12 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using VRage.Game.GUI.TextPanel;
 using VRageMath;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class SpriteFactoryTests
     {
         [Test]
@@ -27,4 +28,5 @@ namespace MotherCore.Tests.Tests.Unit
         }
     }
 }
+
 

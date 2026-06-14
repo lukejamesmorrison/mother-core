@@ -1,10 +1,11 @@
 using IngameScript;
+using MotherCore.Tests.Utilities;
 using NUnit.Framework;
 using System;
 
 namespace MotherCore.Tests.Tests.Unit
 {
-    [Category("Layer:Unit")]
+    [Category(TestCategories.LayerUnit)]
     public class SecurityTests
     {
         [Test]
@@ -90,5 +91,6 @@ namespace MotherCore.Tests.Tests.Unit
         }
     }
 }
+
 
 
