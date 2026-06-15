@@ -7,7 +7,7 @@ This folder is organized by role so the core test harness is easier to scan.
 - `Mocks/`: explicit fake implementations and spies used to simulate runtime dependencies in tests.
 - `Harness/`: the executable test runtime surface (`Script`, `World`, clock, echo, and shared interfaces).
 
-a## Recommended setup style
+## Recommended setup style
 
 Prefer explicit per-test setup over shared implicit fixture setup:
 
@@ -56,6 +56,79 @@ Assertion guidance:
 - Avoid brittle assertions tied to global command-registration totals or transient coroutine counts.
 - Use harness helpers first (`ShouldHaveExecuted`, `ShouldHaveDeliveredIgcMessage`, `ShouldHaveNoPendingMessages`) before low-level list inspection.
 
+Command-path assertion guidance:
+
+- Prefer `script.ShouldHaveExecuted("command/name")` over direct
+	`script.Bus.GetExecutionCount(...)` assertions.
+
+Terminal block setup guidance:
+
+- Prefer interface-first creation with `TerminalBlockFactory.Create<IMy...>(...)`
+	so test setup matches game-facing APIs.
+- For `RunTerminal(...)` tests, register blocks before `Boot()` so
+	`BlockCatalogue` includes them:
+
+```csharp
+var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Airlock");
+
+var script = ScriptFactory<Program>()
+		.WithMother()
+		.WithBlock(door)
+		.Boot();
+```
+
 The current harness direction is explicit over generic: common game-facing interfaces
 should be represented by concrete fake types, and unsupported families should fail
 fast so new coverage gets added deliberately.
+
+## Adding new block fakes
+
+When a module starts using a new terminal block family, add a concrete fake and
+wire it into the factory so tests can use one consistent creation path.
+
+### 1) Create the concrete fake
+
+- Add a new type under `Utilities/Mocks`.
+- Derive from `FakeTerminalBlock`.
+- Implement the target interface and include only behavior your tests need first.
+
+Example pattern:
+
+```csharp
+internal sealed class FakeTimerBlock : FakeTerminalBlock, IMyTimerBlock
+{
+	public FakeTimerBlock(
+		string customName = null,
+		string customData = "",
+		long? entityId = null,
+		IMyCubeGrid cubeGrid = null)
+		: base(customName, customData, entityId, cubeGrid)
+	{
+	}
+
+	public float TriggerDelay { get; set; }
+
+	public void Trigger() { }
+	public void StartCountdown() { }
+	public void StopCountdown() { }
+}
+```
+
+### 2) Register it in TerminalBlockFactory
+
+Update `Utilities/Factories/TerminalBlockFactory.cs` in `CreateConcreteBlock<TBlock>`:
+
+```csharp
+if (typeof(TBlock) == typeof(IMyTimerBlock))
+	return new FakeTimerBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+```
+
+### 3) Prefer factory/harness creation in tests
+
+Use one of these paths in test setup:
+
+- `TerminalBlockFactory.Create<IMyTimerBlock>(customName: "Main Timer")`
+- `script.WithBlock<IMyTimerBlock>(customName: "Main Timer")`
+
+Use direct `new FakeXxx(...)` only when a test needs fake-specific behavior
+that cannot be expressed clearly through interface-first factory setup.

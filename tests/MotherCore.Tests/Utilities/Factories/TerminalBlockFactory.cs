@@ -10,6 +10,12 @@ namespace MotherCore.Tests.Utilities.Factories
     /// Creates lightweight terminal block fakes that implement any
     /// <see cref="IMyTerminalBlock"/>-derived interface without needing a
     /// dedicated concrete fake type for each block family.
+    ///
+    /// To add support for a new terminal block family:
+    /// 1) Add a concrete fake under Utilities.Mocks that derives from <see cref="FakeTerminalBlock"/>.
+    /// 2) Implement the target in-game interface (for example, <c>IMyTimerBlock</c>).
+    /// 3) Add a mapping in <see cref="CreateConcreteBlock{TBlock}(string, string, long?, IMyCubeGrid)"/>
+    ///    from the interface type to the new fake constructor.
     /// </summary>
     public static class TerminalBlockFactory
     {
@@ -57,6 +63,9 @@ namespace MotherCore.Tests.Utilities.Factories
 
             if (typeof(TBlock) == typeof(IMyShipMergeBlock))
                 return new FakeShipMergeBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyLightingBlock))
+                return new FakeLightingBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
             return null;
         }

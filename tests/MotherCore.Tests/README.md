@@ -19,6 +19,10 @@ When consuming this harness in extension-script projects (MotherOS, MotherGUI):
 
 Use explicit per-test boot via factory helpers.
 
+CommandFactory/CommandBuilder were removed from the harness. For command-path
+verification, run terminal input through a booted script and assert with
+script-level helpers.
+
 Single script tests:
 
 ```csharp
@@ -33,6 +37,14 @@ public void Rename_Command_Executes_And_Updates_Name()
     script.ShouldHaveExecuted("rename");
     script.ShouldHaveName("Frigate");
 }
+```
+
+Command-path assertions (preferred over direct Bus count checks):
+
+```csharp
+script.RunTerminal("purge storage");
+script.ShouldHaveExecuted("purge");
+script.ShouldHavePrinted("Run command with --force to purge");
 ```
 
 Module tests (direct module API):
@@ -84,7 +96,9 @@ public void Remote_Command_Delivers_To_Target()
 
 - `Tests/Unit`: pure value behavior, no script boot.
 - `Tests/Module`: booted script, direct module calls.
-- `Tests/Command`: terminal/command-bus execution path.
+- `Tests/Command`: reserved for commands with meaningful standalone logic.
+    Module-owned command behavior should generally be covered in `Tests/Module`
+    via `RunTerminal(...)` plus behavior assertions.
 - `Tests/Script`: single-script lifecycle/wiring behavior.
 - `Tests/World`: multi-script topology/network behavior.
 
