@@ -133,8 +133,6 @@ namespace IngameScript
         public virtual void UpdateConfig(MyIni config)
         {
             Configuration = config;
-
-            //SetRenderingDetails();
         }
 
         /// <summary>
