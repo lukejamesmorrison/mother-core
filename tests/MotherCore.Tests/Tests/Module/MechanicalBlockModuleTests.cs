@@ -109,7 +109,7 @@ namespace MotherCore.Tests.Integration
             Assert.That(catalogue.ConstructGridIds, Contains.Item(droneGrid.EntityId));
             Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("Drone Battery"), Has.Count.EqualTo(1));
 
-            script.Mother.GetModule<EventBus>().Emissions.Clear();
+            script.ClearEventEmissions();
 
             nestedConnection.Detach();
             catalogue.Run();

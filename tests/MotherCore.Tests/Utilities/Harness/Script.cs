@@ -988,6 +988,18 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Clears all recorded emissions from the booted <see cref="EventBus"/>.
+        /// Use before transition assertions to isolate event counts.
+        /// </summary>
+        public void ClearEventEmissions()
+        {
+            if (!HasMother || _mother == null)
+                throw new InvalidOperationException("ClearEventEmissions requires a booted Mother runtime.");
+
+            _mother.GetModule<EventBus>().Emissions.Clear();
+        }
+
+        /// <summary>
         /// Asserts that the booted <see cref="CommandBus"/> processed a concrete command
         /// with the expected outcome the specified number of times.
         /// </summary>
@@ -1481,6 +1493,12 @@ namespace MotherCore.Tests.Utilities
             where TEvent : IEvent
         {
             base.AssertEventEmitted<TEvent>(module, expectedCount);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ClearEventEmissions"/>
+        public new void ClearEventEmissions()
+        {
+            base.ClearEventEmissions();
         }
 
         /// <inheritdoc cref="Script{TProgram}.AssertCommandExecuted(string, int, CommandExecutionOutcome)"/>

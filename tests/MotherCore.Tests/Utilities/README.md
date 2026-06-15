@@ -55,6 +55,7 @@ Assertion guidance:
 - Prefer behavior assertions (command executed, expected event emitted, expected message delivered).
 - Avoid brittle assertions tied to global command-registration totals or transient coroutine counts.
 - Use harness helpers first (`ShouldHaveExecuted`, `ShouldHaveDeliveredIgcMessage`, `ShouldHaveNoPendingMessages`) before low-level list inspection.
+- For Mother-backed scripts, prefer `script.ClearEventEmissions()` over direct EventBus access when isolating event assertions between transitions.
 
 Command-path assertion guidance:
 

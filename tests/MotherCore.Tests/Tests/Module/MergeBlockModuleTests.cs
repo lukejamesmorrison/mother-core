@@ -75,7 +75,7 @@ namespace MotherCore.Tests.Integration
             catalogue.Run();
             script.RunToIdle();
 
-            script.Mother.GetModule<EventBus>().Emissions.Clear();
+            script.ClearEventEmissions();
 
             mergeModule.UnlockMergeBlock(mergeBlock);
             catalogue.Run();
@@ -112,7 +112,7 @@ namespace MotherCore.Tests.Integration
             catalogue.Run();
             script.RunToIdle();
 
-            script.Mother.GetModule<EventBus>().Emissions.Clear();
+            script.ClearEventEmissions();
 
             mergeModule.LockMergeBlock(secondMergeBlock);
             catalogue.Run();

@@ -62,6 +62,15 @@ namespace MotherCore.Tests.Utilities
         /// Indicates whether this script exposes a <see cref="Mother"/> runtime.
         /// </summary>
         bool HasMother { get; }
+
+        /// <summary>
+        /// Clears all recorded EventBus emissions for this script's Mother runtime.
+        /// </summary>
+        /// <remarks>
+        /// Intended for transition-specific assertions where prior emissions should
+        /// not influence expected counts.
+        /// </remarks>
+        void ClearEventEmissions();
     }
 
     /// <summary>

@@ -91,6 +91,22 @@ public void Remote_Command_Delivers_To_Target()
 - Prefer behavior assertions over brittle totals.
 - For command bus and routing checks, assert presence and outcomes rather than global absolute counts.
 - Use world/script helper assertions (`ShouldHaveDeliveredIgcMessage`, `ShouldHaveExecuted`, `ShouldHaveNoPendingMessages`) before inspecting low-level transport internals.
+- For transition-specific event assertions, call `script.ClearEventEmissions()` before the transition under test.
+
+Event-transition assertion example:
+
+```csharp
+SetDoorStatus(door, DoorStatus.Open);
+script.RunToIdle();
+
+script.ClearEventEmissions();
+
+SetDoorStatus(door, DoorStatus.Closing);
+script.RunToIdle();
+
+script.AssertEventEmitted<DoorClosingEvent>();
+script.AssertEventEmitted<DoorOpenedEvent>(0);
+```
 
 ## Layer map
 
