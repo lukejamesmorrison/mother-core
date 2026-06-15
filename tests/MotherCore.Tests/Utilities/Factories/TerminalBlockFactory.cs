@@ -94,6 +94,24 @@ namespace MotherCore.Tests.Utilities.Factories
             if (typeof(TBlock) == typeof(IMyTimerBlock))
                 return new FakeTimerBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
+            if (typeof(TBlock) == typeof(IMyConveyorSorter))
+                return new FakeConveyorSorter(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMySoundBlock))
+                return new FakeSoundBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyGasTank))
+                return new FakeGasTank(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyThrust))
+                return new FakeThrust(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyMotorSuspension))
+                return new FakeMotorSuspension(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyGyro))
+                return new FakeGyro(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
             return null;
         }
 

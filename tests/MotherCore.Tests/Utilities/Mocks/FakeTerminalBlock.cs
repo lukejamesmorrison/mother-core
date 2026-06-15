@@ -3,9 +3,11 @@ using Sandbox.ModAPI.Interfaces;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
+using VRage.Collections;
 using VRage.Game;
 using VRage.Game.Components.Interfaces;
 using VRage.Game.ModAPI.Ingame;
@@ -71,6 +73,10 @@ namespace MotherCore.Tests.Utilities.Mocks
     public abstract class FakeTerminalBlock : IMyTerminalBlock
     {
         readonly List<IMyInventory> _inventories = new List<IMyInventory>();
+        readonly Dictionary<string, ITerminalAction> _terminalActions =
+            new Dictionary<string, ITerminalAction>(StringComparer.OrdinalIgnoreCase);
+        readonly List<string> _requestedActionNames = new List<string>();
+        readonly List<string> _requestedPropertyIds = new List<string>();
         static readonly object NameCounterLock = new object();
         static readonly Dictionary<string, Dictionary<string, int>> DefaultNameCountersByScope =
             new Dictionary<string, Dictionary<string, int>>();
@@ -164,12 +170,124 @@ namespace MotherCore.Tests.Utilities.Mocks
         public Vector3D WorldPosition { get; set; }
 
         /// <summary>
+        /// Gets the ordered list of action names requested via
+        /// <see cref="IMyTerminalBlock.GetActionWithName(string)"/>.
+        /// </summary>
+        public IReadOnlyList<string> RequestedActionNames => _requestedActionNames;
+
+        /// <summary>
+        /// Gets the ordered list of property ids requested via
+        /// <see cref="IMyTerminalBlock.GetProperty(string)"/>.
+        /// </summary>
+        public IReadOnlyList<string> RequestedPropertyIds => _requestedPropertyIds;
+
+        /// <summary>
+        /// Gets the number of times actions were enumerated via
+        /// <see cref="IMyTerminalBlock.GetActions(List{ITerminalAction}, Func{ITerminalAction, bool})"/>.
+        /// </summary>
+        public int GetActionsCallCount { get; private set; }
+
+        /// <summary>
+        /// Gets the number of times properties were enumerated via
+        /// <see cref="IMyTerminalBlock.GetProperties(List{ITerminalProperty}, Func{ITerminalProperty, bool})"/>.
+        /// </summary>
+        public int GetPropertiesCallCount { get; private set; }
+
+        /// <summary>
+        /// Gets the number of terminal action applications performed against this block.
+        /// </summary>
+        public int ApplyActionCallCount { get; private set; }
+
+        /// <summary>
+        /// Gets the last action id applied to this block, or <see langword="null"/>
+        /// when no action has been applied.
+        /// </summary>
+        public string LastAppliedActionId { get; private set; }
+
+        /// <summary>
+        /// Gets the parameter count from the last applied action invocation.
+        /// </summary>
+        public int LastAppliedActionParameterCount { get; private set; }
+
+        /// <summary>
         /// Applies an enable/disable request to this fake block.
         /// </summary>
         /// <param name="enable">The requested enabled state.</param>
         public virtual void RequestEnable(bool enable)
         {
             Enabled = enable;
+        }
+
+        /// <summary>
+        /// Registers a terminal action id on this fake so action-based module paths
+        /// can resolve and invoke it.
+        /// </summary>
+        /// <param name="actionId">Terminal action id.</param>
+        public void RegisterTerminalAction(string actionId)
+        {
+            if (string.IsNullOrWhiteSpace(actionId))
+                return;
+
+            _terminalActions[actionId] = new FakeTerminalAction(actionId, this);
+        }
+
+        /// <summary>
+        /// Clears tracked action/property interaction history.
+        /// </summary>
+        public void ClearTerminalInteractionHistory()
+        {
+            _requestedActionNames.Clear();
+            _requestedPropertyIds.Clear();
+            GetActionsCallCount = 0;
+            GetPropertiesCallCount = 0;
+            ApplyActionCallCount = 0;
+            LastAppliedActionId = null;
+            LastAppliedActionParameterCount = 0;
+        }
+
+        /// <summary>
+        /// Asserts that this fake block received a terminal action/property request.
+        /// When <paramref name="parameters"/> is provided, also validates action invocation
+        /// with the expected parameter count.
+        /// </summary>
+        /// <param name="actionOrPropertyName">The action id or property id expected to be requested.</param>
+        /// <param name="parameters">Optional expected action parameters.</param>
+        public void ShouldHaveRunAction(string actionOrPropertyName, IEnumerable<string> parameters = null)
+        {
+            Assert.That(string.IsNullOrWhiteSpace(actionOrPropertyName), Is.False,
+                "Expected an action/property name to assert against.");
+
+            var expectedParameters = parameters?.ToList();
+
+            var requestedAsAction = RequestedActionNames
+                .Any(name => string.Equals(name, actionOrPropertyName, StringComparison.OrdinalIgnoreCase));
+
+            var requestedAsProperty = RequestedPropertyIds
+                .Any(id => string.Equals(id, actionOrPropertyName, StringComparison.OrdinalIgnoreCase));
+
+            Assert.That(requestedAsAction || requestedAsProperty, Is.True,
+                $"Expected terminal action/property '{actionOrPropertyName}' to be requested.");
+
+            if (!requestedAsAction)
+                return;
+
+            Assert.That(ApplyActionCallCount, Is.GreaterThan(0),
+                $"Expected action '{actionOrPropertyName}' to be applied at least once.");
+            Assert.That(LastAppliedActionId, Is.EqualTo(actionOrPropertyName),
+                "Unexpected last applied terminal action id.");
+
+            if (expectedParameters != null)
+                Assert.That(LastAppliedActionParameterCount, Is.EqualTo(expectedParameters.Count),
+                    "Unexpected terminal action parameter count.");
+        }
+
+        /// <summary>
+        /// Asserts how many times this block was asked to enumerate terminal actions.
+        /// </summary>
+        /// <param name="count">Expected number of list calls.</param>
+        public void ShouldHaveListedActions(int count = 1)
+        {
+            Assert.That(GetActionsCallCount, Is.EqualTo(count));
         }
 
         /// <summary>
@@ -338,19 +456,44 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         void IMyTerminalBlock.GetActions(List<ITerminalAction> resultList, Func<ITerminalAction, bool> collect)
         {
+            GetActionsCallCount++;
+
+            if (resultList == null)
+                return;
+
+            foreach (var action in _terminalActions.Values)
+            {
+                if (collect == null || collect(action))
+                    resultList.Add(action);
+            }
         }
 
         ITerminalAction IMyTerminalBlock.GetActionWithName(string name)
         {
-            return null;
+            _requestedActionNames.Add(name);
+
+            ITerminalAction action;
+            if (_terminalActions.TryGetValue(name ?? string.Empty, out action))
+                return action;
+
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+
+            // Accept unregistered action ids so tests can assert requested names/params
+            // without extra setup noise.
+            action = new FakeTerminalAction(name, this);
+            _terminalActions[name] = action;
+            return action;
         }
 
         void IMyTerminalBlock.GetProperties(List<ITerminalProperty> resultList, Func<ITerminalProperty, bool> collect)
         {
+            GetPropertiesCallCount++;
         }
 
         ITerminalProperty IMyTerminalBlock.GetProperty(string id)
         {
+            _requestedPropertyIds.Add(id);
             return null;
         }
 
@@ -376,6 +519,17 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         void IMyTerminalBlock.SearchActionsOfName(string name, List<ITerminalAction> resultList, Func<ITerminalAction, bool> collect)
         {
+            if (resultList == null || string.IsNullOrEmpty(name))
+                return;
+
+            foreach (var action in _terminalActions.Values)
+            {
+                if (!action.Id.Contains(name))
+                    continue;
+
+                if (collect == null || collect(action))
+                    resultList.Add(action);
+            }
         }
 
         string IMyCubeBlock.GetOwnerFactionTag()
@@ -463,6 +617,74 @@ namespace MotherCore.Tests.Utilities.Mocks
         /// </summary>
         protected virtual void OnCustomNameChanged()
         {
+        }
+
+        void RecordActionApplied(string actionId, int parameterCount)
+        {
+            ApplyActionCallCount++;
+            LastAppliedActionId = actionId;
+            LastAppliedActionParameterCount = parameterCount;
+        }
+
+        sealed class FakeTerminalAction : ITerminalAction
+        {
+            readonly FakeTerminalBlock _owner;
+
+            public FakeTerminalAction(string id, FakeTerminalBlock owner)
+            {
+                Id = id;
+                _owner = owner;
+                Name = new StringBuilder(id ?? string.Empty);
+            }
+
+            public string Id { get; }
+
+            public StringBuilder Name { get; }
+
+            public string Icon { get; } = string.Empty;
+
+            public bool IsEnabled(IMyTerminalBlock block)
+            {
+                return true;
+            }
+
+            public bool IsEnabled(IMyCubeBlock block)
+            {
+                return true;
+            }
+
+            public void Apply(IMyTerminalBlock block)
+            {
+                _owner.RecordActionApplied(Id, 0);
+            }
+
+            public void Apply(IMyCubeBlock block)
+            {
+                _owner.RecordActionApplied(Id, 0);
+            }
+
+            public void Apply(IMyTerminalBlock block, List<TerminalActionParameter> parameters)
+            {
+                _owner.RecordActionApplied(Id, parameters != null ? parameters.Count : 0);
+            }
+
+            public void Apply(IMyCubeBlock block, List<TerminalActionParameter> parameters)
+            {
+                _owner.RecordActionApplied(Id, parameters != null ? parameters.Count : 0);
+            }
+
+            public void Apply(IMyCubeBlock block, ListReader<TerminalActionParameter> parameters)
+            {
+                _owner.RecordActionApplied(Id, parameters.Count);
+            }
+
+            public void WriteValue(IMyTerminalBlock block, StringBuilder appendTo)
+            {
+            }
+
+            public void WriteValue(IMyCubeBlock block, StringBuilder appendTo)
+            {
+            }
         }
 
         /// <summary>
