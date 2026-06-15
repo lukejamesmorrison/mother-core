@@ -70,6 +70,9 @@ namespace MotherCore.Tests.Utilities.Factories
             if (typeof(TBlock) == typeof(IMyAirVent))
                 return new FakeAirVent(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
+            if (typeof(TBlock) == typeof(IMyCockpit))
+                return new FakeCockpit(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
             return null;
         }
 

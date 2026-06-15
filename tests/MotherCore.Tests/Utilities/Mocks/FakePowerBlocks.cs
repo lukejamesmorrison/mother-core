@@ -27,8 +27,23 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
     }
 
+    /// <summary>
+    /// Lightweight battery fake for harness tests that need mutable battery charge state.
+    /// </summary>
+    /// <remarks>
+    /// API surface and behavior intent align with the programmable-block references:
+    /// https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.IMyBatteryBlock.html
+    /// https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.ChargeMode.html
+    /// </remarks>
     internal sealed class FakeBatteryBlock : FakePowerProducerBlock, IMyBatteryBlock
     {
+        /// <summary>
+        /// Initializes a fake battery with optional terminal identity and grid placement.
+        /// </summary>
+        /// <param name="customName">Optional terminal custom name.</param>
+        /// <param name="customData">Optional terminal custom data payload.</param>
+        /// <param name="entityId">Optional explicit entity id.</param>
+        /// <param name="cubeGrid">Optional owning cube grid.</param>
         public FakeBatteryBlock(
             string customName = null,
             string customData = "",
@@ -38,6 +53,9 @@ namespace MotherCore.Tests.Utilities.Mocks
         {
         }
 
+        /// <summary>
+        /// Gets whether additional power can still be stored.
+        /// </summary>
         public bool HasCapacityRemaining
         {
             get { return CurrentStoredPower < MaxStoredPower; }
@@ -56,6 +74,9 @@ namespace MotherCore.Tests.Utilities.Mocks
             get { return ChargeMode == ChargeMode.Recharge; }
         }
 
+        /// <summary>
+        /// Gets or sets the active battery charge mode.
+        /// </summary>
         public ChargeMode ChargeMode { get; set; } = ChargeMode.Auto;
 
         public bool OnlyRecharge
