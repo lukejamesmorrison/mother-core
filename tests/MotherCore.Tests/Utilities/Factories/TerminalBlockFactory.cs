@@ -73,6 +73,27 @@ namespace MotherCore.Tests.Utilities.Factories
             if (typeof(TBlock) == typeof(IMyCockpit))
                 return new FakeCockpit(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
+            if (typeof(TBlock) == typeof(IMyMotorStator))
+                return new FakeMotorStator(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyLandingGear))
+                return new FakeLandingGear(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyPistonBase))
+                return new FakePistonBase(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyProgrammableBlock))
+                return new FakeProgrammableBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyFunctionalBlock))
+                return new FakeFunctionalBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMySensorBlock))
+                return new FakeSensorBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
+            if (typeof(TBlock) == typeof(IMyTimerBlock))
+                return new FakeTimerBlock(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
             return null;
         }
 

@@ -4,6 +4,15 @@ using VRage.Game.ModAPI.Ingame;
 
 namespace MotherCore.Tests.Utilities.Mocks
 {
+    /// <summary>
+    /// Base mechanical connection fake shared by rotor/hinge/piston test doubles.
+    /// Tracks attachment state and top-part linkage exposed by
+    /// <see cref="IMyMechanicalConnectionBlock"/>.
+    /// </summary>
+    /// <remarks>
+    /// Citation:
+    /// <see href="https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.IMyMechanicalConnectionBlock.html"/>
+    /// </remarks>
     internal abstract class FakeMechanicalConnectionBlock : FakeTerminalBlock, IMyMechanicalConnectionBlock
     {
         IMyAttachableTopBlock _top;
@@ -50,6 +59,14 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
     }
 
+    /// <summary>
+    /// Motor stator fake used by hinge/rotor modules to model angle, limits,
+    /// target velocity, lock state, and rotor-head attachment.
+    /// </summary>
+    /// <remarks>
+    /// Citation:
+    /// <see href="https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.IMyMotorStator.html"/>
+    /// </remarks>
     internal sealed class FakeMotorStator : FakeMechanicalConnectionBlock, IMyMotorStator
     {
         public FakeMotorStator(
@@ -110,6 +127,15 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
     }
 
+    /// <summary>
+    /// Piston fake used by piston module tests for movement direction, limits,
+    /// velocity, and status-transition assertions.
+    /// </summary>
+    /// <remarks>
+    /// Citations:
+    /// <see href="https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.IMyPistonBase.html"/>
+    /// <see href="https://malforge.github.io/spaceengineers/pbapi/Sandbox.ModAPI.Ingame.PistonStatus.html"/>
+    /// </remarks>
     internal sealed class FakePistonBase : FakeMechanicalConnectionBlock, IMyPistonBase
     {
         public FakePistonBase(
@@ -139,27 +165,33 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public float Velocity { get; set; }
 
-        public PistonStatus Status => IsAttached ? PistonStatus.Extended : PistonStatus.Retracted;
+        public PistonStatus Status { get; set; } = PistonStatus.Extended;
 
         public void Attach(IMyPistonTop top)
         {
             ConfigureTop(top, top?.CubeGrid, true);
+            Status = PistonStatus.Extended;
         }
 
         public void Detach(IMyPistonTop top)
         {
             if (Top != null && top != null && Top.EntityId == top.EntityId)
+            {
                 Detach();
+                Status = PistonStatus.Retracted;
+            }
         }
 
         public void Extend()
         {
             Velocity = Math.Abs(MaxVelocity > 0 ? MaxVelocity : 1f);
+            Status = PistonStatus.Extending;
         }
 
         public void Retract()
         {
             Velocity = -Math.Abs(MaxVelocity > 0 ? MaxVelocity : 1f);
+            Status = PistonStatus.Retracting;
         }
 
         public void Reverse()
