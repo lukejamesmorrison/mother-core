@@ -62,6 +62,17 @@ public void OpenDoor_Opens_Target_Door()
 }
 ```
 
+    Merge-block topology setup:
+
+    ```csharp
+    // Default: starts merged (single construct)
+    var merged = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
+
+    // Explicit split start: starts as two constructs, then merge in-test
+    var mergePair = script.AddUnmergedMergeBlockPair(script.PrimaryGrid, cargoGrid);
+    script.Mother.GetModule<MergeBlockModule>().LockMergeBlock(mergePair);
+    ```
+
 World tests (multi-script):
 
 ```csharp
@@ -80,11 +91,26 @@ public void Remote_Command_Delivers_To_Target()
 }
 ```
 
+    World merge setup options:
+
+    ```csharp
+    // Explicit blocks already available
+    world.MergeBlocks(firstMergeBlock, secondMergeBlock);
+
+    // Grid-first setup: creates merge blocks and locks them immediately
+    world.MergeGrids(gridA, gridB);
+
+    // Explicitly split a merged pair
+    world.UnmergeBlocks(firstMergeBlock, secondMergeBlock);
+    ```
+
 ## Important behavior notes
 
 - `World.CreateScript()` without a name now generates a unique random name to prevent collisions.
 - For message-routing tests, still prefer explicit names (`Sender`, `ReceiverA`, `ReceiverB`) to keep intent obvious.
 - Clock coroutines are removed immediately when they complete; avoid brittle assertions that depend on stale coroutine counts.
+- `script.ConnectGridsViaMergeBlock(...)` now defaults to `MergeState.Locked` so merge-pair setups start as a unified construct.
+- Use `script.AddUnmergedMergeBlockPair(...)` when a test needs two separate grids first and performs the merge transition in the test body.
 
 ## Assertion guidance from the refactor
 

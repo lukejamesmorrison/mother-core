@@ -82,6 +82,12 @@ The current harness direction is explicit over generic: common game-facing inter
 should be represented by concrete fake types, and unsupported families should fail
 fast so new coverage gets added deliberately.
 
+Merge-block setup guidance:
+
+- `script.ConnectGridsViaMergeBlock(...)` starts in merged state by default (`MergeState.Locked`).
+- Use `script.AddUnmergedMergeBlockPair(...)` to start with two distinct grids and call `LockMergeBlock(...)`/`script.MergeBlocks(...)` during the test when you want to assert the merge transition.
+- In world tests, prefer world-driven topology changes: `world.MergeGrids(gridA, gridB)`, `world.MergeBlocks(blockA, blockB)`, and `world.UnmergeBlocks(blockA, blockB)`.
+
 ## Adding new block fakes
 
 When a module starts using a new terminal block family, add a concrete fake and

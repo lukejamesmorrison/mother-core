@@ -913,7 +913,7 @@ var carrierMerge = carrierGrid.AddBlock<IMyShipMergeBlock>("Carrier Merge");
 var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
 var script = world.CreateScript<Program>(carrierGrid, "Carrier").Boot();
-world.Merge(carrierMerge, cargoMerge);
+world.MergeBlocks(carrierMerge, cargoMerge);
 ```
 
 This is the world-based version of what `FakeIgcNetwork` already does in a narrower form.

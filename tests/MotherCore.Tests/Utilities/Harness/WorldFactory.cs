@@ -57,6 +57,32 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Adds a world grid during creation and applies additional grid-local setup.
+        /// </summary>
+        public WorldFactory WithGrid(
+            string gridName,
+            Action<TestGrid> configureGrid,
+            long? entityId = null)
+        {
+            if (configureGrid == null)
+                throw new ArgumentNullException(nameof(configureGrid));
+
+            return Configure(world =>
+            {
+                var grid = world.CreateGrid(gridName, entityId);
+                configureGrid(grid);
+            });
+        }
+
+        /// <summary>
+        /// Adds a world grid with default naming and applies additional grid-local setup.
+        /// </summary>
+        public WorldFactory WithGrid(Action<TestGrid> configureGrid)
+        {
+            return WithGrid(null, configureGrid, null);
+        }
+
+        /// <summary>
         /// Creates an unbooted world harness with all queued configuration applied.
         /// </summary>
         public World Create()

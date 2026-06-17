@@ -441,7 +441,7 @@ namespace MotherCore.Tests.Utilities
             IMyCubeGrid otherGrid,
             string baseMergeBlockName = null,
             string otherMergeBlockName = null,
-            MergeState initialState = MergeState.None)
+            MergeState initialState = MergeState.Locked)
         {
             return _gridTerminalSystem.ConnectGridsViaMergeBlock(
                 baseGrid,
@@ -449,6 +449,24 @@ namespace MotherCore.Tests.Utilities
                 baseMergeBlockName,
                 otherMergeBlockName,
                 initialState);
+        }
+
+        /// <summary>
+        /// Registers a merge-block pair without merging the grids yet.
+        /// Use this when tests need two separate constructs before triggering merge.
+        /// </summary>
+        public IMyShipMergeBlock AddUnmergedMergeBlockPair(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseMergeBlockName = null,
+            string otherMergeBlockName = null)
+        {
+            return ConnectGridsViaMergeBlock(
+                baseGrid,
+                otherGrid,
+                baseMergeBlockName,
+                otherMergeBlockName,
+                MergeState.None);
         }
 
         /// <summary>
@@ -917,6 +935,17 @@ namespace MotherCore.Tests.Utilities
         }
 
         /// <summary>
+        /// Asserts that two grids are part of the same construct.
+        /// </summary>
+        public void ShouldBeSameConstruct(IMyCubeGrid firstGrid, IMyCubeGrid secondGrid)
+        {
+            Assert.That(firstGrid, Is.Not.Null, "Expected first grid instance, but it was null.");
+            Assert.That(secondGrid, Is.Not.Null, "Expected second grid instance, but it was null.");
+            Assert.That(firstGrid.IsSameConstructAs(secondGrid), Is.True,
+                $"Expected grids '{firstGrid.CustomName}' and '{secondGrid.CustomName}' to be on the same construct, but they were not.");
+        }
+
+        /// <summary>
         /// Asserts that two named blocks are not part of the same construct.
         /// </summary>
         public void ShouldNotBeSameConstruct(string firstBlockName, string secondBlockName)
@@ -930,6 +959,17 @@ namespace MotherCore.Tests.Utilities
                 $"Expected block '{secondBlockName}' to exist, but it was not found.");
             Assert.That(first.IsSameConstructAs(second), Is.False,
                 $"Expected blocks '{firstBlockName}' and '{secondBlockName}' to be on separate constructs, but they were on the same construct.");
+        }
+
+        /// <summary>
+        /// Asserts that two grids are not part of the same construct.
+        /// </summary>
+        public void ShouldNotBeSameConstruct(IMyCubeGrid firstGrid, IMyCubeGrid secondGrid)
+        {
+            Assert.That(firstGrid, Is.Not.Null, "Expected first grid instance, but it was null.");
+            Assert.That(secondGrid, Is.Not.Null, "Expected second grid instance, but it was null.");
+            Assert.That(firstGrid.IsSameConstructAs(secondGrid), Is.False,
+                $"Expected grids '{firstGrid.CustomName}' and '{secondGrid.CustomName}' to be on separate constructs, but they were on the same construct.");
         }
 
         /// <summary>
@@ -1341,7 +1381,7 @@ namespace MotherCore.Tests.Utilities
             IMyCubeGrid otherGrid,
             string baseMergeBlockName = null,
             string otherMergeBlockName = null,
-            MergeState initialState = MergeState.None)
+            MergeState initialState = MergeState.Locked)
         {
             return base.ConnectGridsViaMergeBlock(
                 baseGrid,
@@ -1349,6 +1389,20 @@ namespace MotherCore.Tests.Utilities
                 baseMergeBlockName,
                 otherMergeBlockName,
                 initialState);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.AddUnmergedMergeBlockPair"/>
+        public new IMyShipMergeBlock AddUnmergedMergeBlockPair(
+            IMyCubeGrid baseGrid,
+            IMyCubeGrid otherGrid,
+            string baseMergeBlockName = null,
+            string otherMergeBlockName = null)
+        {
+            return base.AddUnmergedMergeBlockPair(
+                baseGrid,
+                otherGrid,
+                baseMergeBlockName,
+                otherMergeBlockName);
         }
 
         /// <inheritdoc cref="Script{TProgram}.MergeBlocks"/>
@@ -1604,10 +1658,22 @@ namespace MotherCore.Tests.Utilities
             base.ShouldBeSameConstruct(firstBlockName, secondBlockName);
         }
 
+        /// <inheritdoc cref="Script{TProgram}.ShouldBeSameConstruct(IMyCubeGrid, IMyCubeGrid)"/>
+        public new void ShouldBeSameConstruct(IMyCubeGrid firstGrid, IMyCubeGrid secondGrid)
+        {
+            base.ShouldBeSameConstruct(firstGrid, secondGrid);
+        }
+
         /// <inheritdoc cref="Script{TProgram}.ShouldNotBeSameConstruct"/>
         public new void ShouldNotBeSameConstruct(string firstBlockName, string secondBlockName)
         {
             base.ShouldNotBeSameConstruct(firstBlockName, secondBlockName);
+        }
+
+        /// <inheritdoc cref="Script{TProgram}.ShouldNotBeSameConstruct(IMyCubeGrid, IMyCubeGrid)"/>
+        public new void ShouldNotBeSameConstruct(IMyCubeGrid firstGrid, IMyCubeGrid secondGrid)
+        {
+            base.ShouldNotBeSameConstruct(firstGrid, secondGrid);
         }
 
         /// <inheritdoc cref="Script{TProgram}.ShouldHaveMergeState"/>

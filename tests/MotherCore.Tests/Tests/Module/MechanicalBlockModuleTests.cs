@@ -50,15 +50,14 @@ namespace MotherCore.Tests.Integration
 
             var script = ScriptFactory().WithMother().Boot();
             var primaryGrid = script.PrimaryGrid;
+
             var connection = script.ConnectGrids(primaryGrid, cargoGrid);
 
             connection.CustomData = new CustomDataComposer()
                 .With("hooks", "onAttach", "rename CarrierAttached")
                 .Build();
 
-            script
-                .WithBlock(battery, cargoGrid)
-                .Boot();
+            script.WithBlock(battery, cargoGrid).Boot();
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
 

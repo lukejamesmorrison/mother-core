@@ -485,6 +485,18 @@ namespace MotherCore.Tests.Utilities
             return generatedName;
         }
 
+        ///// <summary>
+        ///// Merges two merge blocks at the world level, registering their pair lazily
+        ///// the first time they are merged.
+        ///// </summary>
+        ///// <param name="firstBlock">One side of the merge-block pair.</param>
+        ///// <param name="secondBlock">The opposite side of the merge-block pair.</param>
+        ///// <returns>The current world instance for fluent chaining.</returns>
+        //public World Merge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
+        //{
+        //    return MergeBlocks(firstBlock, secondBlock);
+        //}
+
         /// <summary>
         /// Merges two merge blocks at the world level, registering their pair lazily
         /// the first time they are merged.
@@ -492,7 +504,7 @@ namespace MotherCore.Tests.Utilities
         /// <param name="firstBlock">One side of the merge-block pair.</param>
         /// <param name="secondBlock">The opposite side of the merge-block pair.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public World Merge(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
+        public World MergeBlocks(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
         {
             var topology = GetTopologyForMerge(firstBlock, secondBlock);
 
@@ -504,12 +516,76 @@ namespace MotherCore.Tests.Utilities
             return this;
         }
 
+        ///// <summary>
+        ///// Creates a merge-block pair between two world grids and immediately
+        ///// merges them into one construct.
+        ///// </summary>
+        ///// <param name="baseGrid">The first grid to merge.</param>
+        ///// <param name="otherGrid">The second grid to merge.</param>
+        ///// <param name="baseMergeBlockName">Optional custom name for the first grid merge block.</param>
+        ///// <param name="otherMergeBlockName">Optional custom name for the second grid merge block.</param>
+        ///// <returns>The current world instance for fluent chaining.</returns>
+        //public World Merge(
+        //    TestGrid baseGrid,
+        //    TestGrid otherGrid,
+        //    string baseMergeBlockName = null,
+        //    string otherMergeBlockName = null)
+        //{
+        //    return MergeGrids(baseGrid, otherGrid, baseMergeBlockName, otherMergeBlockName);
+        //}
+
+        /// <summary>
+        /// Creates a merge-block pair between two world grids and immediately
+        /// merges them into one construct.
+        /// </summary>
+        /// <param name="baseGrid">The first grid to merge.</param>
+        /// <param name="otherGrid">The second grid to merge.</param>
+        /// <param name="baseMergeBlockName">Optional custom name for the first grid merge block.</param>
+        /// <param name="otherMergeBlockName">Optional custom name for the second grid merge block.</param>
+        /// <returns>The current world instance for fluent chaining.</returns>
+        public World MergeGrids(
+            TestGrid baseGrid,
+            TestGrid otherGrid,
+            string baseMergeBlockName = null,
+            string otherMergeBlockName = null)
+        {
+            if (baseGrid == null)
+                throw new ArgumentNullException(nameof(baseGrid));
+
+            if (otherGrid == null)
+                throw new ArgumentNullException(nameof(otherGrid));
+
+            var topology = EnsureWorldTopology(baseGrid.Grid);
+
+            var pair = AddMergeBlockPair(
+                baseGrid,
+                otherGrid,
+                baseMergeBlockName,
+                otherMergeBlockName,
+                MergeState.Locked);
+
+            if (pair.BaseBlock == null)
+                MaterializeMergePair(pair, topology);
+
+            return this;
+        }
+
         /// <summary>
         /// Unmerges a paired merge-block link at the world level by disabling one side.
         /// </summary>
         /// <param name="mergeBlock">One side of the merge-block pair to disable.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
         public World Unmerge(IMyShipMergeBlock mergeBlock)
+        {
+            return UnmergeBlocks(mergeBlock);
+        }
+
+        /// <summary>
+        /// Unmerges a paired merge-block link at the world level by disabling one side.
+        /// </summary>
+        /// <param name="mergeBlock">One side of the merge-block pair to disable.</param>
+        /// <returns>The current world instance for fluent chaining.</returns>
+        public World UnmergeBlocks(IMyShipMergeBlock mergeBlock)
         {
             if (mergeBlock == null)
                 throw new ArgumentNullException(nameof(mergeBlock));
@@ -521,6 +597,28 @@ namespace MotherCore.Tests.Utilities
                     "World topology has not been bound for the supplied merge block grid. Create or connect grids in this world first.");
 
             topology.UnmergeBlocks(mergeBlock);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Unmerges a paired merge-block link at the world level after validating
+        /// both blocks belong to the same pair/topology.
+        /// </summary>
+        /// <param name="firstBlock">One side of the merge-block pair.</param>
+        /// <param name="secondBlock">The opposite side of the merge-block pair.</param>
+        /// <returns>The current world instance for fluent chaining.</returns>
+        public World UnmergeBlocks(IMyShipMergeBlock firstBlock, IMyShipMergeBlock secondBlock)
+        {
+            var topology = GetTopologyForMerge(firstBlock, secondBlock);
+
+            if (firstBlock == null)
+                throw new ArgumentNullException(nameof(firstBlock));
+
+            MaterializeGridBlocks(firstBlock.CubeGrid, topology);
+            MaterializeGridBlocks(secondBlock?.CubeGrid, topology);
+
+            topology.UnmergeBlocks(firstBlock);
 
             return this;
         }
@@ -545,7 +643,7 @@ namespace MotherCore.Tests.Utilities
         /// <param name="updateType">The game update type to pass to each script.</param>
         /// <param name="argument">The terminal argument to pass to each script.</param>
         /// <returns>The current world instance for fluent chaining.</returns>
-        public World Run(UpdateType updateType = UpdateType.Update10, string argument = "")
+        public World Run(UpdateType updateType = UpdateType.Update1, string argument = "")
         {
             foreach (var script in _scripts)
                 script.Run(updateType, argument);

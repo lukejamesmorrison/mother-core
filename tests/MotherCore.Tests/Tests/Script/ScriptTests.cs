@@ -456,6 +456,28 @@ namespace MotherCore.Tests.Scripts
         }
 
         [Test]
+        public void ConnectGridsViaConnector_Can_Assert_Constructs_With_Grid_Instances()
+        {
+            var shuttleGrid = GridFactory.Create("Shuttle");
+            var carrierBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Carrier Battery");
+            var shuttleBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "Shuttle Battery");
+
+            var script = ScriptFactory().Boot();
+
+            script.ConnectGridsViaConnector(
+                script.PrimaryGrid,
+                shuttleGrid,
+                baseConnectorName: "Carrier Dock",
+                otherConnectorName: "Shuttle Dock");
+
+            script.WithBlock(carrierBattery)
+                .WithBlock(shuttleBattery, shuttleGrid)
+                .Boot();
+
+            script.ShouldNotBeSameConstruct(shuttleGrid, script.PrimaryGrid);
+        }
+
+        [Test]
         public void ConnectGridsViaMergeBlock_When_Locked_Rewrites_Blocks_Onto_One_Grid()
         {
             var world = new MotherCore.Tests.Utilities.World();
@@ -469,7 +491,7 @@ namespace MotherCore.Tests.Scripts
             Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(cargoGrid.Grid.EntityId));
             Assert.That(cargoMerge.IsSameConstructAs(carrierMerge), Is.False);
 
-            world.Merge(carrierMerge, cargoMerge);
+            world.MergeBlocks(carrierMerge, cargoMerge);
 
             script.ShouldHaveMergeState("Carrier Merge", MergeState.Locked);
             script.ShouldHaveMergeState("Cargo Merge", MergeState.Locked);
@@ -492,7 +514,7 @@ namespace MotherCore.Tests.Scripts
             var cargoMerge = cargoGrid.AddBlock<IMyShipMergeBlock>("Cargo Merge");
 
             var script = world.CreateScript(carrierGrid, "Carrier").Boot();
-            world.Merge(carrierMerge, cargoMerge);
+            world.MergeBlocks(carrierMerge, cargoMerge);
 
             // assert grids are connected in a single grid
             Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(carrierMerge.CubeGrid.EntityId));

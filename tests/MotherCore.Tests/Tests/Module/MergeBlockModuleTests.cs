@@ -22,58 +22,56 @@ namespace MotherCore.Tests.Integration
         }
 
         [Test]
-        public void Run_When_A_Merge_Block_Locks_Emits_Event_Refreshes_Construct_And_Defers_OnMerge_Hook()
+        public void Run_When_Separate_Grids_Merge_Emits_Event_Refreshes_Construct_And_Defers_OnMerge_Hook()
         {
-            var cargoGrid = GridFactory.Create("Cargo Pod");
-            var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "CargoBattery");
-            var script = ScriptFactory().WithMother().Boot();
-            var mergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
+            var world = WorldFactory().Boot();
+            var carrierGrid = world.CreateGrid("Carrier");
+            var cargoGrid = world.CreateGrid("Cargo Pod");
 
-            mergeBlock.CustomData = new CustomDataComposer()
-                .With("hooks", "onMerge", "rename CarrierMerged")
-                .Build();
+            var mergeBlockA = TerminalBlockFactory.Create<IMyShipMergeBlock>(
+                customName: "MergeA",
+                customData: new CustomDataComposer()
+                    .With("hooks", "onMerge", "rename CarrierMerged")
+                    .Build()
+            );
+            var mergeBlockB = TerminalBlockFactory.Create<IMyShipMergeBlock>(customName: "MergeB");
 
-            script.WithBlock(cargoBattery, cargoGrid)
-                .Boot();
+            carrierGrid.AddBlock(mergeBlockA);
+            cargoGrid.AddBlock(mergeBlockB);
+
+            var script = world.CreateScript(carrierGrid).WithMother().Boot();
+
+            world.MergeBlocks(mergeBlockA, mergeBlockB);
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
-            var mergeModule = script.Mother.GetModule<MergeBlockModule>();
-
-            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("CargoBattery"), Is.Empty);
-
-            mergeModule.LockMergeBlock(mergeBlock);
-            catalogue.Run();
+            
             script.RunToIdle();
 
             script.AssertEventEmitted<MergeBlockLockedEvent>();
             script.AssertEventEmitted<ConstructRefreshedEvent>();
             script.AssertCommandExecuted("rename");
             Assert.That(script.Mother.Name, Is.EqualTo("CarrierMerged"));
-            Assert.That(catalogue.ConstructGridIds, Has.Count.EqualTo(1));
-            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("CargoBattery"), Has.Count.EqualTo(1));
+            Assert.That(catalogue.ConstructGridIds, Has.Count.EqualTo(2));
+            Assert.That(catalogue.GetBlocksByName<IMyShipMergeBlock>("MergeA"), Has.Count.EqualTo(1));
+            Assert.That(catalogue.GetBlocksByName<IMyShipMergeBlock>("MergeB"), Has.Count.EqualTo(1));
         }
 
         [Test]
-        public void Run_When_A_Merge_Block_Turns_Off_Emits_Event_Prunes_The_Construct_And_Defers_OnUnmerge_Hook()
+        public void Run_When_Merged_Grids_Unmerge_Emits_Event_Prunes_The_Construct_And_Defers_OnUnmerge_Hook()
         {
             var cargoGrid = GridFactory.Create("Cargo Pod");
-            var cargoBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "CargoBattery");
-            var script = ScriptFactory().WithMother().Boot();
+            var script = ScriptFactory().WithMother().Create();
+            var primaryGrid = script.PrimaryGrid;
             var mergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
 
             mergeBlock.CustomData = new CustomDataComposer()
                 .With("hooks", "onUnmerge", "rename CarrierDetached")
                 .Build();
 
-            script.WithBlock(cargoBattery, cargoGrid)
-                .Boot();
+            script.Boot();
 
             var catalogue = script.Mother.GetModule<BlockCatalogue>();
             var mergeModule = script.Mother.GetModule<MergeBlockModule>();
-
-            mergeModule.LockMergeBlock(mergeBlock);
-            catalogue.Run();
-            script.RunToIdle();
 
             script.ClearEventEmissions();
 
@@ -85,8 +83,8 @@ namespace MotherCore.Tests.Integration
             script.AssertEventEmitted<ConstructRefreshedEvent>();
             script.AssertCommandExecuted("rename");
             Assert.That(script.Mother.Name, Is.EqualTo("CarrierDetached"));
-            Assert.That(cargoBattery.CubeGrid.EntityId, Is.EqualTo(cargoGrid.EntityId));
-            Assert.That(catalogue.GetBlocksByName<IMyBatteryBlock>("CargoBattery"), Is.Empty);
+            Assert.That(primaryGrid.IsSameConstructAs(cargoGrid), Is.False);
+            Assert.That(catalogue.ConstructGridIds, Has.Count.EqualTo(1));
         }
 
         [Test]
@@ -96,9 +94,9 @@ namespace MotherCore.Tests.Integration
             var scoutGrid = GridFactory.Create("Scout Pod");
             var scoutBattery = TerminalBlockFactory.Create<IMyBatteryBlock>(customName: "ScoutBattery");
 
-            var script = ScriptFactory().WithMother().Boot();
-            var firstMergeBlock = script.ConnectGridsViaMergeBlock(script.PrimaryGrid, cargoGrid);
-            var secondMergeBlock = script.ConnectGridsViaMergeBlock(cargoGrid, scoutGrid);
+            var script = ScriptFactory().WithMother().Create();
+            var firstMergeBlock = script.AddUnmergedMergeBlockPair(script.PrimaryGrid, cargoGrid);
+            var secondMergeBlock = script.AddUnmergedMergeBlockPair(cargoGrid, scoutGrid);
 
             script.WithBlock(scoutBattery, scoutGrid)
                 .Boot();

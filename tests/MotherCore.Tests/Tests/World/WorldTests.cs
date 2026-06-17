@@ -161,7 +161,7 @@ namespace MotherCore.Tests.Harness
         }
 
         [Test]
-        public void Merge_Rewrites_World_Blocks_When_Standalone_Merge_Blocks_Are_Merged()
+        public void MergeBlocks_Rewrites_World_Blocks_When_Standalone_Merge_Blocks_Are_Merged()
         {
             var world = WorldFactory().Boot();
 
@@ -174,11 +174,49 @@ namespace MotherCore.Tests.Harness
             // create script on one of the grids
             world.CreateScript(carrierGrid).Boot();
 
-            world.Merge(carrierMerge, cargoMerge);
+            world.MergeBlocks(carrierMerge, cargoMerge);
 
             // After a merge, we expect the merge block grids to be identical as the blocks are now on the same grid.
             Assert.That(cargoMerge.IsSameConstructAs(carrierMerge), Is.True);
             Assert.That(cargoMerge.CubeGrid.EntityId, Is.EqualTo(carrierMerge.CubeGrid.EntityId));
+        }
+
+        [Test]
+        public void MergeGrids_Creates_Merge_Pair_And_Unifies_Construct()
+        {
+            var world = WorldFactory().Boot();
+
+            var carrierGrid = world.CreateGrid();
+            var cargoGrid = world.CreateGrid();
+
+            world.CreateScript(carrierGrid).Boot();
+
+            Assert.That(
+                world.MergeGrids(carrierGrid, cargoGrid, "Carrier Merge", "Cargo Merge"),
+                Is.SameAs(world));
+        }
+
+        [Test]
+        public void UnmergeBlocks_Splits_Construct_When_Pair_Is_Currently_Merged()
+        {
+            var world = WorldFactory().Boot();
+
+            var carrierGrid = world.CreateGrid();
+            var cargoGrid = world.CreateGrid();
+
+            world.CreateScript(carrierGrid).Boot();
+
+            var mergePair = world.AddMergeBlockPair(
+                carrierGrid,
+                cargoGrid,
+                initialState: MergeState.Locked);
+
+            Assert.That(mergePair.BaseBlock.IsSameConstructAs(mergePair.OtherBlock), Is.True);
+
+            world.UnmergeBlocks(mergePair.BaseBlock, mergePair.OtherBlock);
+
+            Assert.That(mergePair.BaseBlock.Enabled, Is.False);
+            Assert.That(mergePair.BaseBlock.State, Is.EqualTo(MergeState.None));
         }
 
         [Test]
