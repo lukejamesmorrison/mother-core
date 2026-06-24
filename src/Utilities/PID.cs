@@ -22,9 +22,6 @@ namespace IngameScript
 {
     /// <summary>
     /// A simple PID controller class for controlling a mechanical system.
-    /// 
-    /// THIS CLASS IS CURRENTLY UNUSED.
-    /// 
     /// </summary>
     /// <see href="https://en.wikipedia.org/wiki/Proportional%E2%80%93integral%E2%80%93derivative_controller"/>
     public class PID
@@ -136,8 +133,10 @@ namespace IngameScript
         public double Control(double error, double timeStep)
         {
             if (timeStep != TimeStep)
+            {
                 TimeStep = timeStep;
                 InverseTimeStep = 1 / TimeStep;
+            }
 
             return Control(error);
         }
