@@ -213,9 +213,11 @@ namespace IngameScript
         /// and register the Core Modules.
         /// </summary>
         /// <param name="program"></param>
-        public Mother(MyGridProgram program)
+        /// <param name="updateFrequency"></param>
+        public Mother(MyGridProgram program, UpdateFrequency updateFrequency = UpdateFrequency.Update10)
         {
             Initialize(program);
+            Runtime.UpdateFrequency = updateFrequency;
         }
 
         /// <summary>

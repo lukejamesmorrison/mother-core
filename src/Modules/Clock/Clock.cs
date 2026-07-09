@@ -91,7 +91,7 @@ namespace IngameScript
         public Clock(Mother mother) : base (mother)
         {
             Program = mother.Program;
-            Program.Runtime.UpdateFrequency = UpdateFrequency.Update10;
+            //Program.Runtime.UpdateFrequency = UpdateFrequency.Update10;
             //Program.Runtime.UpdateFrequency = UpdateFrequency.Update1;
         }
 
@@ -238,6 +238,26 @@ namespace IngameScript
         public int CoroutineCount
         {
             get { return Coroutines.Count; }
+        }
+
+        /// <summary>
+        /// The nominal seconds per program update derived from the configured
+        /// <see cref="UpdateFrequency"/>.  SE runs at 60 simulation ticks/s, so
+        /// Update1 = 1/60 s, Update10 = 10/60 s, Update100 = 100/60 s.
+        /// Use this as the authoritative tick-seconds constant throughout the
+        /// system rather than hard-coding a frequency assumption.
+        /// </summary>
+        public double TickSeconds
+        {
+            get
+            {
+                switch (Program.Runtime.UpdateFrequency)
+                {
+                    case UpdateFrequency.Update1:   return 1.0  / 60.0;
+                    case UpdateFrequency.Update100: return 100.0 / 60.0;
+                    default:                        return 10.0 / 60.0;  // Update10
+                }
+            }
         }
 
         /// <summary>

@@ -657,9 +657,9 @@ namespace IngameScript
         /// </summary>
         void LoadShipController()
         {
-
             Mother.ShipController = TerminalBlocks.OfType<IMyShipController>()
-                .OrderByDescending(c => c.IsMainCockpit)
+                .OrderByDescending(c => c is IMyRemoteControl)
+                .ThenByDescending(c => c.IsMainCockpit)
                 .FirstOrDefault();
 
             //IMyShipController controller =

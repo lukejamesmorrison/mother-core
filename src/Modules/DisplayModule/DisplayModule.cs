@@ -170,6 +170,7 @@ namespace IngameScript
             // split block name by colon separator
             var blockNameParts = name.Split(':');
             var surfaces = new List<IMyTextSurface>();
+            var seenSurfaces = new HashSet<IMyTextSurface>();
 
             // if there are more than 1 parts, we use the second part as the surface index
             if (blockNameParts.Length > 1)
@@ -177,20 +178,45 @@ namespace IngameScript
                 string blockName = blockNameParts[0].Trim();
                 int surfaceIndex = int.Parse(blockNameParts[1].Trim());
 
-                surfaces = BlockCatalogue
-                    .GetBlocksByName<IMyTerminalBlock>(blockName)
-                    .Where(block => block is IMyTextSurfaceProvider)
-                    .Select(block => ((IMyTextSurfaceProvider) block).GetSurface(surfaceIndex))
-                    .Where(surface => surface != null)
-                    .ToList();
+                var blocks = BlockCatalogue.GetBlocksByName<IMyTerminalBlock>(blockName);
+
+                for (int i = 0; i < blocks.Count; i++)
+                {
+                    var provider = blocks[i] as IMyTextSurfaceProvider;
+                    if (provider == null)
+                        continue;
+
+                    if (surfaceIndex < 0 || surfaceIndex >= provider.SurfaceCount)
+                        continue;
+
+                    IMyTextSurface surface = provider.GetSurface(surfaceIndex);
+
+                    if (surface != null && seenSurfaces.Add(surface))
+                        surfaces.Add(surface);
+                }
             } 
             else
             {
-                surfaces = BlockCatalogue
-                    .GetBlocksByName<IMyTerminalBlock>(name)
-                    .Where(block => block is IMyTextSurface)
-                    .Select(block => (IMyTextSurface) block)
-                    .ToList();
+                var blocks = BlockCatalogue.GetBlocksByName<IMyTerminalBlock>(name);
+
+                for (int b = 0; b < blocks.Count; b++)
+                {
+                    var textSurface = blocks[b] as IMyTextSurface;
+                    if (textSurface != null && seenSurfaces.Add(textSurface))
+                        surfaces.Add(textSurface);
+
+                    var provider = blocks[b] as IMyTextSurfaceProvider;
+                    if (provider == null)
+                        continue;
+
+                    for (int i = 0; i < provider.SurfaceCount; i++)
+                    {
+                        IMyTextSurface surface = provider.GetSurface(i);
+
+                        if (surface != null && seenSurfaces.Add(surface))
+                            surfaces.Add(surface);
+                    }
+                }
             }
 
             return surfaces;
@@ -240,16 +266,11 @@ namespace IngameScript
         /// <see href="https://github.com/malware-dev/MDK-SE/wiki/Sandbox.ModAPI.Ingame.IMyTextSurfaceProvider"/>
         void LoadTextSurfaceProviderSurfaces()
         {
-            var textSurfaceProviders = new List<IMyTerminalBlock>();
-
-            // cockpit blocks
-            textSurfaceProviders.AddRange(BlockCatalogue.GetBlocks<IMyCockpit>());
-
-            // programmable blocks
-            textSurfaceProviders.AddRange(BlockCatalogue.GetBlocks<IMyProgrammableBlock>());
-
-            // sound blocks (ie. Inset Entertainment Corner, Jukebox)
-            textSurfaceProviders.AddRange(BlockCatalogue.GetBlocks<IMySoundBlock>());
+            var textSurfaceProviders = BlockCatalogue
+                .GetBlocks<IMyTerminalBlock>(block => block is IMyTextSurfaceProvider)
+                .GroupBy(block => block.EntityId)
+                .Select(group => group.First())
+                .ToList();
 
             // Load surfaces from each block
             textSurfaceProviders.ForEach(
