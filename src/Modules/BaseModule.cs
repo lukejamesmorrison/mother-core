@@ -98,6 +98,19 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Register a command that applies an action to all blocks of type T 
+        /// matching the name argument.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name">The command name, ie. door/open.</param>
+        /// <param name="action">Applied to each matching block.</param>
+        /// <param name="message">Format string for the success response; {0} is the block name.</param>
+        public void RegisterBlockCommand<T>(string name, Action<T> action, string message) where T : class, IMyTerminalBlock
+        {
+            RegisterCommand(new BlockCommand<T>(this, name, action, message));
+        }
+
+        /// <summary>
         /// Register a block type for ongoing state monitoring.
         /// </summary>
         /// <typeparam name="T"></typeparam>

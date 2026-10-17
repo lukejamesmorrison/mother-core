@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BootCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BaseModuleCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Commands\BlockCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\IModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\PurgeCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\RenameCommand.cs" />
@@ -40,8 +41,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\VersionManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Configuration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\LockConnectorCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\ToggleConnectorCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\UnlockConnectorCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\ConnectorModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorLockedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorReadyToLockEvent.cs" />
