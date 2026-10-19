@@ -520,7 +520,7 @@ namespace MotherCore.Tests.Module
             var ownerService = owner.Mother.GetModule<IntergridMessageService>();
             var requesterService = requester.Mother.GetModule<IntergridMessageService>();
 
-            ownerService.RegisterOwnedView("MapView", (display, active) => calls.Add(display + ":" + active));
+            ownerService.RegisterView("MapView", (display, active) => calls.Add(display + ":" + active));
             ownerService.ConstructPing();
             world.DeliverMessages();
 

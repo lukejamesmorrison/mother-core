@@ -96,7 +96,7 @@ namespace IngameScript
         /// Views owned by this script, keyed by view name. The callback receives the
         /// display name and whether the view is being shown (true) or released (false).
         /// </summary>
-        readonly Dictionary<string, Action<string, bool>> OwnedViews = new Dictionary<string, Action<string, bool>>();
+        readonly Dictionary<string, Action<string, bool>> Views = new Dictionary<string, Action<string, bool>>();
 
         /// <summary>
         /// Views owned by other scripts on the construct. Maps script id to view names.
@@ -182,7 +182,7 @@ namespace IngameScript
                 new Dictionary<string, object>
                 {
                     { "Commands", string.Join(",", selfCommands) },
-                    { "Views", string.Join(",", OwnedViews.Keys) }
+                    { "Views", string.Join(",", Views.Keys) }
                 }
             );
             
@@ -700,7 +700,7 @@ namespace IngameScript
                 new Dictionary<string, object>
                 {
                     { "Commands", string.Join(",", constructCommands) },
-                    { "Views", string.Join(",", OwnedViews.Keys) }
+                    { "Views", string.Join(",", Views.Keys) }
                 },
                 new Dictionary<string, object>
                 {
@@ -805,9 +805,9 @@ namespace IngameScript
         /// </summary>
         /// <param name="viewName"></param>
         /// <param name="onActivate"></param>
-        public void RegisterOwnedView(string viewName, Action<string, bool> onActivate)
+        public void RegisterView(string viewName, Action<string, bool> onActivate)
         {
-            OwnedViews[viewName] = onActivate;
+            Views[viewName] = onActivate;
         }
 
         /// <summary>
@@ -855,7 +855,7 @@ namespace IngameScript
         {
             Action<string, bool> onActivate;
 
-            if (OwnedViews.TryGetValue(request.BString("View"), out onActivate))
+            if (Views.TryGetValue(request.BString("View"), out onActivate))
                 onActivate(request.BString("Display"), request.BString("Active") == "1");
 
             return null;
