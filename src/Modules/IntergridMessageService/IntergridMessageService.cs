@@ -93,6 +93,17 @@ namespace IngameScript
         public Dictionary<string, string> Channels = new Dictionary<string, string>();
 
         /// <summary>
+        /// Views owned by this script, keyed by view name. The callback receives the
+        /// display name and whether the view is being shown (true) or released (false).
+        /// </summary>
+        readonly Dictionary<string, Action<string, bool>> OwnedViews = new Dictionary<string, Action<string, bool>>();
+
+        /// <summary>
+        /// Views owned by other scripts on the construct. Maps script id to view names.
+        /// </summary>
+        public readonly Dictionary<long, HashSet<string>> ConstructViews = new Dictionary<long, HashSet<string>>();
+
+        /// <summary>
         /// The cached relay ID for this construct. Reset to 0 when re-election is needed.
         /// </summary>
         long _relayId = 0;
@@ -123,6 +134,9 @@ namespace IngameScript
             Almanac = Mother.GetModule<Almanac>();
             EventBus = Mother.GetModule<EventBus>();
 
+            // Clear remote views on boot
+            ConstructViews.Clear();
+
             // Register commands
             Mother.RegisterCommand(new PingCommand(Mother));
 
@@ -137,6 +151,7 @@ namespace IngameScript
             Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
             Router.RegisterRoute("sync", request => HandleSyncRequest(request));
             Router.RegisterRoute("almanac", request => HandleAlmanacSyncRequest(request));
+            Router.RegisterRoute("view", request => HandleViewRequest(request));
 
             // Ping scripts on the construct to perform handshake after boot completes
             Clock.QueueForLater(() => ConstructPing(), 0.5);
@@ -166,7 +181,8 @@ namespace IngameScript
                 Response.ResponseStatusCodes.OK,
                 new Dictionary<string, object>
                 {
-                    { "Commands", string.Join(",", selfCommands) }
+                    { "Commands", string.Join(",", selfCommands) },
+                    { "Views", string.Join(",", OwnedViews.Keys) }
                 }
             );
             
@@ -683,7 +699,8 @@ namespace IngameScript
                 "sync",
                 new Dictionary<string, object>
                 {
-                    { "Commands", string.Join(",", constructCommands) }
+                    { "Commands", string.Join(",", constructCommands) },
+                    { "Views", string.Join(",", OwnedViews.Keys) }
                 },
                 new Dictionary<string, object>
                 {
@@ -775,6 +792,73 @@ namespace IngameScript
                 var commands = new List<string>(commandsStr.Split(','));
                 Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
             }
+
+            if (originId != 0 && originId != Mother.Id)
+                ConstructViews[originId] = new HashSet<string>(
+                    message.BString("Views").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        /// <summary>
+        /// Declare a view owned by this script so other scripts on the construct can
+        /// find and activate it. The callback is invoked with the display name and
+        /// whether the view is being shown (true) or released (false).
+        /// </summary>
+        /// <param name="viewName"></param>
+        /// <param name="onActivate"></param>
+        public void RegisterOwnedView(string viewName, Action<string, bool> onActivate)
+        {
+            OwnedViews[viewName] = onActivate;
+        }
+
+        /// <summary>
+        /// Finds the script on the construct that owns a view. Returns 0 if not found.
+        /// </summary>
+        /// <param name="viewName"></param>
+        /// <returns></returns>
+        public long FindInstanceWithView(string viewName)
+        {
+            foreach (var entry in ConstructViews)
+                if (entry.Value.Contains(viewName))
+                    return entry.Key;
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Ask the owner of a view to show it on, or release it from, a display.
+        /// </summary>
+        /// <param name="ownerId">The script id returned by <see cref="FindInstanceWithView"/>.</param>
+        /// <param name="viewName"></param>
+        /// <param name="displayName"></param>
+        /// <param name="active">True to show the view, false to release the display.</param>
+        public void SendViewActivation(long ownerId, string viewName, string displayName, bool active)
+        {
+            Request request = CreateRequest(
+                "view",
+                new Dictionary<string, object>
+                {
+                    { "View", viewName },
+                    { "Display", displayName },
+                    { "Active", active ? "1" : "0" }
+                }
+            );
+
+            SendUnicastRequest(ownerId, request, null);
+        }
+
+        /// <summary>
+        /// Handles a view activation request from another script on the construct.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Response HandleViewRequest(Request request)
+        {
+            Action<string, bool> onActivate;
+
+            if (OwnedViews.TryGetValue(request.BString("View"), out onActivate))
+                onActivate(request.BString("Display"), request.BString("Active") == "1");
+
+            return null;
         }
 
         /// <summary>

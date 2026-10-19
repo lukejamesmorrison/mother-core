@@ -254,11 +254,11 @@ namespace MotherCore.Tests.Tests.Unit
             var sprites = GetSprites(display.Frame);
 
             Assert.That(sprites, Has.Count.EqualTo(10));
-            Assert.That(sprites[0].Position, Is.EqualTo(new Vector2(68f, 18f)));
-            Assert.That(sprites[0].Size, Is.EqualTo(new Vector2(40f, 40f)));
+            Assert.That(sprites[0].Position, Is.EqualTo(new Vector2(78f, 28f)));
+            Assert.That(sprites[0].Size, Is.EqualTo(new Vector2(20f, 20f)));
             Assert.That(sprites[9].Data, Is.EqualTo("Circle"));
-            Assert.That(sprites[9].Position, Is.EqualTo(new Vector2(68f, 18f)));
-            Assert.That(sprites[9].Size, Is.EqualTo(new Vector2(16f, 16f)));
+            Assert.That(sprites[9].Position, Is.EqualTo(new Vector2(78f, 28f)));
+            Assert.That(sprites[9].Size, Is.EqualTo(new Vector2(8f, 8f)));
             Assert.That(sprites[9].Color, Is.EqualTo(Color.Red));
         }
 

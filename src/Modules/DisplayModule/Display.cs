@@ -423,7 +423,7 @@ namespace IngameScript
             );
 
             // Adjust the size based on the display type (cockpit or regular)
-            float size = IsCockpitDisplay ? 20 : 40;
+            float size = IsCockpitDisplay ? 10 : 20;
 
             // Ensure the sprite is centered at the bottom-right corner
             center -= new Vector2(size / 2, size / 2);

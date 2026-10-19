@@ -184,6 +184,40 @@ namespace MotherCore.Tests.Tests.Unit
             Assert.That(command.GetOption("level"), Is.EqualTo("3"));
         }
 
+        [Test]
+        public void It_Parses_Option_With_Quoted_Value_Containing_Spaces()
+        {
+            TerminalCommand command = new TerminalCommand("view/go \"Cockpit [LCD]:0\" \"Main Menu\" --title=\"My Title\" --force");
+
+            Assert.That(command.Name, Is.EqualTo("view/go"));
+            Assert.That(command.Arguments.Count, Is.EqualTo(2));
+            Assert.That(command.Arguments[0], Is.EqualTo("Cockpit [LCD]:0"));
+            Assert.That(command.Arguments[1], Is.EqualTo("Main Menu"));
+            Assert.That(command.Options.Count, Is.EqualTo(2));
+            Assert.That(command.GetOption("title"), Is.EqualTo("My Title"));
+            Assert.That(command.GetOption("force"), Is.EqualTo("true"));
+        }
+
+        [Test]
+        public void Quote_In_Middle_Of_Term_Groups_Until_Closing_Quote()
+        {
+            TerminalCommand command = new TerminalCommand("print abc\"d e\" f");
+
+            Assert.That(command.Arguments.Count, Is.EqualTo(2));
+            Assert.That(command.Arguments[0], Is.EqualTo("abcd e"));
+            Assert.That(command.Arguments[1], Is.EqualTo("f"));
+        }
+
+        [Test]
+        public void Empty_Quoted_Term_Is_Preserved_As_Empty_Argument()
+        {
+            TerminalCommand command = new TerminalCommand("print \"\" x");
+
+            Assert.That(command.Arguments.Count, Is.EqualTo(2));
+            Assert.That(command.Arguments[0], Is.EqualTo(""));
+            Assert.That(command.Arguments[1], Is.EqualTo("x"));
+        }
+
         // --- Flight plan as quoted argument ---
 
         [Test]

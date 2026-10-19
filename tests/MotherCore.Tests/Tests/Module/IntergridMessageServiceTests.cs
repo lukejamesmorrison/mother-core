@@ -508,6 +508,35 @@ namespace MotherCore.Tests.Module
         }
 
         [Test]
+        public void Construct_Sync_Shares_Owned_Views_And_Activation_Reaches_Owner()
+        {
+            var world = WorldFactory().Boot();
+            var sharedGrid = world.CreateGrid("SharedConstruct");
+
+            var requester = world.CreateScript(sharedGrid).WithMother().OnNetwork().Boot();
+            var owner = world.CreateScript(sharedGrid).WithMother().OnNetwork().Boot();
+
+            var calls = new List<string>();
+            var ownerService = owner.Mother.GetModule<IntergridMessageService>();
+            var requesterService = requester.Mother.GetModule<IntergridMessageService>();
+
+            ownerService.RegisterOwnedView("MapView", (display, active) => calls.Add(display + ":" + active));
+            ownerService.ConstructPing();
+            world.DeliverMessages();
+
+            long ownerId = requesterService.FindInstanceWithView("MapView");
+            Assert.That(ownerId, Is.EqualTo(owner.IGC.Me));
+            Assert.That(requesterService.FindInstanceWithView("Unknown"), Is.EqualTo(0));
+
+            requesterService.SendViewActivation(ownerId, "MapView", "Cockpit:0", true);
+            requesterService.SendViewActivation(ownerId, "MapView", "Cockpit:0", false);
+            requesterService.SendViewActivation(ownerId, "OtherView", "Cockpit:0", true);
+            world.DeliverMessages();
+
+            Assert.That(calls, Is.EqualTo(new List<string> { "Cockpit:0:True", "Cockpit:0:False" }));
+        }
+
+        [Test]
         public void Remote_Communication_Can_Send_And_Executes_On_Remote_Script()
         {
             var world = WorldFactory().Boot();
