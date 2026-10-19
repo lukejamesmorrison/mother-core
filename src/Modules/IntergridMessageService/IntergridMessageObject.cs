@@ -204,8 +204,13 @@ namespace IngameScript
             string startTag = $"<{tagName}>";
             string endTag = $"</{tagName}>";
 
-            int startIndex = message.IndexOf(startTag) + startTag.Length;
-            int endIndex = message.IndexOf(endTag);
+            int startTagIndex = message.IndexOf(startTag);
+
+            if (startTagIndex == -1)
+                return "";
+
+            int startIndex = startTagIndex + startTag.Length;
+            int endIndex = message.IndexOf(endTag, startIndex, StringComparison.Ordinal);
 
             if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex)
                 return "";

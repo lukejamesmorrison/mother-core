@@ -10,6 +10,7 @@
 ██║ ╚═╝ ██║╚██████╔╝   ██║   ██║  ██║███████╗██║  ██║    ╚██████╗╚██████╔╝██║  ██║███████╗
 ╚═╝     ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝     ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
  ```
+ [![Static Badge](https://img.shields.io/badge/version-1.1.4-blue?color=green&logo=github)](https://github.com/lukejamesmorrison/mother-core)
 
  [View Full Docs](https://lukejamesmorrison.github.io/mother-docs)
 

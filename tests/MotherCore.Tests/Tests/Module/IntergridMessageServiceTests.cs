@@ -1,0 +1,584 @@
+using IngameScript;
+using NUnit.Framework;
+using MotherCore.Tests.Utilities;
+using MotherCore.Tests.Utilities.Mocks;
+using Sandbox.ModAPI.Ingame;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using VRageMath;
+
+namespace MotherCore.Tests.Module
+{
+    [Category(TestCategories.LayerModule)]
+    public class IntergridMessageServiceTests : TestBase
+    {
+        static string BuildAlphaChannelCustomData(string alias = null, string command = null)
+        {
+            var composer = new CustomDataComposer()
+                .With("channels", "alpha", "key");
+
+            if (!string.IsNullOrWhiteSpace(alias) && !string.IsNullOrWhiteSpace(command))
+                composer.WithCommand(alias, command);
+
+            return composer.Build();
+        }
+
+        [Test]
+        public void CreateResponse_Sets_Request_Correlation_Headers()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
+
+            Request request = new Request(
+                new Dictionary<string, object> { { "Command", "ping" } },
+                new Dictionary<string, object>
+                {
+                    { "Id", "request-123" },
+                    { "OriginId", "9001" },
+                    { "OriginName", "RemoteScout" }
+                }
+            );
+
+            Response response = service.CreateResponse(request, Response.ResponseStatusCodes.OK);
+
+            Assert.That(response.HString("RespondingToId"), Is.EqualTo("request-123"));
+            Assert.That(response.HString("TargetId"), Is.EqualTo("9001"));
+            Assert.That(response.HString("TargetName"), Is.EqualTo("RemoteScout"));
+            Assert.That(response.HString("Status"), Is.EqualTo("200"));
+        }
+
+        [Test]
+        public void CreateRequest_Includes_Path_And_Standard_Header()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
+
+            Request request = service.CreateRequest("ping",
+                new Dictionary<string, object> { { "Command", "help" } },
+                new Dictionary<string, object> { { "Custom", "Value" } });
+
+            Assert.That(request.HString("Path"), Is.EqualTo("ping"));
+            Assert.That(request.HString("OriginId"), Is.EqualTo($"{script.Mother.Id}"));
+            Assert.That(request.HString("GridId"), Is.EqualTo($"{script.Mother.GridId}"));
+            Assert.That(request.HString("OriginName"), Is.EqualTo(script.Mother.Name));
+            Assert.That(request.HString("Custom"), Is.EqualTo("Value"));
+            Assert.That(request.BString("Command"), Is.EqualTo("help"));
+        }
+
+        [Test]
+        public void SendUnicastRequest_With_Empty_Channels_Falls_Back_To_Construct_Channel()
+        {
+            var world = WorldFactory().Boot();
+
+            var sender = world.CreateScript().OnNetwork().Boot();
+            var receiver = world.CreateScript().OnNetwork().Boot();
+            var service = sender.Mother.GetModule<IntergridMessageService>();
+            Request request = service.CreateRequest("ping");
+
+            request.Channels.Clear();
+
+            world.Network.ClearSentMessages();
+            service.SendUnicastRequest(receiver.IGC.Me, request, null);
+
+            var sent = world.SentMessages.Single();
+
+            Assert.That(sent.IsBroadcast, Is.False);
+            Assert.That(sent.TargetId, Is.EqualTo(receiver.IGC.Me));
+            Assert.That(sent.Tag, Is.EqualTo(".construct"));
+        }
+
+        [Test]
+        public void SendUnicastRequest_Emits_RequestSentEvent_On_Success()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
+            Request request = service.CreateRequest("ping");
+
+            service.SendUnicastRequest(123456789, request, null);
+
+            script.AssertEventEmitted<RequestSentEvent>();
+        }
+
+        [Test]
+        public void SendRequestFromRoutine_Uses_UnicastId_When_Present()
+        {
+            var world = WorldFactory().Boot();
+            var sender = world.CreateScript()
+                .WithMother()
+                .OnNetwork()
+                .Boot();
+            var receiver = world.CreateScript()
+                .WithMother()
+                .OnNetwork()
+                .Boot();
+
+            var senderAlmanac = sender.Mother.GetModule<Almanac>();
+            var record = senderAlmanac.UpdateOrCreateFromMessage(
+                "ReceiverShip",
+                originId: 111,
+                name: "ReceiverShip",
+                position: new Vector3D(0, 0, 0),
+                speed: 0f,
+                channels: new HashSet<string> { "alpha" },
+                isOnConstruct: false);
+            record.UnicastId = receiver.IGC.Me;
+
+            var routine = new TerminalRoutine("help");
+            var service = sender.Mother.GetModule<IntergridMessageService>();
+
+            world.Network.ClearSentMessages();
+            service.SendRequestFromRoutine("ReceiverShip", routine);
+
+            var sent = world.SentMessages.Single();
+            Assert.That(sent.IsBroadcast, Is.False);
+            Assert.That(sent.TargetId, Is.EqualTo(receiver.IGC.Me));
+        }
+
+        [Test]
+        public void SendRequestFromRoutine_Does_Not_Send_When_Target_Is_Missing()
+        {
+            var network = new FakeIgcNetwork();
+            var sender = ScriptFactory()
+                .WithMother()
+                .OnNetwork(network)
+                .Boot();
+
+            var service = sender.Mother.GetModule<IntergridMessageService>();
+
+            service.SendRequestFromRoutine("UnknownGrid", new TerminalRoutine("help"));
+
+            network.ShouldHaveNoTraffic();
+        }
+
+        [Test]
+        public void Ping_Does_Not_Send_When_Instance_Is_Not_Relay()
+        {
+            var network = new FakeIgcNetwork();
+            var script = ScriptFactory("RelayCandidate")
+                .WithMother()
+                .OnNetwork(network)
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            script.Bus.RegisterRemoteCommands(script.Mother.Id - 1, new List<string> { "help" });
+
+            network.ClearSentMessages();
+
+            service.Ping();
+
+            network.ShouldHaveNoTraffic();
+        }
+
+        [Test]
+        public void Ping_Sends_Broadcast_When_Instance_Is_Relay()
+        {
+            var network = new FakeIgcNetwork();
+
+            var script = ScriptFactory("Relay")
+                .WithMother()
+                .OnNetwork(network)
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+
+            network.ClearSentMessages();
+
+            service.Ping();
+
+            var sent = network.SentMessages.Single();
+            Assert.That(sent.IsBroadcast, Is.True);
+            Assert.That(sent.TargetId, Is.EqualTo(-1));
+            Assert.That(sent.Tag, Is.EqualTo("*")); // public channel
+        }
+
+        [Test]
+        public void ConstructPing_Sends_Sync_Request_On_Construct_Channel()
+        {
+            var network = new FakeIgcNetwork();
+            var script = ScriptFactory()
+                .WithMother()
+                .OnNetwork(network)
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+
+            network.ClearSentMessages();
+
+            service.ConstructPing();
+
+            var sent = network.SentMessages.Single();
+            Assert.That(sent.IsBroadcast, Is.True);
+            Assert.That(sent.Tag, Is.EqualTo(".construct"));
+            Assert.That($"{sent.Data}".StartsWith("REQUEST::"), Is.True);
+        }
+
+        [Test]
+        public void HandleIncomingIGCMessage_For_Request_Emits_RequestReceivedEvent()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .WithMother()
+                .Boot();
+
+            IntergridMessageService service = script.Mother.GetModule<IntergridMessageService>();
+            Request request = service.CreateRequest("ping");
+            var message = new MyIGCMessage(request.Serialize(), ".construct", 9999);
+
+            service.HandleIncomingIGCMessage(message);
+
+            script.AssertEventEmitted<RequestReceivedEvent>();
+        }
+
+        [Test]
+        public void HandleIncomingIGCMessage_Encrypted_Request_On_Configured_Channel_Is_Processed()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .WithCustomData(new CustomDataComposer()
+                    .With("channels", "alpha", "key")
+                    .Build())
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            var request = new Request(
+                new Dictionary<string, object> { { "Command", "help" } },
+                new Dictionary<string, object>
+                {
+                    { "Id", "enc-req-1" },
+                    { "OriginId", "5001" },
+                    { "OriginName", "EncryptedSender" },
+                    { "Path", "ping" }
+                }
+            );
+
+            string encryptedPayload = Security.Encrypt(request.Serialize(), "key");
+            var incoming = new MyIGCMessage(encryptedPayload, "alpha", 5001);
+
+            service.HandleIncomingIGCMessage(incoming);
+
+            script.AssertEventEmitted<RequestReceivedEvent>();
+        }
+
+        [Test]
+        public void HandleIncomingIGCMessage_Encrypted_Request_On_Unknown_Channel_Is_Not_Processed()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .WithCustomData(new CustomDataComposer()
+                    .With("channels", "alpha", "key")
+                    .Build())
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            var request = new Request(
+                new Dictionary<string, object> { { "Command", "help" } },
+                new Dictionary<string, object>
+                {
+                    { "Id", "enc-req-2" },
+                    { "OriginId", "5002" },
+                    { "OriginName", "EncryptedSender" },
+                    { "Path", "ping" }
+                }
+            );
+
+            string encryptedPayload = Security.Encrypt(request.Serialize(), "key");
+            var incoming = new MyIGCMessage(encryptedPayload, "beta", 5002);
+
+            service.HandleIncomingIGCMessage(incoming);
+
+            script.AssertEventEmitted<RequestReceivedEvent>(0);
+        }
+
+        [Test]
+        public void HandleIncomingIGCMessage_Encrypted_Request_On_Construct_Channel_Without_Passcode_Is_Not_Processed()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            var request = new Request(
+                new Dictionary<string, object> { { "Command", "help" } },
+                new Dictionary<string, object>
+                {
+                    { "Id", "enc-req-construct" },
+                    { "OriginId", "5003" },
+                    { "OriginName", "EncryptedSender" },
+                    { "Path", "ping" }
+                }
+            );
+
+            string encryptedPayload = Security.Encrypt(request.Serialize(), "key");
+            var incoming = new MyIGCMessage(encryptedPayload, ".construct", 5003);
+
+            service.HandleIncomingIGCMessage(incoming);
+
+            // .construct has no configured passcode in Channels, so encrypted payload
+            // remains unreadable and must not be treated as a request.
+            script.AssertEventEmitted<RequestReceivedEvent>(0);
+        }
+
+        [Test]
+        public void HandleIncomingIGCMessage_ExternalRequest_Updates_Almanac_With_GridId_And_Orientation()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            var almanac = script.Mother.GetModule<Almanac>();
+
+            almanac.Clear();
+
+            var message = new Request(
+                new Dictionary<string, object>(),
+                new Dictionary<string, object>
+                {
+                    { "OriginId", "9001" },
+                    { "GridId", "grid-alpha" },
+                    { "OriginName", "RemoteScout" },
+                    { "X", "10" },
+                    { "Y", "20" },
+                    { "Z", "30" },
+                    { "Speed", "55.5" },
+                    { "Fx", "1" },
+                    { "Fy", "0" },
+                    { "Fz", "0" },
+                    { "Ux", "0" },
+                    { "Uy", "1" },
+                    { "Uz", "0" }
+                }
+            );
+            message.Channels = new HashSet<string> { "alpha" };
+
+            var incoming = new MyIGCMessage(message.Serialize(), "alpha", 9001);
+
+            service.HandleIncomingIGCMessage(incoming);
+
+            var result = almanac.GetRecord("grid-alpha");
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Id, Is.EqualTo("grid-alpha"));
+            Assert.That(result.UnicastId, Is.EqualTo(9001));
+            Assert.That(result.DisplayName, Is.EqualTo("RemoteScout"));
+            Assert.That(result.Position.X, Is.EqualTo(10).Within(0.001));
+            Assert.That(result.Position.Y, Is.EqualTo(20).Within(0.001));
+            Assert.That(result.Position.Z, Is.EqualTo(30).Within(0.001));
+            Assert.That(result.Speed, Is.EqualTo(55.5f).Within(0.001));
+            Assert.That(result.Forward.X, Is.EqualTo(1).Within(0.001));
+            Assert.That(result.Up.Y, Is.EqualTo(1).Within(0.001));
+            Assert.That(result.Channels, Contains.Item("alpha"));
+        }
+
+        [Test]
+        public void HandleIncomingIGCMessage_ExternalRequest_Falls_Back_To_OriginId_When_GridId_Missing()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .Boot();
+
+            var service = script.Mother.GetModule<IntergridMessageService>();
+            var almanac = script.Mother.GetModule<Almanac>();
+
+            almanac.Clear();
+
+            var message = new Request(
+                new Dictionary<string, object>(),
+                new Dictionary<string, object>
+                {
+                    { "OriginId", "777" },
+                    { "GridId", "" },
+                    { "OriginName", "NoGridIdSender" },
+                    { "X", "1" },
+                    { "Y", "2" },
+                    { "Z", "3" },
+                    { "Speed", "0" }
+                }
+            );
+            message.Channels = new HashSet<string> { "*" };
+
+            var incoming = new MyIGCMessage(message.Serialize(), "alpha", 777);
+            service.HandleIncomingIGCMessage(incoming);
+
+            var result = almanac.GetRecord("777");
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.Id, Is.EqualTo("777"));
+            Assert.That(result.UnicastId, Is.EqualTo(777));
+        }
+
+        [Test]
+        public void Construct_Sync_Request_Registers_Remote_Commands_And_Sends_Construct_Response()
+        {
+            var world = WorldFactory().Boot();
+
+            var sender = world.CreateScript()
+                .WithMother()
+                .OnNetwork()
+                .Boot();
+
+            var receiver = world.CreateScript()
+                .WithMother()
+                .OnNetwork()
+                .WithCustomData(new CustomDataComposer()
+                    .WithCommand("dock", "help")
+                    .WithCommand("!undock", "help")
+                    .Build())
+                .Boot();
+
+            world.Network.ClearSentMessages();
+
+            Request syncRequest = new Request(
+                new Dictionary<string, object>
+                {
+                    { "Commands", "dock,!undock" }
+                },
+                new Dictionary<string, object>
+                {
+                    { "Id", "sync-test-1" },
+                    { "OriginId", $"{sender.IGC.Me}" },
+                    { "OriginName", $"{sender.Name}" },
+                    { "Path", "sync" }
+                }
+            );
+
+            var incoming = new MyIGCMessage(syncRequest.Serialize(), ".construct", sender.IGC.Me);
+            receiver.Mother.GetModule<IntergridMessageService>().HandleIncomingIGCMessage(incoming);
+
+            world.DeliverMessages();
+
+            Assert.That(receiver.Bus.ConstructCommands.ContainsKey(sender.IGC.Me), Is.True);
+            Assert.That(receiver.Bus.ConstructCommands[sender.IGC.Me], Contains.Item("dock"));
+            Assert.That(receiver.Bus.ImportantConstructCommands.ContainsKey(sender.IGC.Me), Is.True);
+            Assert.That(receiver.Bus.ImportantConstructCommands[sender.IGC.Me], Contains.Item("undock"));
+
+            var responseMessages = world.SentMessages
+                .Where(m => !m.IsBroadcast && m.SourceId == receiver.IGC.Me && m.TargetId == sender.IGC.Me && m.Tag == ".construct")
+                .ToList();
+
+            Assert.That(responseMessages.Count, Is.GreaterThan(0));
+
+            string payload = $"{responseMessages.Last().Data}";
+            Assert.That(payload.StartsWith("RESPONSE::"), Is.True);
+
+            Response response = Response.Deserialize(payload);
+            Assert.That(response.HString("Status"), Is.EqualTo("200"));
+            Assert.That(response.BString("Commands"), Does.Contain("help"));
+            Assert.That(response.BString("Commands"), Does.Contain("halt"));
+        }
+
+        [Test]
+        public void Construct_Communication_Delegates_Command_To_Owning_Construct_Instance()
+        {
+            var world = WorldFactory().Boot();
+
+            var sharedGrid = world.CreateGrid("SharedConstruct");
+
+            var sender = world.CreateScript(sharedGrid)
+                .WithMother()
+                .OnNetwork()
+                .WithCustomData(BuildAlphaChannelCustomData())
+                .Boot();
+
+            var receiver = world.CreateScript(sharedGrid)
+                .WithMother()
+                .OnNetwork()
+                .WithCustomData(BuildAlphaChannelCustomData("renameMe", "rename ReceiverRenamed"))
+                .Boot();
+
+            world.DeliverMessages();
+
+            sender.RunTerminal("renameMe");
+
+            sender.ShouldHaveExecuted("renameMe", CommandExecutionOutcome.DelegatedToConstruct);
+
+            world.DeliverMessages();
+
+            receiver.ShouldHaveName("ReceiverRenamed");
+        }
+
+        [Test]
+        public void Construct_Sync_Shares_Owned_Views_And_Activation_Reaches_Owner()
+        {
+            var world = WorldFactory().Boot();
+            var sharedGrid = world.CreateGrid("SharedConstruct");
+
+            var requester = world.CreateScript(sharedGrid).WithMother().OnNetwork().Boot();
+            var owner = world.CreateScript(sharedGrid).WithMother().OnNetwork().Boot();
+
+            var calls = new List<string>();
+            var ownerService = owner.Mother.GetModule<IntergridMessageService>();
+            var requesterService = requester.Mother.GetModule<IntergridMessageService>();
+
+            ownerService.RegisterView("MapView", (display, active) => calls.Add(display + ":" + active));
+            ownerService.ConstructPing();
+            world.DeliverMessages();
+
+            long ownerId = requesterService.FindInstanceWithView("MapView");
+            Assert.That(ownerId, Is.EqualTo(owner.IGC.Me));
+            Assert.That(requesterService.FindInstanceWithView("Unknown"), Is.EqualTo(0));
+
+            requesterService.SendViewActivation(ownerId, "MapView", "Cockpit:0", true);
+            requesterService.SendViewActivation(ownerId, "MapView", "Cockpit:0", false);
+            requesterService.SendViewActivation(ownerId, "OtherView", "Cockpit:0", true);
+            world.DeliverMessages();
+
+            Assert.That(calls, Is.EqualTo(new List<string> { "Cockpit:0:True", "Cockpit:0:False" }));
+        }
+
+        [Test]
+        public void Remote_Communication_Can_Send_And_Executes_On_Remote_Script()
+        {
+            var world = WorldFactory().Boot();
+
+            var sender = world.CreateScript()
+                .WithMother()
+                .OnNetwork()
+                .Boot();
+            var receiver = world.CreateScript("Receiver")
+                .WithMother()
+                .OnNetwork()
+                .Boot();
+
+            sender.RunTerminal("@Receiver help");
+
+            sender.ShouldHaveExecuted(string.Empty, CommandExecutionOutcome.RemoteRoutineSent);
+            world.ShouldHaveDeliveredIgcMessage(sender, receiver, "*");
+
+            world.DeliverMessages();
+
+            receiver.ShouldHaveExecuted("help");
+            world.ShouldHaveNoPendingMessages();
+        }
+
+        [Test]
+        public void Remote_Communication_Can_Broadcast_To_All_And_Executes_On_All_Remotes()
+        {
+            var world = WorldFactory().Boot();
+            var sender = world.CreateScript("Sender").WithMother().OnNetwork().Boot();
+            var receiverA = world.CreateScript("ReceiverA").WithMother().OnNetwork().Boot();
+            var receiverB = world.CreateScript("ReceiverB").WithMother().OnNetwork().Boot();
+            
+            sender.RunTerminal("@* help");
+
+            world.ShouldHaveDeliveredIgcMessage(sender, receiverA, "*");
+            world.ShouldHaveDeliveredIgcMessage(sender, receiverB, "*");
+
+            world.DeliverMessages();
+
+            receiverA.ShouldHaveExecuted("help");
+            receiverB.ShouldHaveExecuted("help");
+            world.ShouldHaveNoPendingMessages();
+        }
+    }
+}

@@ -1,0 +1,408 @@
+using IngameScript;
+using MotherCore.Tests.Utilities;
+using NUnit.Framework;
+using System;
+using System.Collections.Generic;
+
+namespace MotherCore.Tests.Tests.Unit
+{
+    [Category(TestCategories.LayerUnit)]
+    public class TerminalRoutineTests
+    {
+        // --- Basic sequential parsing ---
+
+        [Test]
+        public void It_Can_Be_Instantiated_With_A_Routine_String()
+        {
+            string routineString = "rotor/rotate -45; piston/distance Piston1 1.5;";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("rotor/rotate"));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("piston/distance"));
+        }
+
+        [Test]
+        public void It_Can_Be_Instantiated_With_A_Command_String()
+        {
+            string commandString = "rotor/rotate -45 --speed=100 --delay=0.5 --force";
+
+            TerminalRoutine routine = new TerminalRoutine(commandString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(1));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("rotor/rotate"));
+        }
+
+        [Test]
+        public void It_Preserves_Command_Order_In_Sequential_Routines()
+        {
+            string routineString = "cmd1; cmd2; cmd3; cmd4; cmd5";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(5));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("cmd1"));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("cmd2"));
+            Assert.That(routine.Commands[2].Name, Is.EqualTo("cmd3"));
+            Assert.That(routine.Commands[3].Name, Is.EqualTo("cmd4"));
+            Assert.That(routine.Commands[4].Name, Is.EqualTo("cmd5"));
+        }
+
+        [Test]
+        public void It_Ignores_Empty_Commands_From_Trailing_Semicolons()
+        {
+            string routineString = "cmd1; cmd2;";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void It_Defaults_Target_To_Self()
+        {
+            TerminalRoutine routine = new TerminalRoutine("help");
+
+            Assert.That(routine.Target, Is.EqualTo("self"));
+        }
+
+        // --- Remote targeting ---
+
+        [Test]
+        public void It_Can_Have_A_Remote_Target()
+        {
+            string routineString = "@Mothership rotor/rotate -45";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Target, Is.EqualTo("Mothership"));
+        }
+
+        [Test]
+        public void It_Can_Have_All_Remote_Target()
+        {
+            string routineString = "@* rotor/rotate -45";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Target, Is.EqualTo("*"));
+        }
+
+        [Test]
+        public void Remote_Target_Is_Stripped_From_Commands()
+        {
+            string routineString = "@Mothership rotor/rotate -45";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(1));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("rotor/rotate"));
+        }
+
+        [Test]
+        public void Remote_Target_Preserves_Multiple_Commands()
+        {
+            string routineString = "@Mothership cmd1; cmd2; cmd3";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Target, Is.EqualTo("Mothership"));
+            Assert.That(routine.Commands.Count, Is.EqualTo(3));
+        }
+
+        // --- Unpack ---
+
+        [Test]
+        public void It_Can_Unpack_A_Routine_Into_A_Command()
+        {
+            Dictionary<string, string> lookup = new Dictionary<string, string>
+            {
+                { "rotateRotor", "rotor/rotate -45 --speed=100 --delay=0.5 --force" },
+                { "extendFuelBoom", "rotateRotor; piston/distance Piston1 1.5" }
+            };
+
+            string routineString = "extendFuelBoom";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+            routine.Unpack(lookup);
+
+            Assert.That(
+                routine.UnpackedRoutineString,
+                Is.EqualTo(
+                "rotor/rotate -45 --speed=100 --delay=0.5 --force; " +
+                "piston/distance Piston1 1.5;"
+                )
+            );
+        }
+
+        [Test]
+        public void Unpack_Returns_Self_For_Fluent_Chaining()
+        {
+            var lookup = new Dictionary<string, string> { { "test", "help" } };
+            var routine = new TerminalRoutine("test");
+
+            var result = routine.Unpack(lookup);
+
+            Assert.That(result, Is.SameAs(routine));
+        }
+
+        // --- Parallel groups ---
+
+        [Test]
+        public void It_Can_Parse_Parallel_Groups()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; block/on WarningLight; } { piston/distance LandingGearPiston 2; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(2));
+            Assert.That(routine.Commands.Count, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void It_Parses_Commands_Within_Parallel_Groups()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; block/on WarningLight; } { piston/distance LandingGearPiston 2; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            // First group: 2 commands
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(2));
+            Assert.That(routine.ParallelGroups[0][0].Name, Is.EqualTo("rotor/rotate"));
+            Assert.That(routine.ParallelGroups[0][1].Name, Is.EqualTo("block/on"));
+
+            // Second group: 1 command
+            Assert.That(routine.ParallelGroups[1].Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[1][0].Name, Is.EqualTo("piston/distance"));
+        }
+
+        [Test]
+        public void It_Does_Not_Have_Parallel_Groups_For_Sequential_Routines()
+        {
+            string routineString = "rotor/rotate TurretRotor 45; block/on WarningLight;";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.False);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(0));
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void It_Can_Parse_A_Single_Parallel_Group()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; block/on WarningLight; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void It_Can_Parse_Parallel_Groups_With_Wait_Commands()
+        {
+            string routineString = "{ rotor/rotate TurretRotor 45; wait 2; block/on WarningLight; } { piston/distance LandingGearPiston 2; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(2));
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(3));
+            Assert.That(routine.ParallelGroups[0][1].Name, Is.EqualTo("wait"));
+        }
+
+        [Test]
+        public void Parallel_Groups_Preserve_Command_Order_Within_Each_Group()
+        {
+            string routineString = "{ a; b; c; } { d; e; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.ParallelGroups[0][0].Name, Is.EqualTo("a"));
+            Assert.That(routine.ParallelGroups[0][1].Name, Is.EqualTo("b"));
+            Assert.That(routine.ParallelGroups[0][2].Name, Is.EqualTo("c"));
+            Assert.That(routine.ParallelGroups[1][0].Name, Is.EqualTo("d"));
+            Assert.That(routine.ParallelGroups[1][1].Name, Is.EqualTo("e"));
+        }
+
+        [Test]
+        public void Mixed_Content_Outside_Braces_Is_Not_Treated_As_Parallel()
+        {
+            // Content outside braces means this is NOT a parallel group
+            string routineString = "cmd1; { cmd2; cmd3; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.False);
+            Assert.That(routine.Commands.Count, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void Empty_Parallel_Groups_Are_Ignored()
+        {
+            string routineString = "{ cmd1; } { } { cmd2; }";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(2));
+        }
+
+        // --- Whitespace handling ---
+
+        [Test]
+        public void It_Trims_Whitespace_From_The_Routine_String()
+        {
+            TerminalRoutine routine = new TerminalRoutine("  help  ");
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(1));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("help"));
+        }
+
+        [Test]
+        public void It_Handles_Extra_Whitespace_Between_Semicolons()
+        {
+            TerminalRoutine routine = new TerminalRoutine("cmd1 ;  cmd2 ;  cmd3");
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(3));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("cmd1"));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("cmd2"));
+            Assert.That(routine.Commands[2].Name, Is.EqualTo("cmd3"));
+        }
+
+        // --- Quoted strings in routines ---
+
+        [Test]
+        public void Semicolons_Inside_Quoted_Strings_Are_Not_Treated_As_Separators()
+        {
+            TerminalRoutine routine = new TerminalRoutine("print \"hello; world\"");
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(1));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("print"));
+            Assert.That(routine.Commands[0].Arguments[0], Is.EqualTo("hello; world"));
+        }
+
+        // --- Wait command recognition ---
+
+        [Test]
+        public void Wait_Commands_Are_Parsed_As_Normal_Commands_In_Routine()
+        {
+            TerminalRoutine routine = new TerminalRoutine("cmd1; wait 5; cmd2");
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(3));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("wait"));
+            Assert.That(routine.Commands[1].Arguments[0], Is.EqualTo("5"));
+        }
+
+        // --- Single command ---
+
+        [Test]
+        public void Single_Command_Creates_One_Entry_In_Commands_List()
+        {
+            TerminalRoutine routine = new TerminalRoutine("block/on Light1");
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(1));
+            Assert.That(routine.HasParallelGroups, Is.False);
+        }
+
+        // --- Flight plan quoted argument in routine ---
+
+        [Test]
+        public void Quoted_Flight_Plan_In_Routine_Is_Not_Split_By_Internal_Semicolons()
+        {
+            string routineString = "nav/set-flight-plan \"GPS:WP1:1:2:3:#FF75C9F1: { cmd1; cmd2; } R\"; fcs/start";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("nav/set-flight-plan"));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("fcs/start"));
+        }
+
+        [Test]
+        public void Quoted_Flight_Plan_With_Multiple_Routines_Is_Preserved_As_Single_Command()
+        {
+            string flightPlan = "{ wait 2; ArmsIn; } GPS:Exit:1:2:3:#FF75C9F1: { 40p; fcs/start; } GPS:Outpost:4:5:6:#FF75C9F1: { 80p; } R";
+            string routineString = "nav/set-flight-plan \"" + flightPlan + "\"; fcs/start";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.Commands.Count, Is.EqualTo(2));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("nav/set-flight-plan"));
+            Assert.That(routine.Commands[0].Arguments[0], Is.EqualTo(flightPlan));
+            Assert.That(routine.Commands[1].Name, Is.EqualTo("fcs/start"));
+        }
+
+        [Test]
+        public void Quoted_Flight_Plan_Does_Not_Trigger_Parallel_Groups()
+        {
+            string routineString = "nav/set-flight-plan \"{ cmd1; cmd2; } { cmd3; cmd4; }\"";
+
+            TerminalRoutine routine = new TerminalRoutine(routineString);
+
+            Assert.That(routine.HasParallelGroups, Is.False);
+            Assert.That(routine.Commands.Count, Is.EqualTo(1));
+            Assert.That(routine.Commands[0].Name, Is.EqualTo("nav/set-flight-plan"));
+        }
+
+        // A command whose name is not present in the lookup dictionary should pass
+        // through Unpack() unchanged, appearing in UnpackedRoutineString as-is.
+        [Test]
+        public void Unpack_Passes_Through_Commands_Not_In_Lookup()
+        {
+            var lookup = new Dictionary<string, string>
+            {
+                { "knownCommand", "block/on Light1" }
+            };
+
+            var routine = new TerminalRoutine("unknownCommand");
+            routine.Unpack(lookup);
+
+            Assert.That(routine.UnpackedRoutineString, Does.Contain("unknownCommand"));
+        }
+
+        // A semicolon inside a quoted string within a parallel group must not be
+        // treated as a command separator. ParseParallelGroups tracks insideQuotes and
+        // skips semicolon splitting while inside a quoted section.
+        [Test]
+        public void Semicolon_In_Quoted_String_Inside_Parallel_Group_Is_Not_A_Separator()
+        {
+            var routine = new TerminalRoutine("{ screen/print \"a;b\"; }");
+
+            Assert.That(routine.HasParallelGroups, Is.True);
+            Assert.That(routine.ParallelGroups.Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[0].Count, Is.EqualTo(1));
+            Assert.That(routine.ParallelGroups[0][0].Name, Is.EqualTo("screen/print"));
+            Assert.That(routine.ParallelGroups[0][0].Arguments[0], Is.EqualTo("a;b"));
+        }
+
+        // Documents current (broken) behaviour: Unpack() iterates Commands, which is
+        // always empty when the routine was parsed as parallel groups. The result is an
+        // empty UnpackedRoutineString. This test pins the baseline so any accidental change
+        // is immediately visible. The fix is deferred to Phase 3.
+        [Test]
+        public void Unpack_On_Parallel_Group_Routine_Produces_Empty_String()
+        {
+            var lookup = new Dictionary<string, string>
+            {
+                { "cmd1", "block/on Light1" },
+                { "cmd2", "block/off Light1" }
+            };
+
+            // Parsed as parallel groups — Commands list will be empty
+            var routine = new TerminalRoutine("{ cmd1; } { cmd2; }");
+            routine.Unpack(lookup);
+
+            // Current behaviour: UnpackedRoutineString is empty because Commands is empty
+            // for a parallel-group routine. This is the pinned baseline.
+            Assert.That(routine.UnpackedRoutineString, Is.EqualTo(""));
+        }
+    }
+}
+
+
+

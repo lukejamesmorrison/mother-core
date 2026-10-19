@@ -1,6 +1,7 @@
 using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using VRage.Game.ModAPI.Ingame.Utilities;
 
 namespace IngameScript
@@ -78,7 +79,9 @@ namespace IngameScript
                 List<string> terms = TerminalCommand.SplitInputIntoTerms(raw);
 
                 string viewName  = terms[0];
-                string parameter = terms.Count > 1 ? terms[1] : null;
+                string parameter = terms.Count > 1
+                    ? string.Join(" ", terms.Skip(1)).Trim()
+                    : null;
 
                 entries.Add(new SurfaceEntry { Index = index, ViewName = viewName, Parameter = parameter });
             }

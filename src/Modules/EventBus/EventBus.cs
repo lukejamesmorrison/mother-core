@@ -27,6 +27,8 @@ namespace IngameScript
     /// </summary>
     public class EventBus : BaseCoreModule
     {
+        const int MaxEmissionHistory = 128;
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -37,6 +39,11 @@ namespace IngameScript
         /// value is a list of modules subscribed to that event.
         /// </summary>
         private readonly Dictionary<Type, HashSet<IModule>> EventSubscriptions = new Dictionary<Type, HashSet<IModule>>();
+
+        /// <summary>
+        /// Recent event emissions recorded in dispatch order.
+        /// </summary>
+        public readonly List<EventEmissionRecord> Emissions = new List<EventEmissionRecord>();
 
         /// <summary>
         /// Subscribe a Module to a specific event.
@@ -100,10 +107,48 @@ namespace IngameScript
         {
             var eventType = e.GetType();
 
-            if (EventSubscriptions.ContainsKey(eventType))
-                EventSubscriptions[eventType]
+            var recipients = EventSubscriptions.ContainsKey(eventType)
+                ? new HashSet<IModule>(EventSubscriptions[eventType])
+                : new HashSet<IModule>();
+
+            Emissions.Add(new EventEmissionRecord(e, recipients));
+
+            if (Emissions.Count > MaxEmissionHistory)
+                Emissions.RemoveAt(0);
+
+            if (recipients.Count > 0)
+                recipients
                     .ToList()
                     .ForEach(module => module.HandleEvent(e, eventData));
         }
+    }
+
+    /// <summary>
+    /// Immutable snapshot of one emitted event, its payload, and the modules subscribed
+    /// to receive it at emission time.
+    /// </summary>
+    public class EventEmissionRecord
+    {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="event"></param>
+        /// <param name="recipients"></param>
+        public EventEmissionRecord(IEvent @event, HashSet<IModule> recipients)
+        {
+            Event = @event;
+            Recipients = recipients;
+        }
+
+        /// <summary>
+        /// The event that was emitted.
+        /// </summary>
+        public readonly IEvent Event;
+
+
+        /// <summary>
+        /// The modules that were subscribed to the event at the time of emission.
+        /// </summary>
+        public readonly HashSet<IModule> Recipients;
     }
 }

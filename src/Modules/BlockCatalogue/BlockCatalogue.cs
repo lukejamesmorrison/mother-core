@@ -655,11 +655,11 @@ namespace IngameScript
         /// state) is intentionally excluded here and is the responsibility of the
         /// script that owns autopilot (e.g. MotherAutopilotSystem).
         /// </summary>
-    void LoadShipController()
+        void LoadShipController()
         {
-
             Mother.ShipController = TerminalBlocks.OfType<IMyShipController>()
-                .OrderByDescending(c => c.IsMainCockpit)
+                .OrderByDescending(c => c is IMyRemoteControl)
+                .ThenByDescending(c => c.IsMainCockpit)
                 .FirstOrDefault();
 
             //IMyShipController controller =
@@ -817,8 +817,14 @@ namespace IngameScript
 
             Mother.GridTerminalSystem.GetBlocks(allBlocks);
 
+            // Build a set of already-tracked entity IDs to prevent duplicates.
+            // After a merge/unmerge the same block objects can appear in the GTS query
+            // while already existing in TerminalBlocks (their CubeGrid entity changed but
+            // they were never removed because RemoveBlocksFromGrids missed them).
+            var existingEntityIds = new HashSet<long>(TerminalBlocks.Select(b => b.EntityId));
+
             var newBlocks = allBlocks
-                .Where(b => gridIds.Contains(b.CubeGrid.EntityId))
+                .Where(b => gridIds.Contains(b.CubeGrid.EntityId) && !existingEntityIds.Contains(b.EntityId))
                 .ToList();
 
             int index = 0;
@@ -1071,6 +1077,7 @@ namespace IngameScript
 
             LoadBlockGroups();
             _constructRefreshPending = false;
+            Emit<ConstructRefreshedEvent>();
 
             yield return 0;
         }
@@ -1099,6 +1106,7 @@ namespace IngameScript
 
             LoadBlockGroups();
             _constructRefreshPending = false;
+            Emit<ConstructRefreshedEvent>();
 
             yield return 0;
         }
@@ -1134,8 +1142,17 @@ namespace IngameScript
                     yield return t;
             }
 
+            // Merge events can rebind blocks onto an already-known surviving grid.
+            // In that case there may be no added grid IDs even though new block
+            // entity IDs have become part of the construct, so sweep the whole
+            // construct once to pick up any missing blocks without duplicating ones
+            // we already track.
+            foreach (var t in AddBlocksFromGridsCoroutine(newConstructGridIds))
+                yield return t;
+
             LoadBlockGroups();
             _constructRefreshPending = false;
+            Emit<ConstructRefreshedEvent>();
 
             yield return 0;
         }

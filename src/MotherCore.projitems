@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BootCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BaseModuleCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Commands\BlockCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\IModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\PurgeCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\RenameCommand.cs" />
@@ -25,10 +26,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseExtensionModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\BlockCatalogue.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Events\BlockConfigChangedEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Events\ConstructRefreshedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\IBlockStateHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Clock\Clock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\BlockMessages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\CommandBus.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HaltCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HelpCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalRoutine.cs" />
@@ -38,8 +41,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\VersionManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Configuration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\LockConnectorCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\ToggleConnectorCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\UnlockConnectorCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\ConnectorModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorLockedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorReadyToLockEvent.cs" />
@@ -90,6 +91,7 @@
     <None Include="$(MSBuildThisFileDirectory).gitattributes" />
     <None Include="$(MSBuildThisFileDirectory).gitignore" />
     <None Include="$(MSBuildThisFileDirectory)CHANGELOG.md" />
+    <None Include="$(MSBuildThisFileDirectory)Specs\CommandBusRefactorSpec.md" />
     <None Include="$(MSBuildThisFileDirectory)ImprovementAreas.md" />
     <None Include="$(MSBuildThisFileDirectory)LICENSE.md" />
     <None Include="$(MSBuildThisFileDirectory)README.md" />
@@ -99,6 +101,7 @@
     <Folder Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Events\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Specs\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />
   </ItemGroup>
 </Project>

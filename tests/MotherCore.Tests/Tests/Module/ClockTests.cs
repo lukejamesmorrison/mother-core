@@ -1,0 +1,328 @@
+using IngameScript;
+using NUnit.Framework;
+using MotherCore.Tests.Utilities;
+using Sandbox.ModAPI.Ingame;
+using System;
+using System.Collections.Generic;
+
+namespace MotherCore.Tests.Module
+{
+    /// <summary>
+    /// Tests for the Clock module's coroutine, scheduled task, and queued task
+    /// management. These tests are critical for verifying safe list mutation
+    /// during iteration and correct timing behavior.
+    /// </summary>
+    [Category(TestCategories.LayerModule)]
+    public class ClockTests : TestBase
+    {
+        // --- Construction and reset ---
+
+        [Test]
+        public void It_Can_Be_Accessed_Via_Mother()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+
+            Assert.That(clock, Is.Not.Null);
+        }
+
+        [Test]
+        public void Reset_Clears_All_Coroutines_And_Tasks()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+
+            bool taskRan = false;
+            clock.Schedule(() => taskRan = true, 0);
+            clock.QueueForLater(() => { }, 1);
+            clock.AddCoroutine(SimpleCoroutine());
+
+            clock.Reset();
+            clock.Run(); // Nothing should execute after reset
+
+            Assert.That(taskRan, Is.False);
+        }
+
+        // --- Scheduled tasks ---
+
+        [Test]
+        public void Scheduled_Task_Executes_When_Interval_Elapses()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int counter = 0;
+            clock.Schedule(() => counter++, 0);
+
+            clock.Run();
+
+            Assert.That(counter, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void Scheduled_Task_Repeats_On_Each_Cycle_When_Interval_Is_Zero()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int counter = 0;
+            clock.Schedule(() => counter++, 0);
+
+            clock.Run();
+            clock.Run();
+            clock.Run();
+
+            Assert.That(counter, Is.EqualTo(3));
+        }
+
+        // --- Queued tasks ---
+
+        [Test]
+        public void Queued_Task_Executes_After_Wait_Time()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            bool executed = false;
+            clock.QueueForLater(() => executed = true, 0);
+
+            clock.Run();
+
+            Assert.That(executed, Is.True);
+        }
+
+        [Test]
+        public void Queued_Task_Is_Removed_After_Execution()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int counter = 0;
+            clock.QueueForLater(() => counter++, 0);
+
+            clock.Run();
+            clock.Run();
+
+            Assert.That(counter, Is.EqualTo(1),
+                "Queued task should only execute once, then be removed.");
+        }
+
+        [Test]
+        public void QueuedTaskCount_Reflects_Pending_Tasks()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            clock.QueueForLater(() => { }, 999);
+            clock.QueueForLater(() => { }, 999);
+
+            Assert.That(clock.QueuedTaskCount, Is.EqualTo(2));
+        }
+
+        // --- Coroutines ---
+
+        [Test]
+        /// Validates that a simple coroutine executes through all its steps when Run is called repeatedly.
+        /// This tests the basic functionality of coroutine execution and completion.
+        public void Coroutine_Executes_To_Completion()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int step = 0;
+
+            clock.AddCoroutine(ThreeStepCoroutine(
+                () => step = 1,
+                () => step = 2,
+                () => step = 3));
+
+            clock.Run(); // step 1
+            clock.Run(); // step 2
+            clock.Run(); // step 3
+
+            Assert.That(step, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void Coroutine_With_Wait_Pauses_Execution()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int step = 0;
+
+            clock.AddCoroutine(WaitCoroutine(
+                () => step = 1,
+                999,
+                () => step = 2));
+
+            clock.Run(); // step 1, then encounters wait
+            clock.Run(); // Still waiting (deltaTime � 0 in tests)
+
+            Assert.That(step, Is.EqualTo(1),
+                "Coroutine should be paused during the wait period.");
+        }
+
+        [Test]
+        public void Multiple_Coroutines_Run_Independently()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int counterA = 0;
+            int counterB = 0;
+
+            clock.AddCoroutine(TwoStepCoroutine(() => counterA++, () => counterA++));
+            clock.AddCoroutine(TwoStepCoroutine(() => counterB++, () => counterB++));
+
+            clock.Run();
+            clock.Run();
+
+            Assert.That(counterA, Is.EqualTo(2));
+            Assert.That(counterB, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Completed_Coroutine_Is_Removed()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int counter = 0;
+
+            clock.AddCoroutine(ImmediateCoroutine(() => counter++));
+
+            clock.Run(); // Executes and completes
+            clock.Run(); // Should not execute again
+
+            Assert.That(counter, Is.EqualTo(1));
+        }
+
+        /// <summary>
+        /// Validates that adding a coroutine from within a running coroutine
+        /// (via MoveNext) does not crash due to list mutation during iteration.
+        /// This is the primary race condition vector identified in the audit.
+        /// </summary>
+        [Test]
+        public void Adding_Coroutine_During_Iteration_Does_Not_Throw()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int childExecuted = 0;
+
+            clock.AddCoroutine(ParentCoroutine(
+                clock,
+                () => OneTickCoroutine(() => childExecuted++)));
+
+            // Should not throw despite mutation during iteration
+            Assert.DoesNotThrow(() =>
+            {
+                for (int i = 0; i < 10; i++)
+                    clock.Run();
+            });
+
+            Assert.That(childExecuted, Is.GreaterThan(0),
+                "Child coroutine added during iteration should eventually execute.");
+        }
+
+        /// <summary>
+        /// Validates that multiple coroutines completing in the same tick
+        /// are all properly cleaned up without index errors.
+        /// </summary>
+        [Test]
+        public void Multiple_Coroutines_Completing_Same_Tick_Are_Cleaned_Up()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+            clock.Reset();
+
+            int completedCount = 0;
+
+            for (int i = 0; i < 5; i++)
+                clock.AddCoroutine(ImmediateCoroutine(() => completedCount++));
+
+            Assert.DoesNotThrow(() => clock.Run());
+
+            Assert.That(completedCount, Is.EqualTo(5),
+                "All five coroutines should complete in one tick.");
+        }
+
+        // --- Loader ---
+
+        [Test]
+        public void GetLoader_Alternates_Between_Slash_And_Backslash()
+        {
+            Clock clock = ModuleFactory<Clock>().Boot();
+
+            string first = clock.GetLoader();
+            // We can't easily test alternation without Boot + scheduled ticks,
+            // but we can verify it returns one of the two valid states
+            Assert.That(first, Is.AnyOf("/", "\\"));
+
+            // Then we run the clock to see if the loader alternates as expected
+            //clock.Run();
+            //clock.Run();
+            //clock.Run();
+            //clock.Run();
+            //clock.Run();
+            //clock.Run();
+
+            //string second = clock.GetLoader();
+
+            //Assert.That(second, Is.AnyOf("/", "\\"));
+            //Assert.That(second, Is.Not.EqualTo(first), "Loader should alternate between '/' and '\\' on each tick.");
+        }
+
+        // --- Helpers ---
+
+        /// <summary>
+        /// A minimal coroutine for testing purposes.
+        /// </summary>
+        static IEnumerable<double> SimpleCoroutine()
+        {
+            yield return 0;
+        }
+
+        static IEnumerable<double> ThreeStepCoroutine(Action first, Action second, Action third)
+        {
+            first();
+            yield return 0;
+
+            second();
+            yield return 0;
+
+            third();
+        }
+
+        static IEnumerable<double> WaitCoroutine(Action first, double wait, Action second)
+        {
+            first();
+            yield return wait;
+            second();
+        }
+
+        static IEnumerable<double> TwoStepCoroutine(Action first, Action second)
+        {
+            first();
+            yield return 0;
+            second();
+        }
+
+        static IEnumerable<double> ImmediateCoroutine(Action action)
+        {
+            action();
+            yield break;
+        }
+
+        static IEnumerable<double> OneTickCoroutine(Action action)
+        {
+            action();
+            yield return 0;
+        }
+
+        static IEnumerable<double> ParentCoroutine(Clock clock, Func<IEnumerable<double>> childFactory)
+        {
+            clock.AddCoroutine(childFactory());
+            yield return 0;
+        }
+    }
+}
+

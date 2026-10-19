@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netframework48</TargetFramework>
+    <LangVersion>6</LangVersion>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<SpaceEngineersBinCopyLocal>true</SpaceEngineersBinCopyLocal>
+        <Configurations>Release;Debug</Configurations>
+        <Platforms>x64</Platforms>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Remove="Tests\Framework\**" />
+      <EmbeddedResource Remove="Tests\Framework\**" />
+      <None Remove="Tests\Framework\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+		<PackageReference Include="NUnit3TestAdapter" Version="5.1.0-alpha.3" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+      <PackageReference Include="Mal.Mdk2.References" Version="2.2.8">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="NUnit" Version="4.4.0-beta.2.1" />
+    </ItemGroup>
+
+  <Import Project="..\..\src\MotherCore.projitems" Label="Shared" />
+
+
+</Project>

@@ -53,7 +53,7 @@ namespace IngameScript
         {
             var sb = new StringBuilder();
 
-            Module.Commands.ForEach(moduleCommand =>
+            Module.ModuleCommands.ForEach(moduleCommand =>
             {
                 sb.Append(moduleCommand.GetCommandName()).Append('\n');
             });

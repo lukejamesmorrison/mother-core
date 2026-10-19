@@ -1,6 +1,28 @@
 # Changelog - Mother Core
 
-## [Unreleased]
+## [1.1.4] - 2026-10-19
+
+### Added
+
+- Add `halt` command that stops all current and future command execution.
+- Add `ConstructRefreshedEvent` emitted by `BlockCatalogue` when any construct refresh completes (merge/unmerge, attach/detach, or full refresh). Modules can subscribe to this event to re-register blocks after grid topology changes.
+- `RegisterBlockTypeForStateMonitoring` now accepts an optional `preserveState` parameter. When `true`, existing state history is preserved for already-known blocks and only new blocks are initialised. This prevents in-flight state transitions from being discarded during a construct refresh.
+- Scripts now share `views` like commands, so that [Mother GUI](https://lukejamesmorrison.github.io/mother-docs/MotherGUI/) can render views from ay script running Mother Core.
+
+### Updated
+- Reduce size of Mother decal on displays so that it is less imposing.
+- Options now support double-quotes for richer values:
+ ```ini
+ view/go "Cockpit:1" MainMenu --title="Custom Title"
+ ```
+
+### Fixed
+
+- Fixed bug removing line breaks from custom data when saving a variable using the `var/set` command with the `--save` option.
+- Fixed bug where the absorbed grid after a merge did not detect unmerge events. `Mother` now refreshes `GridTerminalSystem` and `CubeGrid` each run cycle so block discovery is always current.
+- Fixed "Block not found" errors when hooks fire immediately after a merge or unmerge event. Hooks are now deferred to pending lists and drained only after `ConstructRefreshedEvent` fires, ensuring block topology is fully resolved before lookup.
+- Fixed potential duplicate block registration in `BlockCatalogue` when grid topology changes. `AddBlocksFromGridsCoroutine` now deduplicates incoming blocks by `EntityId`.
+
 
 ## [1.1.0] - 2026-05-12
 

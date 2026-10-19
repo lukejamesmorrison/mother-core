@@ -199,6 +199,38 @@ namespace IngameScript
             return input;
         }
 
+        static string CollapseWhitespaceOutsideQuotes(string input)
+        {
+            var sb = new StringBuilder(input.Length);
+            bool inQuotes = false;
+            bool lastWasSpace = false;
+
+            foreach (char c in input)
+            {
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                    lastWasSpace = false;
+                    sb.Append(c);
+                }
+                else if (!inQuotes && (c == ' ' || c == '\t'))
+                {
+                    if (!lastWasSpace)
+                    {
+                        sb.Append(' ');
+                        lastWasSpace = true;
+                    }
+                }
+                else
+                {
+                    lastWasSpace = false;
+                    sb.Append(c);
+                }
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Load variables from the programmable block's custom data. Variables are 
         /// defined in the [variables] section and can be referenced in commands 
@@ -216,9 +248,7 @@ namespace IngameScript
             foreach (var key in keys)
             {
                 string variableName = key.Name;
-                string variableValue = $"{Ini.Get(sectionName, variableName)}"
-                    .Replace("\r", "")
-                    .Trim();
+                string variableValue = $"{Ini.Get(sectionName, variableName)}";
 
                 // Strip leading '$' from variable name if present
                 if (variableName.StartsWith("$"))
@@ -253,8 +283,8 @@ namespace IngameScript
                     .Replace("\n", " ")
                     .Trim();
 
-                // Collapse multiple spaces into a single space
-                commandValue = System.Text.RegularExpressions.Regex.Replace(commandValue, @"\s+", " ");
+                // Collapse multiple spaces into a single space, but only outside quoted strings.
+                commandValue = CollapseWhitespaceOutsideQuotes(commandValue);
 
                 // Strip surrounding double quotes from command value
                 commandValue = Unquote(commandValue);

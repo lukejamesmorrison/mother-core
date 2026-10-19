@@ -175,22 +175,23 @@ namespace IngameScript
                     continue;
                 }
 
-                if (input[i] == '"')
+                // A term runs to the next space outside quotes. Quote characters
+                // toggle grouping and are stripped. An unclosed quote runs to the
+                // end of the input.
+                var sb = new StringBuilder();
+                bool inQuotes = false;
+
+                while (i < input.Length && (inQuotes || input[i] != ' '))
                 {
-                    // Find closing quote - IndexOf is a single native call regardless of string length
-                    int end = input.IndexOf('"', i + 1);
-                    if (end == -1) end = input.Length;
-                    terms.Add(input.Substring(i + 1, end - i - 1));
-                    i = end + 1;
+                    if (input[i] == '"')
+                        inQuotes = !inQuotes;
+                    else
+                        sb.Append(input[i]);
+
+                    i++;
                 }
-                else
-                {
-                    // Find next space - IndexOf is a single native call regardless of string length
-                    int end = input.IndexOf(' ', i);
-                    if (end == -1) end = input.Length;
-                    terms.Add(input.Substring(i, end - i));
-                    i = end + 1;
-                }
+
+                terms.Add(sb.ToString());
             }
 
             return terms;

@@ -98,27 +98,47 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Register a command that applies an action to all blocks of type T 
+        /// matching the name argument.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="name">The command name, ie. door/open.</param>
+        /// <param name="action">Applied to each matching block.</param>
+        /// <param name="message">Format string for the success response; {0} is the block name.</param>
+        public void RegisterBlockCommand<T>(string name, Action<T> action, string message) where T : class, IMyTerminalBlock
+        {
+            RegisterCommand(new BlockCommand<T>(this, name, action, message));
+        }
+
+        /// <summary>
         /// Register a block type for ongoing state monitoring.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="stateSelector"></param>
-        /// <param name="stateHandler"></param>
+        /// <param name="stateSelector">Reads the current state from a block of type T.</param>
+        /// <param name="stateHandler">Called when the state of a monitored block changes.</param>
+        /// <param name="preserveState">
+        /// When <c>false</c> (default, used at boot), PreviousStates is always initialised to
+        /// the block's current state. When <c>true</c> (used after a construct refresh), the
+        /// existing PreviousStates entry is kept for blocks already known by EntityId so that
+        /// in-flight transitions are not discarded. Always updates the block reference and
+        /// re-registers with BlockCatalogue regardless of this flag.
+        /// </param>
         protected void RegisterBlockTypeForStateMonitoring<T>(
             Func<T, object> stateSelector,
-            Action<IMyTerminalBlock, object> stateHandler
+            Action<IMyTerminalBlock, object> stateHandler,
+            bool preserveState = false
         ) where T : class, IMyTerminalBlock
         {
-            BlockCatalogue BlockCatalogue = Mother.GetModule<BlockCatalogue>();
+            BlockCatalogue blockCatalogue = Mother.GetModule<BlockCatalogue>();
 
-            foreach (var block in BlockCatalogue.GetBlocks<T>())
+            foreach (var block in blockCatalogue.GetBlocks<T>())
             {
-                // Store the state selector and handler for this block type
                 _stateSelectors[block] = (b) => stateSelector(b as T);
                 _stateHandlers[block] = stateHandler;
+                blockCatalogue.RegisterBlockForStateMonitoring(block, this);
 
-                // Register the block for state monitoring
-                BlockCatalogue.RegisterBlockForStateMonitoring(block, this);
-                PreviousStates[block.EntityId] = stateSelector(block);
+                if (!preserveState || !PreviousStates.ContainsKey(block.EntityId))
+                    PreviousStates[block.EntityId] = stateSelector(block);
             }
         }
 
