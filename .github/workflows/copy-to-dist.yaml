@@ -28,7 +28,7 @@ jobs:
           cp -r src/Modules dist/
           cp -r src/Utilities dist/
 
-          cp CHANGELOG.md dist/
+          cp src/CHANGELOG.md dist/
           cp LICENSE.md dist/
           cp README.md dist/
 
