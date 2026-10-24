@@ -42,6 +42,24 @@ namespace IngameScript
             /// Message indicating that a command was executed successfully.
             /// </summary>
             public const string InvalidCommandFormat = "Invalid command format.";
+            /// <summary>
+            /// Printed when a step fails and its routine stops. {0} is the step
+            /// as written, {1} is why it failed.
+            /// </summary>
+            public const string CommandFailed = "Command failed: {0} ({1})";
+        }
+
+        /// <summary>
+        /// Shared by the steps of one coroutine so a failed step can stop it.
+        /// Each coroutine launched from a parallel group has its own state, so
+        /// groups stay independent.
+        /// </summary>
+        class RoutineState
+        {
+            /// <summary>
+            /// Set by a failing step. Every enclosing loop stops when it is set.
+            /// </summary>
+            public bool Failed;
         }
         
         /// <summary>
@@ -214,10 +232,15 @@ namespace IngameScript
         {
             if (!string.IsNullOrWhiteSpace(commandString))
             {
-                // Substitute variables before parsing
-                commandString = Mother.SubstituteVariables(commandString);
+                var routine = new TerminalRoutine(commandString);
 
-                HandleRoutine(new TerminalRoutine(commandString));
+                // Variables in a local routine are resolved as each step runs.
+                // A remote routine never runs here, so the typed text is resolved
+                // now. Config command bodies stay raw for the remote to resolve.
+                if (routine.Target != "self")
+                    routine = new TerminalRoutine(Mother.SubstituteVariables(commandString));
+
+                HandleRoutine(routine);
                 return true;
             }
 
@@ -274,14 +297,21 @@ namespace IngameScript
         void LaunchRoutineCoroutines(TerminalRoutine routine)
         {
             if (routine.HasParallelGroups)
-            {
-                foreach (var group in routine.ParallelGroups)
-                    Clock.AddCoroutine(ExecuteCommandGroupCoroutine(group));
-            }
+                LaunchParallelGroups(routine, true);
             else
-            {
-                Clock.AddCoroutine(ExecuteCommandGroupCoroutine(routine.Commands));
-            }
+                Clock.AddCoroutine(ExecuteCommandGroupCoroutine(routine.Commands, new RoutineState(), true));
+        }
+
+        /// <summary>
+        /// Launches each parallel group of a routine as its own coroutine with
+        /// its own state, so a failure in one group never stops another.
+        /// </summary>
+        /// <param name="routine"></param>
+        /// <param name="resolve">Whether the steps still need variable resolution.</param>
+        void LaunchParallelGroups(TerminalRoutine routine, bool resolve)
+        {
+            foreach (var group in routine.ParallelGroups)
+                Clock.AddCoroutine(ExecuteCommandGroupCoroutine(group, new RoutineState(), resolve));
         }
 
         /// <summary>
@@ -289,33 +319,66 @@ namespace IngameScript
         /// is processed one at a time. If a command resolves to a config command, 
         /// its expanded steps are inlined into this coroutine so that wait 
         /// commands properly block subsequent steps. Parallel groups within
-        /// expanded config commands are launched as separate coroutines.
+        /// expanded config commands are launched as separate coroutines. Stops
+        /// as soon as a step marks the state as failed.
         /// </summary>
         /// <param name="commands"></param>
+        /// <param name="state"></param>
+        /// <param name="resolve">False when the steps are already resolved.</param>
         /// <returns></returns>
-        IEnumerable<double> ExecuteCommandGroupCoroutine(List<TerminalCommand> commands)
+        IEnumerable<double> ExecuteCommandGroupCoroutine(List<TerminalCommand> commands, RoutineState state, bool resolve)
         {
             foreach (var command in commands)
             {
                 // Yield through each step produced by the command
-                foreach (double wait in ExecuteCommandCoroutine(command))
+                foreach (double wait in ExecuteCommandCoroutine(command, state, resolve))
                     yield return wait;
+
+                if (state.Failed)
+                    yield break;
             }
         }
 
         /// <summary>
-        /// Coroutine that executes a single command. If the command is a wait, 
-        /// it yields the wait duration. If the command resolves to a config 
-        /// command, the expanded routine is inlined - its steps are yielded 
-        /// through directly so waits block correctly. If the expanded config 
-        /// command contains parallel groups, each group is launched as a 
-        /// separate coroutine. Module commands and other primitives are 
-        /// executed immediately.
+        /// Coroutine that executes a single command. Variables are resolved
+        /// first, so the name, wait time, options and command string are all
+        /// current. If the command is a wait, it yields the wait duration. If
+        /// the command resolves to a config command, the expanded routine is
+        /// inlined - its steps are yielded through directly so waits block
+        /// correctly. If the expanded config command contains parallel groups,
+        /// each group is launched as a separate coroutine. Module commands and
+        /// other primitives are executed immediately.
         /// </summary>
         /// <param name="command"></param>
+        /// <param name="state"></param>
+        /// <param name="resolve">False when the step is already resolved.</param>
         /// <returns></returns>
-        IEnumerable<double> ExecuteCommandCoroutine(TerminalCommand command)
+        IEnumerable<double> ExecuteCommandCoroutine(TerminalCommand command, RoutineState state, bool resolve)
         {
+            if (resolve)
+            {
+                TerminalRoutine body;
+                string error = ResolveStep(ref command, out body);
+
+                if (error != null)
+                {
+                    state.Failed = true;
+
+                    // Print also writes to the log
+                    Mother.Print(MessageFormatter.Format(Messages.CommandFailed, command.CommandString, error), false);
+                    yield break;
+                }
+
+                if (body != null)
+                {
+                    // Steps from a resolved value are not resolved a second time
+                    foreach (double wait in RunBody(body, state, false))
+                        yield return wait;
+
+                    yield break;
+                }
+            }
+
             // Handle the "wait" command
             if (command.Name.ToLower() == "wait" && command.Arguments.Count > 0)
             {
@@ -336,22 +399,10 @@ namespace IngameScript
 
             if (configCommandValue != null)
             {
-                string expanded = Mother.SubstituteVariables(configCommandValue);
-                var routine = new TerminalRoutine(expanded);
+                var routine = new TerminalRoutine(configCommandValue);
 
-                if (routine.HasParallelGroups)
-                {
-                    // Parallel groups within a config command are launched
-                    // as separate coroutines
-                    foreach (var group in routine.ParallelGroups)
-                        Clock.AddCoroutine(ExecuteCommandGroupCoroutine(group));
-                }
-                else
-                {
-                    // Inline the expanded steps into this coroutine
-                    foreach (double wait in ExecuteCommandGroupCoroutine(routine.Commands))
-                        yield return wait;
-                }
+                foreach (double wait in RunBody(routine, state, true))
+                    yield return wait;
 
                 yield break;
             }
@@ -359,6 +410,66 @@ namespace IngameScript
             // Execute module commands and other primitives immediately
             ExecutePrimitiveCommand(command);
             yield return 0;
+        }
+
+        /// <summary>
+        /// Runs a routine inside the current coroutine. Parallel groups are
+        /// launched as separate coroutines, otherwise the steps are inlined so
+        /// that waits block the caller.
+        /// </summary>
+        /// <param name="routine"></param>
+        /// <param name="state"></param>
+        /// <param name="resolve">Whether the steps still need variable resolution.</param>
+        /// <returns></returns>
+        IEnumerable<double> RunBody(TerminalRoutine routine, RoutineState state, bool resolve)
+        {
+            if (routine.HasParallelGroups)
+                LaunchParallelGroups(routine, resolve);
+            else
+                foreach (double wait in ExecuteCommandGroupCoroutine(routine.Commands, state, resolve))
+                    yield return wait;
+        }
+
+        /// <summary>
+        /// Resolves variables in a step immediately before it runs. A step with
+        /// no variables is left unchanged, as the same instance. Otherwise the
+        /// resolved text either replaces the command, or, when it holds no steps,
+        /// several steps or parallel groups, is returned as a routine to run in
+        /// its place.
+        /// </summary>
+        /// <param name="command">The step. Replaced when it resolves to one command.</param>
+        /// <param name="routine">The routine to run instead, or null.</param>
+        /// <returns>Why the step failed, or null.</returns>
+        string ResolveStep(ref TerminalCommand command, out TerminalRoutine routine)
+        {
+            routine = null;
+
+            string resolved, error;
+
+            if (command.CommandString.IndexOf('$') < 0)
+                return null;
+
+            if (!Mother.TrySubstituteVariables(command.CommandString, out resolved, out error))
+                return error;
+
+            try
+            {
+                var parsed = new TerminalRoutine(resolved);
+
+                if (parsed.Target != "self")
+                    return "a variable cannot send a step to another grid (@" + parsed.Target + ")";
+
+                if (parsed.HasParallelGroups || parsed.Commands.Count != 1)
+                    routine = parsed;
+                else
+                    command = parsed.Commands[0];
+            }
+            catch (Exception e)
+            {
+                return e.Message;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -384,7 +495,7 @@ namespace IngameScript
                 {
                     Mother.Print($"Executing local command: {localName}", false);
                     return Mother.SubstituteCommandParameters(
-                        Mother.ConfigCommands[localName], command.Options);
+                        Mother.ConfigCommands[localName], command.Options, false);
                 }
             }
 
@@ -396,13 +507,13 @@ namespace IngameScript
             // Standard config commands (check both with and without ! prefix)
             if (Mother.ConfigCommands.ContainsKey(command.Name))
                 return Mother.SubstituteCommandParameters(
-                    Mother.ConfigCommands[command.Name], command.Options);
+                    Mother.ConfigCommands[command.Name], command.Options, false);
 
             // Check for important command (! prefixed in config) - only reached if not on construct
             string importantKey = "!" + command.Name;
             if (Mother.ConfigCommands.ContainsKey(importantKey))
                 return Mother.SubstituteCommandParameters(
-                    Mother.ConfigCommands[importantKey], command.Options);
+                    Mother.ConfigCommands[importantKey], command.Options, false);
 
             return null;
         }

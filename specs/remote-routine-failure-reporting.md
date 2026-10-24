@@ -1,6 +1,6 @@
 # Remote routine failure reporting
 
-Status: idea (short spec, nothing implemented). Deferred from `runtime-variable-substitution.md`, open question 3.
+Status: idea (short spec, nothing implemented). Note 2026-10-23: the local failure message is now a single line, `Command failed: <written step> (<reason>)`, and `RoutineState` holds only `Failed`. The group, step, chain and "not run" details below no longer exist, so a report would carry just that line. The sample output and sketch step 1 and 2 need rewriting before this is built. Deferred from `runtime-variable-substitution.md`, open question 3.
 
 Last updated: 2026-10-22 20:24 (-04:00). Code read at that time, not run.
 

@@ -125,15 +125,11 @@ namespace IngameScript
                     // Set key & remove leading '--'.
                     string key = parts[0].Substring(2);
 
+                    if (Options.ContainsKey(key))
+                        throw new ArgumentException("duplicate option --" + key);
+
                     // Set value if it exists, otherwise set to "true". 
-                    if (parts.Length == 2)
-                    {
-                        Options.Add(key, parts[1]);
-                    }
-                    else
-                    {
-                        Options.Add(key, "true");
-                    }
+                    Options.Add(key, parts.Length == 2 ? parts[1] : "true");
                 }
                 else
                 {
@@ -164,6 +160,7 @@ namespace IngameScript
         public static List<string> SplitInputIntoTerms(string input)
         {
             var terms = new List<string>();
+            var breaks = new[] { ' ', '"' };
             int i = 0;
 
             while (i < input.Length)
@@ -177,18 +174,39 @@ namespace IngameScript
 
                 // A term runs to the next space outside quotes. Quote characters
                 // toggle grouping and are stripped. An unclosed quote runs to the
-                // end of the input.
+                // end of the input. We jump between spaces and quotes rather than
+                // visiting every character, so large quoted blocks stay cheap.
                 var sb = new StringBuilder();
                 bool inQuotes = false;
 
-                while (i < input.Length && (inQuotes || input[i] != ' '))
+                while (i < input.Length)
                 {
-                    if (input[i] == '"')
-                        inQuotes = !inQuotes;
-                    else
-                        sb.Append(input[i]);
+                    int next = input.IndexOfAny(breaks, i);
 
-                    i++;
+                    if (next < 0)
+                    {
+                        sb.Append(input, i, input.Length - i);
+                        i = input.Length;
+                        break;
+                    }
+
+                    sb.Append(input, i, next - i);
+
+                    if (input[next] == '"')
+                    {
+                        inQuotes = !inQuotes;
+                        i = next + 1;
+                    }
+                    else if (inQuotes)
+                    {
+                        sb.Append(' ');
+                        i = next + 1;
+                    }
+                    else
+                    {
+                        i = next;
+                        break;
+                    }
                 }
 
                 terms.Add(sb.ToString());

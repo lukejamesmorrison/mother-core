@@ -685,18 +685,14 @@ namespace IngameScript
         {
             var configuration = GetModule<Configuration>();
 
-            if (configuration == null)
-            {
-                result = input;
-                error = null;
-                return true;
-            }
+            result = input;
+            error = null;
 
-            return configuration.TrySubstituteVariables(input, out result, out error);
+            return configuration == null || configuration.TrySubstituteVariables(input, out result, out error);
         }
 
         /// <summary>
-        /// Substitute variables into a string. See Configuration.SubstituteVariables for
+        /// Substitute variables into a string. See Configuration.TrySubstituteVariables for
         /// the rules. If nesting is too deep the $NAME text is left in place; use
         /// TrySubstituteVariables to receive the error.
         /// </summary>

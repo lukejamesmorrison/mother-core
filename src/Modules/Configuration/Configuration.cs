@@ -85,7 +85,7 @@ namespace IngameScript
         /// The number of variables when VariableIndex was built. A differing count
         /// triggers a rebuild.
         /// </summary>
-        int VariableIndexCount = -1;
+        int VariableIndexCount;
 
         /// <summary>
         /// Constructor. We load the configuration of the programmable block running Mother.
@@ -217,36 +217,20 @@ namespace IngameScript
             return input;
         }
 
+        /// <summary>
+        /// Collapses runs of spaces and tabs into one space, outside quoted strings.
+        /// Splitting on quotes makes even parts unquoted and odd parts quoted, so large
+        /// quoted blocks (ie. screen art) are never scanned character by character,
+        /// which would exhaust the instruction limit at boot.
+        /// </summary>
         static string CollapseWhitespaceOutsideQuotes(string input)
         {
-            var sb = new StringBuilder(input.Length);
-            bool inQuotes = false;
-            bool lastWasSpace = false;
+            string[] parts = input.Split('"');
 
-            foreach (char c in input)
-            {
-                if (c == '"')
-                {
-                    inQuotes = !inQuotes;
-                    lastWasSpace = false;
-                    sb.Append(c);
-                }
-                else if (!inQuotes && (c == ' ' || c == '\t'))
-                {
-                    if (!lastWasSpace)
-                    {
-                        sb.Append(' ');
-                        lastWasSpace = true;
-                    }
-                }
-                else
-                {
-                    lastWasSpace = false;
-                    sb.Append(c);
-                }
-            }
+            for (int i = 0; i < parts.Length; i += 2)
+                parts[i] = System.Text.RegularExpressions.Regex.Replace(parts[i], "[ \t]+", " ");
 
-            return sb.ToString();
+            return string.Join("\"", parts);
         }
 
         /// <summary>
@@ -278,7 +262,7 @@ namespace IngameScript
                 Mother.ConfigVariables[variableName] = variableValue;
             }
 
-            InvalidateVariableIndex();
+            VariableIndex = null;
         }
 
         /// <summary>
@@ -318,69 +302,20 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Discards the cached variable name index. Called when the set of variable
-        /// names changes (a variable is added or the variables are reloaded).
-        /// </summary>
-        void InvalidateVariableIndex()
-        {
-            VariableIndex = null;
-        }
-
-        /// <summary>
-        /// Rebuilds the variable name index if it is missing or out of date.
-        /// </summary>
-        void EnsureVariableIndex()
-        {
-            var variables = Mother.ConfigVariables;
-
-            if (VariableIndex != null && VariableIndexCount == variables.Count)
-                return;
-
-            var groups = new Dictionary<char, List<string>>();
-
-            foreach (var name in variables.Keys)
-            {
-                if (name.Length == 0) continue;
-
-                List<string> group;
-                if (!groups.TryGetValue(name[0], out group))
-                {
-                    group = new List<string>();
-                    groups[name[0]] = group;
-                }
-
-                group.Add(name);
-            }
-
-            var index = new Dictionary<char, string[]>();
-
-            foreach (var pair in groups)
-            {
-                pair.Value.Sort((a, b) => b.Length.CompareTo(a.Length));
-                index[pair.Key] = pair.Value.ToArray();
-            }
-
-            VariableIndex = index;
-            VariableIndexCount = variables.Count;
-        }
-
-        /// <summary>
         /// Finds the longest variable name that matches the text at the given position.
-        /// Matching is ordinal and case-sensitive.
+        /// Matching is ordinal and case-sensitive. CompareOrdinal never matches a name
+        /// that runs past the end of the text.
         /// </summary>
         /// <returns>The variable name, or null if none matches.</returns>
         string MatchVariableName(string text, int position)
         {
             string[] candidates;
-            if (!VariableIndex.TryGetValue(text[position], out candidates))
+            if (position >= text.Length || !VariableIndex.TryGetValue(text[position], out candidates))
                 return null;
 
             foreach (var name in candidates)
-            {
-                if (position + name.Length <= text.Length &&
-                    string.CompareOrdinal(text, position, name, 0, name.Length) == 0)
+                if (string.CompareOrdinal(text, position, name, 0, name.Length) == 0)
                     return name;
-            }
 
             return null;
         }
@@ -405,14 +340,8 @@ namespace IngameScript
 
                 output.Append(text, i, dollar - i);
 
-                if (dollar + 1 >= text.Length)
-                {
-                    output.Append('$');
-                    return;
-                }
-
                 // $$ is an escaped literal $
-                if (text[dollar + 1] == '$')
+                if (dollar + 1 < text.Length && text[dollar + 1] == '$')
                 {
                     output.Append('$');
                     i = dollar + 2;
@@ -431,19 +360,10 @@ namespace IngameScript
                 i = dollar + 1 + name.Length;
                 string value = Mother.ConfigVariables[name];
 
-                if (value.IndexOf('$') < 0)
-                {
-                    output.Append(value);
-                    continue;
-                }
-
-                if (depth >= MaxVariableDepth)
+                if (depth >= MaxVariableDepth && value.IndexOf('$') >= 0)
                 {
                     output.Append('$').Append(name);
-
-                    if (error == null)
-                        error = $"variable nesting deeper than {MaxVariableDepth}: {string.Join(" > ", chain)}";
-
+                    error = error ?? $"variable nesting deeper than {MaxVariableDepth}: {string.Join(" > ", chain)}";
                     continue;
                 }
 
@@ -473,33 +393,25 @@ namespace IngameScript
             if (string.IsNullOrEmpty(input) || input.IndexOf('$') < 0)
                 return true;
 
-            EnsureVariableIndex();
+            var variables = Mother.ConfigVariables;
+
+            // Rebuilt when loaded variables are cleared or a name is added
+            if (VariableIndex == null || VariableIndexCount != variables.Count)
+            {
+                VariableIndex = variables.Keys
+                    .Where(k => k.Length > 0)
+                    .GroupBy(k => k[0])
+                    .ToDictionary(g => g.Key, g => g.OrderByDescending(k => k.Length).ToArray());
+                VariableIndexCount = variables.Count;
+            }
 
             var output = new StringBuilder(input.Length + 16);
-            var chain = new string[MaxVariableDepth];
+            var chain = new string[MaxVariableDepth + 1];
 
             AppendWithVariables(input, output, 0, chain, ref error);
             result = output.ToString();
 
             return error == null;
-        }
-
-        /// <summary>
-        /// Substitute variables into a string. Variables are referenced using the
-        /// $VARIABLE_NAME syntax and are replaced with their corresponding values from
-        /// the [variables] section. The longest matching name wins, $$ yields a literal $,
-        /// and values may reference other variables up to MaxVariableDepth. If nesting is
-        /// too deep the $NAME text is left in place. Use TrySubstituteVariables to
-        /// receive the error.
-        /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
-        public string SubstituteVariables(string input)
-        {
-            string result, error;
-            TrySubstituteVariables(input, out result, out error);
-
-            return result;
         }
 
         /// <summary>
@@ -514,9 +426,6 @@ namespace IngameScript
         /// <param name="save">When true, persists the change to CustomData.</param>
         public void SetVariable(string name, string value, bool save = false)
         {
-            if (!Mother.ConfigVariables.ContainsKey(name))
-                InvalidateVariableIndex();
-
             Mother.ConfigVariables[name] = value;
 
             if (save)

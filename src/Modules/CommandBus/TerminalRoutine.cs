@@ -236,10 +236,13 @@ namespace IngameScript
         /// <returns></returns>
         public TerminalRoutine Unpack(Dictionary<string,string> lookup)
         {
+            // Expand the lookup once for all commands
+            Dictionary<string, string> expandedValues = PreExpandNamedRoutines(lookup);
+
             foreach (TerminalCommand command in Commands)
             {
                 // Unpack each command separately
-                string unpackedCommandString = UnpackCommand(command, lookup);
+                string unpackedCommandString = UnpackCommand(command, expandedValues);
                 UnpackedCommands.Add(new TerminalCommand(unpackedCommandString));
             }
 
@@ -256,14 +259,11 @@ namespace IngameScript
         /// of custom commands. Useful for sending remote commands.
         /// </summary>
         /// <param name="command"></param>
-        /// <param name="lookup"></param>
+        /// <param name="expandedValues">Fully expanded routines.</param>
         /// <returns></returns>
-        static string UnpackCommand(TerminalCommand command, Dictionary<string, string> lookup)
+        static string UnpackCommand(TerminalCommand command, Dictionary<string, string> expandedValues)
         {
             string commandString = command.CommandString;
-
-            // Expand all defined routines efficiently
-            Dictionary<string, string> expandedValues = PreExpandNamedRoutines(lookup);
 
             // Perform optimized multi-pass replacement
             commandString = ReplaceNamedRoutinesSafely(commandString, expandedValues);
@@ -284,37 +284,42 @@ namespace IngameScript
         {
             bool insideQuotes = false;
             int braceDepth = 0;
+            int start = 0;
+            int i = 0;
+            var markers = new[] { ';', '"', '{', '}' };
             List<string> commands = new List<string>();
-            StringBuilder currentCommand = new StringBuilder();
 
-            foreach (char c in routine)
+            // Jump between markers rather than visiting every character, so large
+            // quoted blocks stay cheap.
+            while (true)
             {
+                int next = routine.IndexOfAny(markers, i);
+
+                if (next < 0)
+                    break;
+
+                char c = routine[next];
+                i = next + 1;
+
                 if (c == '"')
                     insideQuotes = !insideQuotes;
-
-                if (!insideQuotes)
+                else if (insideQuotes)
+                    continue;
+                else if (c == '{')
+                    braceDepth++;
+                else if (c == '}')
+                    braceDepth--;
+                else if (braceDepth == 0)
                 {
-                    if (c == '{')
-                        braceDepth++;
-                    else if (c == '}')
-                        braceDepth--;
-                }
-
-                // If outside quotes and braces, treat as a separator
-                if (c == ';' && !insideQuotes && braceDepth == 0)
-                {
-                    commands.Add(currentCommand.ToString().Trim());
-                    currentCommand.Clear();
-                }
-                else
-                {
-                    currentCommand.Append(c);
+                    // Outside quotes and braces, a semicolon is a separator
+                    commands.Add(routine.Substring(start, next - start).Trim());
+                    start = i;
                 }
             }
 
             // Add last command if not empty
-            if (currentCommand.Length > 0)
-                commands.Add(currentCommand.ToString().Trim());
+            if (start < routine.Length)
+                commands.Add(routine.Substring(start).Trim());
 
             return commands;
         }
@@ -350,8 +355,9 @@ namespace IngameScript
         /// <returns></returns>
         static string ExpandValueSafely(string value, Dictionary<string, string> expandedValues)
         {
-            StringBuilder sb = new StringBuilder(value);
+            string result = value;
             bool replaced;
+            int passes = 0;
 
             do
             {
@@ -359,19 +365,34 @@ namespace IngameScript
 
                 foreach (var entry in expandedValues)
                 {
-                    string key = entry.Key;
-                    string expandedValue = entry.Value;
+                    string replacedText = ReplaceWholeWord(result, entry.Key, entry.Value);
 
-                    if (ContainsWholeWord(sb.ToString(), key))
+                    if (replacedText != result)
                     {
-                        sb.Replace(key, expandedValue);
+                        result = replacedText;
                         replaced = true;
                     }
                 }
 
-            } while (replaced); // Continue until no more replacements happen
+                // Cap passes so a self-referencing routine cannot loop forever
+            } while (replaced && ++passes < MaxExpansionPasses);
 
-            return $"{sb}";
+            return result;
+        }
+
+        // Keys are visited longest first, so one pass resolves nearly everything. Extra
+        // passes only matter for equal-length names that reference each other.
+        const int MaxExpansionPasses = 3;
+
+        /// <summary>
+        /// Replaces every whole-word occurrence of a name with its expansion.
+        /// </summary>
+        static string ReplaceWholeWord(string text, string word, string replacement)
+        {
+            return System.Text.RegularExpressions.Regex.Replace(
+                text,
+                $@"(?<![\w$]){System.Text.RegularExpressions.Regex.Escape(word)}\b",
+                m => replacement);
         }
 
         /// <summary>
@@ -382,27 +403,10 @@ namespace IngameScript
         /// <returns></returns>
         static string ReplaceNamedRoutinesSafely(string command, Dictionary<string, string> expandedValues)
         {
-            StringBuilder sb = new StringBuilder(command);
-
             foreach (var entry in expandedValues)
-            {
-                if (ContainsWholeWord($"{sb}", entry.Key))
-                    sb.Replace(entry.Key, entry.Value);
-            }
+                command = ReplaceWholeWord(command, entry.Key, entry.Value);
 
-            return $"{sb}";
-        }
-
-        /// <summary>
-        /// Checks if a string contains a whole word. We ensure that whole words are replace and not sub parts.
-        /// ie. "20p" should not be replaced by "0p".
-        /// </summary>
-        /// <param name="text"></param>
-        /// <param name="word"></param>
-        /// <returns></returns>
-        static bool ContainsWholeWord(string text, string word)
-        {
-            return System.Text.RegularExpressions.Regex.IsMatch(text, $@"\b{word}\b");
+            return command;
         }
 
         /// <summary>

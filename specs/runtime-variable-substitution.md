@@ -154,25 +154,14 @@ D keeps today's string-level semantics exactly (quoting, a value with spaces unq
 8. **Failure handling.** A failed step stops its routine and prints a clear message to the terminal. Parallel groups stay independent (decision 3): a failure never stops a sibling group.
    - **What fails:** a parse exception after substitution (duplicate option, malformed term), a remote target inside a value, or variable nesting deeper than the limit. A blank result is not a failure (step 3).
    - **What stops:** the coroutine that was running the step, which includes any config command inlined into it. Inlined config commands run inside the caller's coroutine, so a failure inside one stops the whole chain above it. Steps still to run in that coroutine are discarded. Steps already run are not undone.
-   - **Message.** Printed once with `Mother.Print` and written with `Log.Info`, from a new entry in `CommandBus.Messages`. It must answer: which routine, where, what, why, and what is unaffected.
+   - **Message.** Simplified 2026-10-23: one line, printed with `Mother.Print` (which also logs), from the single entry `CommandBus.Messages.CommandFailed`. Which routine, group or step failed is not reported, because the player mostly needs to know that the command failed and why.
 
      ```
-     Routine stopped: group 2 of 3, step 4 of 6 (Recharge > ZGDGUIWorking)
-       Step:     screen/print "$LCD" "$MSG" --level=$LVL --level=high
-       Resolved: screen/print "Cockpit" "Hello" --level=low --level=high
-       Reason:   duplicate option --level
-       Not run:  2 later steps in this group
-       Other groups are not affected and keep running.
+     Command failed: screen/print "$LCD" "$MSG" --level=$LVL --level=high (duplicate option --level)
      ```
 
-     Rules:
-     - The location line always gives the step position (`step 4 of 6`) and, for a parallel launch, the group (`group 2 of 3`). A single sequential routine omits the group.
-     - The chain in brackets lists config commands entered, outermost first, so a failure inside a config command names it. Omitted at top level.
-     - `Step` is the text as written, with `$VAR` unresolved. `Resolved` is shown only when substitution succeeded, and is omitted when the failure was in substitution itself. Both are needed: the resolved text may be blank or surprising, and the written text is what the author edits.
-     - `Reason` is a short sentence naming the cause. For nesting, it names the chain, for example `variable nesting deeper than 5: A > B > A > B > A`.
-     - `Not run` counts the remaining steps in that coroutine, including those of enclosing config commands.
-     - The last line appears only for a parallel launch, and states the independence guarantee so that the author does not assume the other groups stopped.
-   - **Mechanism.** `ExecuteCommandCoroutine` cannot return a value through `IEnumerable<double>`, so pass a small `RoutineState` object down from `LaunchRoutineCoroutines` through `ExecuteCommandGroupCoroutine` and `ExecuteCommandCoroutine`. It holds `Failed`, the group index and count, and a short list of config command names entered (pushed on inline, popped on return). The failing step sets `Failed` and does `yield break`. Each enclosing loop checks `Failed` after every step and also does `yield break`. The Clock runs one coroutine to its next `yield` without interleaving, so the flag is set and read in the same `MoveNext` call and needs no locking. Each group gets its own `RoutineState`, which is what keeps groups independent.
+     The step is shown as written, with `$VAR` unresolved, because that is the text the author edits. The reason is a short sentence naming the cause. For nesting, it names the chain, for example `variable nesting deeper than 5: A > B > A > B > A`.
+   - **Mechanism.** `ExecuteCommandCoroutine` cannot return a value through `IEnumerable<double>`, so pass a small `RoutineState` object down from `LaunchRoutineCoroutines` through `ExecuteCommandGroupCoroutine` and `ExecuteCommandCoroutine`. It holds only `Failed`. The failing step sets `Failed` and does `yield break`. Each enclosing loop checks `Failed` after every step and also does `yield break`. The Clock runs one coroutine to its next `yield` without interleaving, so the flag is set and read in the same `MoveNext` call and needs no locking. Each group gets its own `RoutineState`, which is what keeps groups independent.
    - **Scope.** Failures introduced by this change. `Command not found` and exceptions thrown inside a module's `Execute` keep their current behaviour. A remote routine fails on the remote grid and prints to that grid's terminal; returning the message to the sender is out of scope.
 
 ### Example
@@ -360,7 +349,7 @@ MotherOS `autolcd/print` already substitutes `$VAR` and `{{param:default}}` in v
 
 ### Deferred
 
-- **Showing a failure on the sending grid for remote routines**, decided 2026-10-22 20:24 (-04:00). A remote routine that fails prints on the remote grid only. Reporting it back needs a second, later message, because the `COMMAND_EXECUTED` response is sent before the first step runs. Captured as a separate idea in [remote-routine-failure-reporting.md](./remote-routine-failure-reporting.md). Design step 8 carries the data it needs (group, step, chain, written step, reason) in `RoutineState`, so no rework is needed later.
+- **Showing a failure on the sending grid for remote routines**, decided 2026-10-22 20:24 (-04:00). A remote routine that fails prints on the remote grid only. Reporting it back needs a second, later message, because the `COMMAND_EXECUTED` response is sent before the first step runs. Captured as a separate idea in [remote-routine-failure-reporting.md](./remote-routine-failure-reporting.md). Update 2026-10-23: the failure message was simplified to one line (written step and reason), and `RoutineState` no longer tracks group, step or chain. A report would only carry that line.
 - **Removing the need to quote variables that contain spaces**, noted 2026-10-22 20:39 (-04:00), to revisit in a future iteration. This change keeps today's string-level substitution, so `COCKPIT="Cockpit [LCD]"` must still be written `block/on "$COCKPIT"`. The quotes in the `.ini` value only delimit the value and are not carried into the command text. An unquoted `$COCKPIT` becomes several terms. Possible approach: an opt-in syntax such as `${COCKPIT}` that always expands to one argument, leaving `$NAME` as it is so that a variable holding several terms or steps (`X="a; b"`) still works. Open points for that iteration: how it interacts with a value that already contains quotes, and with `$` as a command name or `wait` time.
 ### Why the order is undefined
 
@@ -405,8 +394,8 @@ Added 2026-10-22 21:05 (-04:00), after re-reading this spec against the working 
 |---|---|---|
 | 0 | Baseline and review notes | Done (P0.2 dropped, see below) |
 | 1 | Substitution engine in `Mother` | Done |
-| 2 | Per-step resolution in `CommandBus` | Not started |
-| 3 | Failure handling (`RoutineState`, message) | Not started |
+| 2 | Per-step resolution in `CommandBus` | Done |
+| 3 | Failure handling (`RoutineState`, message) | Done |
 | 4 | Remaining tests and measurement | Not started |
 | 5 | Documentation and release | Not started |
 
@@ -421,8 +410,8 @@ Confirmed against the code: the entry pass at `CommandBus.RunTerminalCommand`, t
 | 1 | The language level is C# 6 (`LangVersion` 6 in the test project, matching the Programmable Block). No `out var`, tuples, local functions or pattern matching. `TrySubstituteVariables(string, out string, out string)` is fine as written. | Noted on every code action. Build will fail otherwise. |
 | 2 | `FakeGridProgramRuntimeInfo.CurrentInstructionCount` is a plain settable property. The harness does **not** measure instructions. | Instruction cost is checked informally in game (P4.5), with no recorded baseline. In the harness, assert the proxies instead: a no-`$` step reuses the same `TerminalCommand`, and a no-`$` string is returned by reference. |
 | 3 | A variable that resolves to a remote target (`@grid ...`) worked before (the entry pass ran before parsing the target) and now fails by design. It is not in "Behaviour changes to accept". | Added in P5.2 so the CHANGELOG states it. |
-| 4 | When a config command expands to parallel groups, each group becomes its own coroutine. The spec says each group gets its own `RoutineState` but not whether it inherits the config command chain. | Decision: a group launched from a config command **copies the chain** so the message still names it. Group index and count are those of the new launch. P3.2. |
-| 5 | "Step 4 of 6" is ambiguous when config commands are nested. | Decision: position and total are within the **innermost body being run**. The chain gives the context and `Not run` counts enclosing bodies too, as the spec says. P3.2. |
+| 4 | When a config command expands to parallel groups, each group becomes its own coroutine. The spec says each group gets its own `RoutineState` but not whether it inherits the config command chain. | Superseded 2026-10-23: the message no longer names a chain or group, so each group simply gets a fresh `RoutineState`. |
+| 5 | "Step 4 of 6" is ambiguous when config commands are nested. | Superseded 2026-10-23: the message no longer reports step position or a `Not run` count. |
 | 6 | A `--opt=$X` value is resolved at the invoking step, inserted into the config body, then resolved again as part of that step. A value that already contains `$$` is therefore unescaped twice. | Accepted (spec risk 3 already covers `$NAME`). Add one test that pins the behaviour so it is deliberate (P4.1). |
 | 7 | Name matching must stay ordinal and case-sensitive, as `string.Replace` is today. | P1.2 uses `string.CompareOrdinal`, not culture compare. |
 | 8 | New source files must be added to `src/MotherCore.projitems`, or the Programmable Block build will not include them. | P3.1 (only if `RoutineState` goes in a new file). |
@@ -440,7 +429,7 @@ Confirmed against the code: the entry pass at `CommandBus.RunTerminalCommand`, t
 No change to `CommandBus` yet. Existing behaviour is preserved apart from `$$` and nested values.
 
 - [x] **P1.1** Add `const int MaxVariableDepth = 5` to `Mother`.
-- [x] **P1.2** Add the name index: `Dictionary<char, string[]>` keyed by first character, each array sorted longest-first, plus the `ConfigVariables.Count` it was built for. Names only, ordinal compare. Add `InvalidateVariableIndex()`. Deviation: the no-variables shortcut is dropped so ``$$`` is unescaped consistently even before any variable exists; only the no-`$` fast path remains. Moved (decision 2026-10-23): the index, scan and `MaxVariableDepth` live in `Configuration`, which owns the variables; `Mother.SubstituteVariables`/`TrySubstituteVariables` are thin forwarders.
+- [x] **P1.2** Add the name index: `Dictionary<char, string[]>` keyed by first character, each array sorted longest-first, plus the `ConfigVariables.Count` it was built for. Names only, ordinal compare. Rebuilt via LINQ inside `TrySubstituteVariables` when missing or when the count differs. Deviation: the no-variables shortcut is dropped so ``$$`` is unescaped consistently even before any variable exists; only the no-`$` fast path remains. Moved (decision 2026-10-23): the index, scan and `MaxVariableDepth` live in `Configuration`, which owns the variables; `Mother.SubstituteVariables`/`TrySubstituteVariables` are thin forwarders.
 - [x] **P1.3** Add `bool TrySubstituteVariables(string input, out string result, out string error)`:
   - Fast path: no variables or `IndexOf('$') < 0` returns `input` (same reference).
   - Single scan: `$$` yields one `$`. Otherwise longest matching name, value read live from `ConfigVariables`. No match leaves the text.
@@ -448,7 +437,7 @@ No change to `CommandBus` yet. Existing behaviour is preserved apart from `$$` a
   - Rebuild the index when `Count` differs from the stored count.
 - [x] **P1.4** Make `SubstituteVariables(string)` a wrapper over `TrySubstituteVariables` that ignores the error.
 - [x] **P1.5** Add `bool substituteVariables = true` to `SubstituteCommandParameters`. Both exits (fast path and the end) call `SubstituteVariables` only when it is true. Existing callers and tests are unchanged.
-- [x] **P1.6** `Configuration.LoadVariables` calls `InvalidateVariableIndex()` after loading. `SetVariable` calls it only when the name is new.
+- [x] **P1.6** `Configuration.LoadVariables` sets `VariableIndex = null` after loading. `SetVariable` needs nothing: a new name changes `Count`, which already triggers a rebuild (character-reduction review 2026-10-23; no `InvalidateVariableIndex()` method).
 - [x] **P1.7** Update the XML docs on the three methods (longest-name rule, `$$`, nesting, depth).
 - [x] **P1.8** Tests (`MotherTests` or `ConfigurationTests`): fast path returns the same reference; longest name wins (`$PLAYER_NAME` vs `$PLAYER`, `$ZGDTutorialPageNextProxy` vs `$ZGDTutorialPageNext`); undefined stays literal; `$5` untouched; `$$` cases; nested (2 and 3 levels, late binding via `SetVariable`); cycle, fan-out cycle and self-reference end at the limit with the chain in `error`; the wrapper leaves `$NAME`; 200 variables sharing first characters; index rebuilt after `SetVariable` of a new name and after a config reload; `--save` writes the raw `$B`.
 - [x] **P1.9** `dotnet test`. All existing tests pass unchanged. Result: 463 passed (440 baseline + 23 new in `VariableSubstitutionTests`).
@@ -457,23 +446,23 @@ No change to `CommandBus` yet. Existing behaviour is preserved apart from `$$` a
 
 Failures are handled minimally here (see P2.3) and replaced in Phase 3.
 
-- [ ] **P2.1** Add a private resolve step used first in `ExecuteCommandCoroutine`, before the `wait` check. Outcomes: unchanged (no `$`, same instance), replaced command, inlined routine (value held `;` or `{`), blank (silent no-op), failure.
-- [ ] **P2.2** Inline a routine produced by a value exactly as an expanded config command is: parallel groups via `Clock.AddCoroutine`, otherwise through the current coroutine. The inlined steps are not resolved again. A remote target in the value is a failure.
-- [ ] **P2.3** Until Phase 3 lands, a failure prints the reason with `Mother.Print`, logs it, and does `yield break`. This keeps the Clock from receiving an exception.
-- [ ] **P2.4** Remove the entry pass in `RunTerminalCommand`. Add the remote rebuild: parse raw; when `Target` is not `self`, rebuild from `SubstituteVariables(commandString)`.
-- [ ] **P2.5** `ResolveConfigCommand` passes `substituteVariables: false` at all four call sites. Remove `Mother.SubstituteVariables(configCommandValue)` in `ExecuteCommandCoroutine`.
-- [ ] **P2.6** Tests in `CommandBusTests`: set then use (variable already defined; variable undefined); set then use inside one config command body; quoted value stays one argument; option value; `$X` as `wait` time and as command name; `{{p:$VAR}}` default and `--p` override; parallel group containing a variable; remote send resolves the typed text and leaves config bodies raw; `@$TARGET`; blank step is a silent no-op; the "Maybe" pattern; a value with `a; b` runs two steps and `;` in quotes does not split; a value with a parallel group launches groups; a value with a remote target fails.
-- [ ] **P2.7** `dotnet test`. `It_Substitutes_Variables_In_Terminal_Input` and the `SubstituteCommandParameters` tests pass unchanged.
+- [x] **P2.1** Add a private resolve step used first in `ExecuteCommandCoroutine`, before the `wait` check. Outcomes: unchanged (no `$`, same instance), replaced command, inlined routine (value held `;` or `{`), blank (silent no-op), failure.
+- [x] **P2.2** Inline a routine produced by a value exactly as an expanded config command is: parallel groups via `Clock.AddCoroutine`, otherwise through the current coroutine. The inlined steps are not resolved again. A remote target in the value is a failure.
+- [x] **P2.3** ~~Until Phase 3 lands, a failure prints the reason with `Mother.Print`, logs it, and does `yield break`.~~ Skipped: Phases 2 and 3 landed together, so failures go straight to the Phase 3 mechanism.
+- [x] **P2.4** Remove the entry pass in `RunTerminalCommand`. Add the remote rebuild: parse raw; when `Target` is not `self`, rebuild from `SubstituteVariables(commandString)`.
+- [x] **P2.5** `ResolveConfigCommand` passes `substituteVariables: false` at all three call sites (the spec said four; there are three). Remove `Mother.SubstituteVariables(configCommandValue)` in `ExecuteCommandCoroutine`.
+- [x] **P2.6** Tests in `CommandBusVariableTests` (new file, `tests/MotherCore.Tests/Tests/Module`): set then use (variable already defined; variable undefined); set then use inside one config command body; quoted value stays one argument; option value; `$X` as `wait` time and as command name; `{{p:$VAR}}` default and `--p` override; parallel group containing a variable; remote send resolves the typed text and leaves config bodies raw; `@$TARGET`; blank step is a silent no-op; the "Maybe" pattern; a value with `a; b` runs two steps and `;` in quotes does not split; a value with a parallel group launches groups; a value with a remote target fails.
+- [x] **P2.7** `dotnet test`. `It_Substitutes_Variables_In_Terminal_Input` and the `SubstituteCommandParameters` tests pass unchanged.
 
 ### Phase 3: Failure handling
 
-- [ ] **P3.1** Add `RoutineState` (private class inside `CommandBus`, so no new file; if it is moved to its own file, add it to `src/MotherCore.projitems`). Fields: `Failed`, group index and count, and a list of config command names (chain). C# 6 only.
-- [ ] **P3.2** Thread it through `LaunchRoutineCoroutines`, `ExecuteCommandGroupCoroutine` (loop by index so it knows `step n of m`) and `ExecuteCommandCoroutine`. Push the config name on inline, pop on return. Groups launched from a config body get a new state that **copies the chain** (review note 4). Position and total are for the innermost body (review note 5).
-- [ ] **P3.3** On failure set `Failed`, print and log once, `yield break`. Every enclosing loop checks `Failed` after each step and also does `yield break`. A sibling group has its own state and is untouched.
-- [ ] **P3.4** Add the message to `CommandBus.Messages` and format it with `MessageFormatter`. Lines: `Routine stopped: ...`, `Step`, `Resolved` (only when substitution succeeded), `Reason`, `Not run`, and the independence line only for a parallel launch. A single sequential routine omits the group and the last line.
-- [ ] **P3.5** Replace the interim handling from P2.3.
-- [ ] **P3.6** Tests: the message for a duplicate option (location, chain, written step, resolved step, reason, count not run); a failure inside an inlined config command stops the caller; a failure in one parallel group does not stop a sibling, which completes; a sequential routine omits the group line; nesting failure names the chain; the failure is not thrown out of `Clock.Run`.
-- [ ] **P3.7** `dotnet test`.
+- [x] **P3.1** Add `RoutineState` (private class inside `CommandBus`, so no new file; if it is moved to its own file, add it to `src/MotherCore.projitems`). Fields: `Failed` only (simplified 2026-10-23; group, step and chain tracking removed). C# 6 only.
+- [x] **P3.2** Thread it through `LaunchRoutineCoroutines`, `ExecuteCommandGroupCoroutine` and `ExecuteCommandCoroutine`. Each parallel group gets a fresh state.
+- [x] **P3.3** On failure set `Failed`, print and log once, `yield break`. Every enclosing loop checks `Failed` after each step and also does `yield break`. A sibling group has its own state and is untouched.
+- [x] **P3.4** Add the message to `CommandBus.Messages` and format it with `MessageFormatter`. One line only: `Command failed: <written step> (<reason>)`.
+- [x] **P3.5** Replace the interim handling from P2.3 (never needed, see P2.3).
+- [x] **P3.6** Tests: the message for a duplicate option (written step, reason); a failure inside an inlined config command stops the caller; a failure in one parallel group does not stop a sibling, which completes; nesting failure names the variable chain; the failure is not thrown out of `Clock.Run`.
+- [x] **P3.7** `dotnet test`. Result: 490 passed (463 after Phase 1, plus 27 new in `CommandBusVariableTests`).
 
 ### Phase 4: Remaining tests and measurement
 

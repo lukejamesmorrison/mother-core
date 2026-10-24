@@ -1,5 +1,17 @@
 # Changelog - Mother Core
 
+## [1.2.0] - Unreleased
+
+### Updated-
+- Set update frequency to `Update1`
+- Reduce the script size by about ~1,000 characters. The build now removes the `public` keyword from top-level types since these are no longer needed after build.
+
+### Fixed
+
+- Fixed "script too complex" error at boot resulting from long commands strings such as ASCII-art splash screens. Whitespace collapsing, command splitting and term parsing now jump between quotes and delimiters instead of visiting every character.
+- Fixed infinite loop when unpacking a remote (`@grid`) routine if a command shares its name with a variable it references (ie. `Foo=| $Foo;`). `$name` variable references are no longer expanded as commands, whole-word matching is exact, and expansion is capped at 3 passes.
+- Remote routines now expand the command library once per routine instead of once per command.
+
 ## [1.1.4] - 2026-10-19
 
 ### Added
