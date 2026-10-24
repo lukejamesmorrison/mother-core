@@ -104,4 +104,5 @@
     <Folder Include="$(MSBuildThisFileDirectory)Specs\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />
   </ItemGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\build\MotherCore.targets" Condition="Exists('$(MSBuildThisFileDirectory)..\build\MotherCore.targets')" />
 </Project>

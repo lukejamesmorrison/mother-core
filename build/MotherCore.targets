@@ -1,0 +1,27 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!--
+    Post-pack optimization of the packaged script, shared by every project that imports MotherCore.projitems.
+    Runs after MDK packs the script and before an extension's own post-pack target (MinifyScriptFile), so
+    whatever that target copies or publishes is already optimized.
+
+    Properties (all optional):
+      MotherCoreOptimize    Set to false to skip the optimizer.
+      MotherCoreScriptPath  The packaged script. Defaults to the MDK output for the project.
+  -->
+
+  <Target Name="MotherCoreOptimizeScript" AfterTargets="MdkPack" BeforeTargets="MinifyScriptFile" Condition="'$(MotherCoreOptimize)' != 'false'">
+    <PropertyGroup>
+      <_MotherCoreScript>$(MotherCoreScriptPath)</_MotherCoreScript>
+      <_MotherCoreScript Condition="'$(_MotherCoreScript)' == ''">$(SpaceEngineersDataPath)\IngameScripts\local\$(MSBuildProjectName)\script.cs</_MotherCoreScript>
+      <_MotherCoreReferences>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'motherCore-script-optimizer.refs'))</_MotherCoreReferences>
+      <_MotherCoreOptimizer>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', 'ScriptOptimizer'))</_MotherCoreOptimizer>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_MotherCoreReferences)" Lines="@(ReferencePath)" Overwrite="true" />
+
+    <!-- Leaves the script untouched if the optimizer cannot run or finds a problem, so the build still succeeds. -->
+    <Exec Command="dotnet run --project &quot;$(_MotherCoreOptimizer)&quot; -c Release -- &quot;$(_MotherCoreScript)&quot; &quot;$(_MotherCoreReferences)&quot;" ContinueOnError="true" />
+  </Target>
+
+</Project>
