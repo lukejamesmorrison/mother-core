@@ -10,13 +10,44 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 
 ## Phase 0 - Groundwork
 
-- [ ] Read `CommandBus.ExecuteCommandGroupCoroutine`, `ExecuteCommandCoroutine`, `RunBody` and `RoutineState` ([CommandBus.cs](../Modules/CommandBus/CommandBus.cs)); note where a skip stack and `if`/`else`/`end` dispatch can hook in.
-- [ ] Read `BaseModule` state tracking (`_stateSelectors`, `_stateHandlers`, `PreviousStates`) ([BaseModule.cs](../Modules/BaseModule.cs)) and decide whether rules reuse it directly or just mirror its pattern.
-- [ ] Read `Configuration.DefaultSections` ([Configuration.cs](../Modules/Configuration/Configuration.cs)) and the `SystemConfigChangedEvent` / `BlockConfigChangedEvent` / `ConstructRefreshedEvent` subscription pattern used by another module.
-- [ ] Capture a baseline: run the existing test suite and record pass count.
-- [ ] Capture a baseline instruction count (`Runtime.CurrentInstructionCount`) on a ~100-battery grid for later comparison.
+- [x] Read `CommandBus.ExecuteCommandGroupCoroutine`, `ExecuteCommandCoroutine`, `RunBody` and `RoutineState` ([CommandBus.cs](../Modules/CommandBus/CommandBus.cs)); note where a skip stack and `if`/`else`/`end` dispatch can hook in.
+- [x] Read `BaseModule` state tracking (`_stateSelectors`, `_stateHandlers`, `PreviousStates`) ([BaseModule.cs](../Modules/BaseModule.cs)) and decide whether rules reuse it directly or just mirror its pattern.
+- [x] Read `Configuration.DefaultSections` ([Configuration.cs](../Modules/Configuration/Configuration.cs)) and the `SystemConfigChangedEvent` / `BlockConfigChangedEvent` / `ConstructRefreshedEvent` subscription pattern used by another module.
+- [x] Capture a baseline: run the existing test suite and record pass count. **490 passed, 0 failed** (net48, `dotnet test` in `tests\MotherCore.Tests`).
+- [ ] Capture a baseline instruction count (`Runtime.CurrentInstructionCount`) on a ~100-battery grid for later comparison. *Needs the game; cannot be done from the test harness. Do before Phase 3 profiling.*
+- [ ] Capture a baseline minified script size (build MotherOS/extension with the optimizer) so Phase 1 growth can be measured against the 100,000 character limit.
 
 **Done when:** baseline tests green, integration points identified.
+
+### Phase 0 findings
+
+**`CommandBus` (if/else/end)**
+- `ExecuteCommandGroupCoroutine` is a plain `foreach` over steps that calls `ExecuteCommandCoroutine` and stops on `state.Failed`. The `if`/`else`/`end` dispatch belongs in `ExecuteCommandCoroutine`, before `ResolveStep` runs, so skipped steps do not resolve variables. The skip check itself can sit in the group loop, before the step runs.
+- `RoutineState` is shared by every step of one coroutine, including inlined config-command bodies (`RunBody` passes the same `state`). A skip stack on `RoutineState` therefore leaks into called commands: the stack must be scoped per routine body, so an open `if` in a called command is closed when that body ends (matches "closed implicitly at end of routine"). Parallel groups already get a fresh `RoutineState`, which gives the `{}` implicit close for free.
+- `if` must evaluate after variable resolution of its own line (so `$VAR` in the condition works) but a skipped `if` must not evaluate its condition. Skipped nested `if`s only push a "skipped" frame.
+
+**`BaseModule` state tracking**
+- `_stateSelectors`/`_stateHandlers` are keyed per block and driven by `BlockCatalogue.BlocksToMonitor`. They are block-scoped, not rule-scoped, so they do not fit a rule over a block group with aggregation. **Decision: mirror the pattern, do not reuse it.** `ConditionModule` keeps its own per-rule `Active`/`Since`/`LastFired` state and runs from a `Clock.Schedule` task.
+
+**Config and events**
+- `Configuration.DefaultSections` is a private `string[]`; add `"rules"` there. Note it only creates empty sections when missing, it does not touch existing data.
+- Module pattern for reload: `Subscribe<T>()` in `Boot()`, then branch on `e is T` in `HandleEvent` (see `MergeBlockModule`, `MechanicalBlockModule`, `DisplayModule`).
+- `BlockConfigChangedEvent` and `SystemConfigChangedEvent` are emitted from `BlockCatalogue.LoadBlockConfigurations` (the latter only for the programmable block). `ConstructRefreshedEvent` is emitted from `RefreshConstruct`.
+- Core modules are registered in `Mother.RegisterCoreModules` in boot order. `ConditionModule` must come **after** `BlockCatalogue` (needs resolution) and `CommandBus`, e.g. after `ActivityMonitor` / next to the other block modules.
+
+**`this` keyword and loader reuse**
+- `BlockCatalogue.ReplaceThisKeywordWithBlockName` is **private** and the hook loader is not to be touched. `ConditionModule` needs its own `this` replacement for block-local `[rules]`. Options: (a) a small copy in `ConditionModule`, (b) make the existing method `public` (a visibility-only change). Prefer (b) to save characters; it does not alter hook behavior.
+- Block configs are available via `BlockCatalogue.GetBlockConfiguration(block)` (public), so the rule loader can read each block's `[rules]` section without parsing `CustomData` itself.
+- The PB config is `Configuration.Ini`; read `[rules]` from it directly.
+
+**Other notes**
+- Target resolution: `BlockCatalogue` exposes `GetBlocks<T>(filter)` and `GetBlocksByName<T>(name)` (name or group). `$VAR` is already substituted before a step reaches `TerminalCommand`, but rule bodies are loaded from config, so `ConditionModule` must substitute `$VAR` in the `when` line at evaluation/rebuild time.
+- `TerminalRoutine` parses `;`-separated steps and `{}` groups; `else;` and `end;` become ordinary `TerminalCommand`s named `else`/`end` with no arguments, so no parser change is required.
+- `Clock.Schedule(Action, interval)` is the scheduler entry point for the polled rule task.
+
+**Follow-up before Phase 1 (decisions needed)**
+- [ ] Confirm option (b) above (make `ReplaceThisKeywordWithBlockName` public).
+- [ ] Confirm the skip stack is scoped per routine body (see `CommandBus` note).
 
 ---
 
