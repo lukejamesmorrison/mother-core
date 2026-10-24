@@ -24,4 +24,23 @@
     <Exec Command="dotnet run --project &quot;$(_MotherCoreOptimizer)&quot; -c Release -- &quot;$(_MotherCoreScript)&quot; &quot;$(_MotherCoreReferences)&quot;" ContinueOnError="true" />
   </Target>
 
+  <!--
+    Removes keywords ('private', 'readonly', and 'public' on top-level types) from the packaged script.
+    Runs after the optimizer and before an extension's own post-pack target (MinifyScriptFile). The script is
+    idempotent, so a project's own .build\RemoveKeywords.ps1 can still run afterwards without harm.
+
+    Properties (all optional):
+      MotherCoreRemoveKeywords  Set to false to skip keyword removal.
+  -->
+
+  <Target Name="MotherCoreRemoveKeywords" AfterTargets="MdkPack;MotherCoreOptimizeScript" BeforeTargets="MinifyScriptFile" Condition="'$(MotherCoreRemoveKeywords)' != 'false'">
+    <PropertyGroup>
+      <_MotherCoreKeywordScript>$(MotherCoreScriptPath)</_MotherCoreKeywordScript>
+      <_MotherCoreKeywordScript Condition="'$(_MotherCoreKeywordScript)' == ''">$(SpaceEngineersDataPath)\IngameScripts\local\$(MSBuildProjectName)\script.cs</_MotherCoreKeywordScript>
+      <_MotherCoreKeywordTool>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', 'RemoveKeywords.ps1'))</_MotherCoreKeywordTool>
+    </PropertyGroup>
+
+    <Exec Command="powershell -ExecutionPolicy Bypass -NoProfile -File &quot;$(_MotherCoreKeywordTool)&quot; &quot;$(_MotherCoreKeywordScript)&quot;" ContinueOnError="true" />
+  </Target>
+
 </Project>
