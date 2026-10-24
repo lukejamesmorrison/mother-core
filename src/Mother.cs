@@ -673,41 +673,59 @@ namespace IngameScript
         public double? GetShipSpeed() => ShipController?.GetShipSpeed();
 
         /// <summary>
-        /// Substitute variables into a string. Variables are referenced using the 
-        /// $VARIABLE_NAME syntax and are replaced with their corresponding 
-        /// values from the [variables] section. Variables are replaced 
-        /// longest-first to prevent shorter names from partially 
-        /// matching longer ones.
+        /// Substitute variables into a string, reporting whether nesting went too deep.
+        /// The work is done by the Configuration module, which owns the variables. If
+        /// the module is not registered the input is returned unchanged.
+        /// </summary>
+        /// <param name="input">The text to resolve.</param>
+        /// <param name="result">The resolved text.</param>
+        /// <param name="error">A description of the failure, or null.</param>
+        /// <returns>True if no error occurred.</returns>
+        public bool TrySubstituteVariables(string input, out string result, out string error)
+        {
+            var configuration = GetModule<Configuration>();
+
+            if (configuration == null)
+            {
+                result = input;
+                error = null;
+                return true;
+            }
+
+            return configuration.TrySubstituteVariables(input, out result, out error);
+        }
+
+        /// <summary>
+        /// Substitute variables into a string. See Configuration.SubstituteVariables for
+        /// the rules. If nesting is too deep the $NAME text is left in place; use
+        /// TrySubstituteVariables to receive the error.
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
         public string SubstituteVariables(string input)
         {
-            if (ConfigVariables.Count == 0) return input;
+            string result, error;
+            TrySubstituteVariables(input, out result, out error);
 
-            var sorted = ConfigVariables.OrderByDescending(v => v.Key.Length);
-
-            foreach (var variable in sorted)
-                input = input.Replace("$" + variable.Key, variable.Value);
-
-            return input;
+            return result;
         }
 
         /// <summary>
         /// Substitutes command parameter placeholders in a command template string.
         /// Parameters use the {{name}} or {{name:default}} syntax. Provided options
         /// (from --name=value arguments) override the default values. After parameter
-        /// substitution, any remaining $VARIABLE references are also resolved.
+        /// substitution, any remaining $VARIABLE references are also resolved unless
+        /// substituteVariables is false.
         /// </summary>
         /// <param name="template">The raw command template containing {{param}} placeholders.</param>
         /// <param name="options">The --option key-value pairs provided at invocation time.</param>
+        /// <param name="substituteVariables">When false, $VARIABLE references are left for the caller to resolve.</param>
         /// <returns>The fully resolved command string.</returns>
-        public string SubstituteCommandParameters(string template, Dictionary<string, string> options)
+        public string SubstituteCommandParameters(string template, Dictionary<string, string> options, bool substituteVariables = true)
         {
             // Fast path: no placeholders at all
-            if (template.IndexOf("{{")
- == -1)
-                return SubstituteVariables(template);
+            if (template.IndexOf("{{") == -1)
+                return substituteVariables ? SubstituteVariables(template) : template;
 
             var result = new StringBuilder();
             int i = 0;
@@ -766,7 +784,7 @@ namespace IngameScript
 
             // After parameter substitution, resolve any $VARIABLE references
             // (including those that came from default values like {{player:$PLAYER}})
-            return SubstituteVariables(result.ToString());
+            return substituteVariables ? SubstituteVariables(result.ToString()) : result.ToString();
         }
     }
 }

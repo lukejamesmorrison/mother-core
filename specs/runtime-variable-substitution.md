@@ -335,7 +335,7 @@ Resolved commands are what get logged and delegated, so `Mother.Print("> " + com
 - A literal `$5` in a step is not treated as a variable and is not re-scanned.
 - `MotherOS autolcd/print` resolves nested variables in view text through the `SubstituteVariables` wrapper, and a too-deep value leaves the `$NAME` text.
 - Prefix index: 200 variables resolve correctly, with names sharing a first character.
-- Instruction count (if the harness exposes `Runtime.CurrentInstructionCount`, otherwise measure in game): 200 variables, 100 commands of 10 steps, before and after. Record the entry-tick total and the maximum per-tick total. Acceptance: both are lower than today's.
+- Instruction count is not measured in the harness or against a recorded baseline. Complex grids are checked in game as the work lands (P4.5).
 - A no-`$` string is returned unchanged (fast path) and the same `TerminalCommand` instance is reused.
 - The cache is invalidated after `var/set` and after a config reload.
 - Existing tests (`It_Substitutes_Variables_In_Terminal_Input`, `SubstituteCommandParameters` tests) still pass.
@@ -403,8 +403,8 @@ Added 2026-10-22 21:05 (-04:00), after re-reading this spec against the working 
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Baseline and review notes | Not started |
-| 1 | Substitution engine in `Mother` | Not started |
+| 0 | Baseline and review notes | Done (P0.2 dropped, see below) |
+| 1 | Substitution engine in `Mother` | Done |
 | 2 | Per-step resolution in `CommandBus` | Not started |
 | 3 | Failure handling (`RoutineState`, message) | Not started |
 | 4 | Remaining tests and measurement | Not started |
@@ -419,7 +419,7 @@ Confirmed against the code: the entry pass at `CommandBus.RunTerminalCommand`, t
 | # | Finding | How the plan handles it |
 |---|---|---|
 | 1 | The language level is C# 6 (`LangVersion` 6 in the test project, matching the Programmable Block). No `out var`, tuples, local functions or pattern matching. `TrySubstituteVariables(string, out string, out string)` is fine as written. | Noted on every code action. Build will fail otherwise. |
-| 2 | `FakeGridProgramRuntimeInfo.CurrentInstructionCount` is a plain settable property. The harness does **not** measure instructions. | Instruction acceptance is measured in game (P4.5). In the harness, assert the proxies instead: a no-`$` step reuses the same `TerminalCommand`, and a no-`$` string is returned by reference. |
+| 2 | `FakeGridProgramRuntimeInfo.CurrentInstructionCount` is a plain settable property. The harness does **not** measure instructions. | Instruction cost is checked informally in game (P4.5), with no recorded baseline. In the harness, assert the proxies instead: a no-`$` step reuses the same `TerminalCommand`, and a no-`$` string is returned by reference. |
 | 3 | A variable that resolves to a remote target (`@grid ...`) worked before (the entry pass ran before parsing the target) and now fails by design. It is not in "Behaviour changes to accept". | Added in P5.2 so the CHANGELOG states it. |
 | 4 | When a config command expands to parallel groups, each group becomes its own coroutine. The spec says each group gets its own `RoutineState` but not whether it inherits the config command chain. | Decision: a group launched from a config command **copies the chain** so the message still names it. Group index and count are those of the new launch. P3.2. |
 | 5 | "Step 4 of 6" is ambiguous when config commands are nested. | Decision: position and total are within the **innermost body being run**. The chain gives the context and `Not run` counts enclosing bodies too, as the spec says. P3.2. |
@@ -430,27 +430,28 @@ Confirmed against the code: the entry pass at `CommandBus.RunTerminalCommand`, t
 
 ### Phase 0: Baseline
 
-- [ ] **P0.1** Run `dotnet test tests\MotherCore.Tests\MotherCore.Tests.csproj` on the untouched tree. Record the pass count. Any existing failure is noted here before work starts, so it is not blamed on this change.
-- [ ] **P0.2** Record the in-game baseline for P4.5: instruction count at the entry tick and the maximum per tick, for the "200 variables, 100 commands, 10 steps" scenario (or the user's real script). Store the numbers in this spec under "Complexity".
-- [ ] **P0.3** Create a branch for the work.
+- [x] **P0.1** Run `dotnet test tests\MotherCore.Tests\MotherCore.Tests.csproj` on the untouched tree. Record the pass count. Any existing failure is noted here before work starts, so it is not blamed on this change.
+  - Baseline (2026-10-23, `dev` at b71ef74): **440 passed, 0 failed, 0 skipped** (net48). Only build warnings are two CS0649 in `NamedWaypoint.cs`, which already existed.
+- [x] **P0.2** ~~Record the in-game baseline.~~ **Dropped (decision 2026-10-23).** No formal in-game baseline is taken. The author tests complex grids in game while the work is implemented, and watches for regressions there.
+- [x] **P0.3** Create a branch for the work: `runtime-variable-substitution` (from `dev`).
 
 ### Phase 1: Substitution engine (`src/Mother.cs`, `Configuration.cs`)
 
 No change to `CommandBus` yet. Existing behaviour is preserved apart from `$$` and nested values.
 
-- [ ] **P1.1** Add `const int MaxVariableDepth = 5` to `Mother`.
-- [ ] **P1.2** Add the name index: `Dictionary<char, string[]>` keyed by first character, each array sorted longest-first, plus the `ConfigVariables.Count` it was built for. Names only, ordinal compare. Add `InvalidateVariableIndex()`.
-- [ ] **P1.3** Add `bool TrySubstituteVariables(string input, out string result, out string error)`:
+- [x] **P1.1** Add `const int MaxVariableDepth = 5` to `Mother`.
+- [x] **P1.2** Add the name index: `Dictionary<char, string[]>` keyed by first character, each array sorted longest-first, plus the `ConfigVariables.Count` it was built for. Names only, ordinal compare. Add `InvalidateVariableIndex()`. Deviation: the no-variables shortcut is dropped so ``$$`` is unescaped consistently even before any variable exists; only the no-`$` fast path remains. Moved (decision 2026-10-23): the index, scan and `MaxVariableDepth` live in `Configuration`, which owns the variables; `Mother.SubstituteVariables`/`TrySubstituteVariables` are thin forwarders.
+- [x] **P1.3** Add `bool TrySubstituteVariables(string input, out string result, out string error)`:
   - Fast path: no variables or `IndexOf('$') < 0` returns `input` (same reference).
   - Single scan: `$$` yields one `$`. Otherwise longest matching name, value read live from `ConfigVariables`. No match leaves the text.
   - Recursion on values that contain `$`, up to `MaxVariableDepth`. At the limit, leave `$NAME` and set `error` to the chain (`A > B > A > B > A`). Chain held in a small fixed array.
   - Rebuild the index when `Count` differs from the stored count.
-- [ ] **P1.4** Make `SubstituteVariables(string)` a wrapper over `TrySubstituteVariables` that ignores the error.
-- [ ] **P1.5** Add `bool substituteVariables = true` to `SubstituteCommandParameters`. Both exits (fast path and the end) call `SubstituteVariables` only when it is true. Existing callers and tests are unchanged.
-- [ ] **P1.6** `Configuration.LoadVariables` calls `InvalidateVariableIndex()` after loading. `SetVariable` calls it only when the name is new.
-- [ ] **P1.7** Update the XML docs on the three methods (longest-name rule, `$$`, nesting, depth).
-- [ ] **P1.8** Tests (`MotherTests` or `ConfigurationTests`): fast path returns the same reference; longest name wins (`$PLAYER_NAME` vs `$PLAYER`, `$ZGDTutorialPageNextProxy` vs `$ZGDTutorialPageNext`); undefined stays literal; `$5` untouched; `$$` cases; nested (2 and 3 levels, late binding via `SetVariable`); cycle, fan-out cycle and self-reference end at the limit with the chain in `error`; the wrapper leaves `$NAME`; 200 variables sharing first characters; index rebuilt after `SetVariable` of a new name and after a config reload; `--save` writes the raw `$B`.
-- [ ] **P1.9** `dotnet test`. All existing tests pass unchanged.
+- [x] **P1.4** Make `SubstituteVariables(string)` a wrapper over `TrySubstituteVariables` that ignores the error.
+- [x] **P1.5** Add `bool substituteVariables = true` to `SubstituteCommandParameters`. Both exits (fast path and the end) call `SubstituteVariables` only when it is true. Existing callers and tests are unchanged.
+- [x] **P1.6** `Configuration.LoadVariables` calls `InvalidateVariableIndex()` after loading. `SetVariable` calls it only when the name is new.
+- [x] **P1.7** Update the XML docs on the three methods (longest-name rule, `$$`, nesting, depth).
+- [x] **P1.8** Tests (`MotherTests` or `ConfigurationTests`): fast path returns the same reference; longest name wins (`$PLAYER_NAME` vs `$PLAYER`, `$ZGDTutorialPageNextProxy` vs `$ZGDTutorialPageNext`); undefined stays literal; `$5` untouched; `$$` cases; nested (2 and 3 levels, late binding via `SetVariable`); cycle, fan-out cycle and self-reference end at the limit with the chain in `error`; the wrapper leaves `$NAME`; 200 variables sharing first characters; index rebuilt after `SetVariable` of a new name and after a config reload; `--save` writes the raw `$B`.
+- [x] **P1.9** `dotnet test`. All existing tests pass unchanged. Result: 463 passed (440 baseline + 23 new in `VariableSubstitutionTests`).
 
 ### Phase 2: Per-step resolution (`CommandBus.cs`)
 
@@ -480,7 +481,7 @@ Failures are handled minimally here (see P2.3) and replaced in Phase 3.
 - [ ] **P4.2** A no-`$` step reuses the same `TerminalCommand` instance (proxy for the fast path, since the harness cannot count instructions, review note 2).
 - [ ] **P4.3** `MotherOS autolcd/print` check: build or run the MotherOS tests against this Core, if available, to confirm nested values and the wrapper.
 - [ ] **P4.4** Full `dotnet test`. Compare the pass count with P0.1.
-- [ ] **P4.5** In-game instruction measurement against the P0.2 baseline. Acceptance: entry-tick total and maximum per-tick total are both lower than today's. Record the numbers in "Complexity".
+- [ ] **P4.5** In-game check on complex grids (no formal baseline, see P0.2). Acceptance: no visible slowdown or instruction-limit failures compared with the author's experience of the current build. Note the outcome here.
 
 ### Phase 5: Documentation and release
 
