@@ -91,17 +91,18 @@
     <None Include="$(MSBuildThisFileDirectory).gitattributes" />
     <None Include="$(MSBuildThisFileDirectory).gitignore" />
     <None Include="$(MSBuildThisFileDirectory)CHANGELOG.md" />
+    <None Include="$(MSBuildThisFileDirectory)Specs\ConditionalLogicImplementation.md" />
     <None Include="$(MSBuildThisFileDirectory)Specs\CommandBusRefactorSpec.md" />
     <None Include="$(MSBuildThisFileDirectory)ImprovementAreas.md" />
     <None Include="$(MSBuildThisFileDirectory)LICENSE.md" />
     <None Include="$(MSBuildThisFileDirectory)README.md" />
+    <None Include="$(MSBuildThisFileDirectory)Specs\ConditionalLogicSpec.md" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Queue\" />
     <Folder Include="$(MSBuildThisFileDirectory)Modules\DisplayModule\Commands\" />
     <Folder Include="$(MSBuildThisFileDirectory)Events\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Specs\" />
     <Folder Include="$(MSBuildThisFileDirectory)Utilities\Serializer\" />
   </ItemGroup>
   <Import Project="$(MSBuildThisFileDirectory)..\build\MotherCore.targets" Condition="Exists('$(MSBuildThisFileDirectory)..\build\MotherCore.targets')" />
