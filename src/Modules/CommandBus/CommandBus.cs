@@ -60,6 +60,28 @@ namespace IngameScript
             /// Set by a failing step. Every enclosing loop stops when it is set.
             /// </summary>
             public bool Failed;
+
+            /// <summary>
+            /// The open if blocks, innermost last. Each is a set of flags:
+            /// 1 the current branch runs, 2 a branch already ran or the block
+            /// sits in a skipped parent (else will not run), 4 else was seen.
+            /// </summary>
+            public readonly List<int> Ifs = new List<int>();
+
+            /// <summary>
+            /// False while any open if block is in a branch that does not run.
+            /// </summary>
+            public bool Running
+            {
+                get
+                {
+                    foreach (var flags in Ifs)
+                        if ((flags & 1) == 0)
+                            return false;
+
+                    return true;
+                }
+            }
         }
         
         /// <summary>
@@ -321,6 +343,11 @@ namespace IngameScript
         /// commands properly block subsequent steps. Parallel groups within
         /// expanded config commands are launched as separate coroutines. Stops
         /// as soon as a step marks the state as failed.
+        /// 
+        /// The if, else and end steps are handled here. Steps in a branch that
+        /// does not run are skipped before anything about them is resolved. An
+        /// if block still open when the group ends is closed, so a called command
+        /// never leaves a block open for its caller.
         /// </summary>
         /// <param name="commands"></param>
         /// <param name="state"></param>
@@ -328,15 +355,105 @@ namespace IngameScript
         /// <returns></returns>
         IEnumerable<double> ExecuteCommandGroupCoroutine(List<TerminalCommand> commands, RoutineState state, bool resolve)
         {
+            // Blocks below this belong to the caller
+            int floor = state.Ifs.Count;
+
             foreach (var command in commands)
             {
-                // Yield through each step produced by the command
-                foreach (double wait in ExecuteCommandCoroutine(command, state, resolve))
-                    yield return wait;
+                string name = command.Name;
+
+                if (name == "if" || name == "elseif" || name == "else" || name == "end")
+                {
+                    string error = RunIfStep(command, state, floor, resolve);
+
+                    if (error != null)
+                        Fail(state, command, error);
+                }
+                else if (state.Running)
+                {
+                    // Yield through each step produced by the command
+                    foreach (double wait in ExecuteCommandCoroutine(command, state, resolve))
+                        yield return wait;
+                }
 
                 if (state.Failed)
-                    yield break;
+                    break;
             }
+
+            state.Ifs.RemoveRange(floor, state.Ifs.Count - floor);
+        }
+
+        /// <summary>
+        /// Handles an if, else or end step.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <param name="state"></param>
+        /// <param name="floor">How many open blocks belong to the caller, and cannot be closed here.</param>
+        /// <param name="resolve">Whether the step still needs variable resolution.</param>
+        /// <returns>Why the step failed, or null.</returns>
+        string RunIfStep(TerminalCommand command, RoutineState state, int floor, bool resolve)
+        {
+            var ifs = state.Ifs;
+            int top = ifs.Count - 1;
+            string name = command.Name;
+
+            if (name == "if")
+            {
+                // The condition of a skipped if is never evaluated
+                if (!state.Running)
+                {
+                    ifs.Add(2);
+                    return null;
+                }
+            }
+            else if (top < floor)
+                return name + " without if";
+            else if (name == "end")
+            {
+                ifs.RemoveAt(top);
+                return null;
+            }
+            else if ((ifs[top] & 4) != 0)
+                return name + " after else";
+            else if (name == "else")
+            {
+                ifs[top] = (ifs[top] & 2) == 0 ? 5 : 6;
+                return null;
+            }
+            else if ((ifs[top] & 2) != 0)
+            {
+                // A branch already ran, or the parent is skipped: elseif is not evaluated
+                ifs[top] = 2;
+                return null;
+            }
+
+            TerminalRoutine body;
+            string error = resolve ? ResolveStep(ref command, out body) : null;
+            bool result = error == null && Mother.GetModule<ConditionModule>().Evaluate(command, out error);
+
+            if (error == null)
+            {
+                if (name == "if")
+                    ifs.Add(result ? 3 : 0);
+                else
+                    ifs[top] = result ? 3 : 0;
+            }
+
+            return error;
+        }
+
+        /// <summary>
+        /// Fails the routine and prints why.
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="command"></param>
+        /// <param name="error"></param>
+        void Fail(RoutineState state, TerminalCommand command, string error)
+        {
+            state.Failed = true;
+
+            // Print also writes to the log
+            Mother.Print(MessageFormatter.Format(Messages.CommandFailed, command.CommandString, error), false);
         }
 
         /// <summary>
@@ -362,10 +479,7 @@ namespace IngameScript
 
                 if (error != null)
                 {
-                    state.Failed = true;
-
-                    // Print also writes to the log
-                    Mother.Print(MessageFormatter.Format(Messages.CommandFailed, command.CommandString, error), false);
+                    Fail(state, command, error);
                     yield break;
                 }
 

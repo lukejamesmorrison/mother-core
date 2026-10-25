@@ -108,7 +108,6 @@ namespace IngameScript
         /// <summary>
         /// The name of the grid. This can be used by 
         /// other players or grids to run commands on this grid.
-        /// <see cref="AlmanacRecord.Nicknames"/>
         /// </summary>
         public string Name;
 
@@ -268,6 +267,7 @@ namespace IngameScript
                 // BLOCK MANAGEMENT
                 new BlockCatalogue(this),
                 new ActivityMonitor(this),
+                new ConditionModule(this),
 
                 new ConnectorModule(this),
                 new MechanicalBlockModule(this),
@@ -783,4 +783,37 @@ namespace IngameScript
             return substituteVariables ? SubstituteVariables(result.ToString()) : result.ToString();
         }
     }
-}
+} 
+
+//                  ███████████████████████████              
+//                 ███                       ███             
+//               ███                           ███           
+//             ███                               ███         
+//           ███                                   ███       
+//         ███                                       ███     
+//       ████                                         ████   
+//     ████                                             ████ 
+//    ███                                                 ███
+//    ██                      ███████                      ██
+//    ██                  ███████████████                  ██
+//    ██                 █████████████████                 ██
+//    ██                ███████████████████                ██
+//    ██               █████████████████████               ██
+//    ██               █████████████████████               ██
+//    ██               █████████████████████               ██
+//    ██               █████████████████████               ██
+//    ██                ███████████████████                ██
+//    ██                 █████████████████                 ██
+//    ██                  ███████████████                  ██
+//    ██                      ███████                      ██
+//    ███                                                 ███
+//     ████                                             ████ 
+//       ████                                          ███   
+//         ███                                       ███     
+//           ███                                   ███       
+//             ███                               ███         
+//              ███                           ███           
+//                ███                       ███             
+//                 ███████████████████████████
+//              
+//                    The Empire must grow.

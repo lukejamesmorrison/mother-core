@@ -96,6 +96,7 @@ namespace MotherCore.Tests.Utilities
         IMyIntergridCommunicationSystem _igc;
         IMyIntergridCommunicationSystem _resolvedIgc;
         readonly List<BaseModuleCommand> _commands = new List<BaseModuleCommand>();
+        readonly List<Func<Mother, IExtensionModule>> _modules = new List<Func<Mother, IExtensionModule>>();
         FakeIgcNetwork _network;
         FakeIgcNetwork _defaultNetwork;
         readonly string _gridName;
@@ -584,6 +585,16 @@ namespace MotherCore.Tests.Utilities
         public Script<TProgram> WithCommands(params BaseModuleCommand[] commands)
         {
             _commands.AddRange(commands);
+            return this;
+        }
+
+        /// <summary>
+        /// Registers extension modules before boot, so they boot after the core modules
+        /// like a script's own modules do. Each factory receives the script's Mother.
+        /// </summary>
+        public Script<TProgram> WithModules(params Func<Mother, IExtensionModule>[] modules)
+        {
+            _modules.AddRange(modules);
             return this;
         }
 
@@ -1220,6 +1231,10 @@ namespace MotherCore.Tests.Utilities
                 Program.Me.CustomData = effectiveCustomData;
 
             OnBeforeBoot(_mother);
+
+            if (_mother != null)
+                foreach (var module in _modules)
+                    _mother.RegisterModule(module(_mother));
 
             if (_mother != null)
             {

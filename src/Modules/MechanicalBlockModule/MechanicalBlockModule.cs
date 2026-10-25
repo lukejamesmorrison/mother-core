@@ -56,9 +56,9 @@ namespace IngameScript
         /// </param>
         void RegisterMechanicalBlocksForStateMonitoring(bool preserveState = false)
         {
-            RegisterBlockTypeForStateMonitoring<IMyMechanicalConnectionBlock>(
+            Block<IMyMechanicalConnectionBlock>().Monitor(
                 mechanicalBlock => mechanicalBlock.IsAttached,
-                (block, state) => HandleMechanicalBlockStateChange(block as IMyMechanicalConnectionBlock, state),
+                HandleMechanicalBlockStateChange,
                 preserveState
             );
         }

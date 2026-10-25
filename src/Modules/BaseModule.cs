@@ -111,6 +111,18 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Start a group of registrations for block type T, ie. 
+        /// <c>Block&lt;IMyDoor&gt;("door").Command("open", Open, "Opened {0}").Flag(...)</c>.
+        /// </summary>
+        /// <typeparam name="T">The block type the group targets.</typeparam>
+        /// <param name="prefix">Prepended to command names with a slash, ie. door. Empty for none.</param>
+        /// <returns>A set to chain Command, Number, Flag, Status and Hook calls on.</returns>
+        public BlockSet<T> Block<T>(string prefix = "") where T : class, IMyTerminalBlock
+        {
+            return new BlockSet<T>(this, prefix);
+        }
+
+        /// <summary>
         /// Register a block type for ongoing state monitoring.
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -123,7 +135,7 @@ namespace IngameScript
         /// in-flight transitions are not discarded. Always updates the block reference and
         /// re-registers with BlockCatalogue regardless of this flag.
         /// </param>
-        protected void RegisterBlockTypeForStateMonitoring<T>(
+        protected internal void RegisterBlockTypeForStateMonitoring<T>(
             Func<T, object> stateSelector,
             Action<IMyTerminalBlock, object> stateHandler,
             bool preserveState = false

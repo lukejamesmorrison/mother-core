@@ -50,14 +50,11 @@ namespace IngameScript
 
             // Commands
             RegisterCommand(new LockConnectorCommand(this));
-            RegisterBlockCommand<IMyShipConnector>("connector/unlock", UnlockConnector, BlockMessages.BlockUnlocked);
-            RegisterBlockCommand<IMyShipConnector>("connector/toggle", ToggleConnector, BlockMessages.BlockToggled);
 
-            // State Monitoring
-            RegisterBlockTypeForStateMonitoring<IMyShipConnector>(
-                connector => connector.Status,
-                (block, state) => HandleConnectorStateChange(block as IMyShipConnector, state)
-            );
+            Block<IMyShipConnector>("connector")
+                .Command("unlock", UnlockConnector, BlockMessages.BlockUnlocked)
+                .Command("toggle", ToggleConnector, BlockMessages.BlockToggled)
+                .Monitor(connector => connector.Status, HandleConnectorStateChange);
         }
 
         /// <summary>

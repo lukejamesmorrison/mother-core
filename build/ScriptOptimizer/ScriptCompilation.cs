@@ -27,9 +27,11 @@ sealed class ScriptCompilation
         Compilation = compilation;
     }
 
+    public static SyntaxTree Parse(string script) => CSharpSyntaxTree.ParseText(Prefix + script + Suffix, ParseOptions);
+
     public static ScriptCompilation Create(string script, IEnumerable<MetadataReference> references)
     {
-        var tree = CSharpSyntaxTree.ParseText(Prefix + script + Suffix, ParseOptions);
+        var tree = Parse(script);
         var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true);
         return new ScriptCompilation(tree, CSharpCompilation.Create("script", new[] { tree }, references, options));
     }

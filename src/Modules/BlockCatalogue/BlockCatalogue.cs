@@ -453,7 +453,7 @@ namespace IngameScript
         /// <param name="block"></param>
         /// <param name="hookValue"></param>
         /// <returns></returns>
-        string ReplaceThisKeywordWithBlockName(IMyTerminalBlock block, string hookValue)
+        public string ReplaceThisKeywordWithBlockName(IMyTerminalBlock block, string hookValue)
         {
             StringBuilder modifiedValue = new StringBuilder();
             int startIndex = 0;

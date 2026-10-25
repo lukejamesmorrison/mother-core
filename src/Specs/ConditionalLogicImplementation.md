@@ -46,8 +46,8 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 - `Clock.Schedule(Action, interval)` is the scheduler entry point for the polled rule task.
 
 **Follow-up before Phase 1 (decisions needed)**
-- [ ] Confirm option (b) above (make `ReplaceThisKeywordWithBlockName` public).
-- [ ] Confirm the skip stack is scoped per routine body (see `CommandBus` note).
+- [x] Confirm option (b) above (make `ReplaceThisKeywordWithBlockName` public). Done in Phase 1.
+- [x] Confirm the skip stack is scoped per routine body (see `CommandBus` note). Done in Phase 1: `ExecuteCommandGroupCoroutine` records the open-block count on entry, cannot close blocks below it, and removes its own on exit.
 
 ---
 
@@ -55,91 +55,118 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 
 ### 1.1 Condition core (`ConditionModule`)
 
-- [ ] Create `src/Modules/Condition/ConditionModule.cs` as `ConditionModule : BaseModule` and add it to [MotherCore.projitems](../MotherCore.projitems).
-- [ ] Register the module as a core module in [Mother.cs](../Mother.cs).
-- [ ] Parse a condition from `TerminalCommand`: `<target> <predicate>` and `<target> <property> <op> <value>`.
-- [ ] Implement a single `Compare(op, a, b)` switch for `<  >  ==  !=`.
-- [ ] Value parsing: number, `%` ratio (0-1), state word (`locked`, `connected`), `$VAR` already substituted by `TerminalCommand`.
-- [ ] Target resolution: quoted name/group, `"$VAR"`, `this`, via `BlockCatalogue`; bare-word system targets (`ship`).
-- [ ] Aggregation over the resolved list: default `avg` for ratios, `sum` for energy/force, `any` for bool/enum.
-- [ ] Public `Evaluate(TerminalCommand)` as the single entry point used by both `when` and `if`.
-- [ ] Mixed-type groups: skip blocks that return `NaN`; empty or unsupported target evaluates false.
+- [x] Create `src/Modules/Condition/ConditionModule.cs` as `ConditionModule : BaseCoreModule` and add it to [MotherCore.projitems](../MotherCore.projitems).
+- [x] Register the module as a core module in [Mother.cs](../Mother.cs) (after `ActivityMonitor`).
+- [x] Parse a condition from `TerminalCommand`: `<target> <predicate>` and `<target> <property> <op> <value>`.
+- [x] Implement a single `Compare(op, a, b)` switch for `<  >  ==  !=`.
+- [x] Value parsing: number, `%` ratio (0-1), state word (`locked`, `connected`). `$VAR` is substituted by the `CommandBus` for `if`, and by the rule loader for `when`.
+- [x] Target resolution: quoted name/group, `"$VAR"`, `this`, via `BlockCatalogue`; bare-word system targets (`ship`).
+- [x] Aggregation over the resolved list: default `avg` for ratios, `any` for bool/enum. (`sum` for energy/force has no Phase 1 property; it arrives with Phase 3 suffixes.)
+- [x] Public `Evaluate(TerminalCommand, out string error)` as the single entry point used by both `when` and `if`.
+- [x] Mixed-type groups: skip blocks that return `NaN`; unsupported target evaluates false. An unresolved target is an error (disables the rule, fails the `if`).
 
 ### 1.2 Property and predicate registries
 
-- [ ] `RegisterProperty(key, selector)` public API (`Dictionary<string, Func<IMyTerminalBlock, double>>`, `NaN` for unsupported).
-- [ ] `RegisterPredicate(name, key, op, threshold, band)` public API; predicates are data rows over the property registry.
-- [ ] Seed ~10 Tier 1 properties using typed API reads only (no terminal properties):
-  - [ ] `enabled`, `working`
-  - [ ] `charge` (battery, jump drive)
-  - [ ] `fill` (gas tank)
-  - [ ] `status` (connector, landing gear, door)
-  - [ ] `ship speed`, `ship altitude`
-- [ ] Seed predicates: `on off working broken low critical empty full ready connected locked unlocked open closed`.
-- [ ] `status` compares enums by name.
+- [x] `RegisterProperty(key, selector, any = false)` public API (`Dictionary<string, Func<IMyTerminalBlock, double>>`, `NaN` for unsupported). `any` picks the group aggregate.
+- [x] `RegisterPredicate(name, rows)` public API; a predicate is a string of `property operator value` rows joined by `|`, parsed by the same path as expressions (`"charge < 20%|fill < 15%"`). The first row some block in the target answers decides. Any state word (`locked`, `open`, ...) is also a predicate for free (`status == word`). The per-predicate `band` arrives with Phase 2 `--band`.
+- [x] Seed ~10 Tier 1 properties using typed API reads only (no terminal properties):
+  - [x] `enabled`, `working`
+  - [x] `charge` (battery, jump drive)
+  - [x] `fill` (gas tank)
+  - [x] `status` (connector, landing gear, door)
+  - [x] `ship speed`, `ship altitude` (registered as `speed` and `altitude` on `IMyShipController`, so `"$COCKPIT" speed` works too)
+- [x] Seed predicates: `on off working broken low critical empty full ready connected locked unlocked open closed`.
+- [x] `status` compares enums by name.
 
 ### 1.3 `[rules]` loader and `when` rules
 
-- [ ] Add `rules` to `Configuration.DefaultSections`.
-- [ ] Load PB `[rules]` and each block's own `[rules]` section (`this` = that block).
-- [ ] Per rule: step 1 must be `when`; steps up to `else;` are the then routine; the rest the else routine.
-- [ ] Rule state per rule as a small array/tuple: `Active`, `Since`, `LastFired`.
-- [ ] Cache the resolved block list on the rule; never call `GetBlocksOfType` per tick.
-- [ ] Register one scheduled task with a shared interval (default ~100 ticks, configurable in `[general]`).
-- [ ] Edge trigger: false->true runs then routine, true->false runs else routine, via `CommandBus.RunTerminalCommand`.
-- [ ] Rebuild rules on `SystemConfigChangedEvent`, `BlockConfigChangedEvent`, `ConstructRefreshedEvent`.
-- [ ] Error handling: log once naming the rule and disable only that rule for invalid operator, unknown property/predicate, unresolved target, or bad option. Never throw.
-- [ ] Warn once for a rule with no steps after `when`.
-- [ ] A failing rule routine must not stop the evaluation loop.
+- [x] Add `rules` to `Configuration.DefaultSections`.
+- [x] Load PB `[rules]` and each block's own `[rules]` section (`this` = that block).
+- [x] Per rule: step 1 must be `when`; steps up to a top-level `else;` are the then routine; the rest the else routine. An `else;` inside an inline `if` does not split the rule.
+- [x] Rule state per rule: `Active`. `Since` and `LastFired` arrive with `--for` / `--cooldown` in Phase 2.
+- [x] Cache the resolved block list on the rule; never call `GetBlocksOfType` per tick.
+- [x] Register one scheduled task with a shared interval (default 1.6 s, `[general] ruleInterval` in seconds, read at boot).
+- [x] Edge trigger: false->true runs then routine, true->false runs else routine, via `CommandBus.RunTerminalCommand`. A rule starts false, so a rule that is true at boot runs its then routine on the first pass. A rebuild keeps each rule's last result, so it never fires a rule again.
+- [x] Rebuild rules on `SystemBootedEvent`, `SystemConfigChangedEvent`, `BlockConfigChangedEvent`, `ConstructRefreshedEvent` (only while WORKING).
+- [x] Error handling: log once naming the rule and disable only that rule for invalid operator, unknown property/predicate, unresolved target, or bad option. Never throw.
+- [x] Warn once for a rule with no steps after `when`.
+- [x] A failing rule routine must not stop the evaluation loop.
 
 ### 1.4 Inline `if` / `else` / `end` in `CommandBus`
 
-- [ ] Add an `if`/`else`/`end` skip stack to `RoutineState`.
-- [ ] Handle `if`, `else`, `end` in `ExecuteCommandGroupCoroutine` so they work in `[commands]`, `[menu:...]`, rule bodies and `[hooks]` with no per-section code.
-- [ ] `if` calls `ConditionModule.Evaluate`; skipped steps must not run or resolve variables.
-- [ ] Support nesting to any depth; each `if` consumes one `end;`.
-- [ ] Implicitly close open blocks at the end of a routine or `{}` parallel group.
-- [ ] Failure cases (`state.Failed`, print reason, stop routine): unknown predicate/property/target, stray `else`/`end`, stateful option (`--band`, `--for`, `--cooldown`, `--every`) on `if`.
-- [ ] Confirm `wait`, `view/notify`, `@Grid ...` and named commands work inside branches.
-- [ ] Confirm `if` works inside a `when` rule's then/else branch.
+- [x] Add an `if`/`else`/`end` skip stack to `RoutineState` (`Ifs`, a list of `IfFrame { Run, Taken, InElse }`).
+- [x] Handle `if`, `else`, `end` in `ExecuteCommandGroupCoroutine` so they work in `[commands]`, `[menu:...]`, rule bodies and `[hooks]` with no per-section code.
+- [x] `if` calls `ConditionModule.Evaluate`; skipped steps must not run or resolve variables.
+- [x] Support nesting to any depth; each `if` consumes one `end;`.
+- [x] Implicitly close open blocks at the end of a routine or `{}` parallel group.
+- [x] Failure cases (`state.Failed`, print reason, stop routine): unknown predicate/property/target, stray `else`/`end`, `else` after `else`, any option (including `--band`, `--for`, `--cooldown`, `--every`) on `if` or `when` ("bad syntax"). Phase 2 makes the stateful options valid on `when` and keeps them an error on `if`, with a clearer message.
+- [x] Confirm `wait` and named commands work inside branches. `view/notify` is not a Core command, so the tests use a recording command. `@Grid ...` is only valid as the first term of a routine, so it does not appear inside a branch.
+- [x] Confirm `if` works inside a `when` rule's then/else branch.
 
 ### 1.5 Phase 1 tests (MotherCore.Tests)
 
-Add [ConditionModuleTests.cs](../../tests/MotherCore.Tests/Tests/Module/) and extend [CommandBusTests.cs](../../tests/MotherCore.Tests/Tests/Module/CommandBusTests.cs).
+[ConditionModuleTests.cs](../../tests/MotherCore.Tests/Tests/Module/ConditionModuleTests.cs) covers rules, and [CommandBusIfTests.cs](../../tests/MotherCore.Tests/Tests/Module/CommandBusIfTests.cs) covers inline `if` (a separate file, like `CommandBusVariableTests.cs`).
 
-- [ ] Loader: rule with/without `else`; predicate vs expression; `$VAR` target and value; `this`; quoted names containing `.`.
-- [ ] Existing hooks (`onLock`, `"Block".hookName`) still load and fire unchanged; `[rules]` is read independently of `[hooks]`.
-- [ ] Edge trigger fires once while the condition stays true; `else` fires on true->false only; re-arm after false.
-- [ ] Unknown property/predicate/target disables only that rule.
-- [ ] Inline `if`: true/false branch, optional `else`, nesting, implicit close, `wait` inside a branch, `if` inside a config command and a rule branch, skipped steps do not run or resolve variables, stray `else`/`end` fails.
-- [ ] `if` and `when` give the same result for the same condition text.
-- [ ] `[rules]` reload on Custom Data change and block removal; PB `[rules]` and block-local `[rules]` both load.
+- [x] Loader: rule with/without `else`; predicate vs expression; `$VAR` target and value; `this`; quoted names containing `.`.
+- [x] Existing hooks (`onLock`, `"Block".hookName`) still load and fire unchanged; `[rules]` is read independently of `[hooks]`.
+- [x] Edge trigger fires once while the condition stays true; `else` fires on true->false only; re-arm after false.
+- [x] Unknown property/predicate/target disables only that rule.
+- [x] Inline `if`: true/false branch, optional `else`, nesting, implicit close, `wait` inside a branch, `if` inside a config command and a rule branch, skipped steps do not run or resolve variables, stray `else`/`end` fails.
+- [x] `if` and `when` give the same result for the same condition text.
+- [x] `[rules]` reload on Custom Data change and block removal; PB `[rules]` and block-local `[rules]` both load.
 
-**Done when:** all Phase 1 tests and the baseline suite pass; the `Land`, `Toggle`, `shutdown` and `start` examples from the spec work end to end.
+**Done when:** all Phase 1 tests and the baseline suite pass; the `Land`, `Toggle`, `shutdown` and `start` examples from the spec work end to end. **Met:** 547 passed (490 baseline + 57 new).
 
 ---
 
 ## Phase 2 - Stability
 
-- [ ] Add `<=` and `>=` to `Compare`.
-- [ ] `--band=n` hysteresis: separate trip/reset thresholds; predicates carry default bands; implicit 2% ratio / 1-unit band for `<`/`>`.
-- [ ] `--for=s` debounce: start timer on first true, clear on false; accumulate `Runtime.TimeSinceLastRun`, not `DateTime`.
-- [ ] `--cooldown=s` minimum time between firings (default: one evaluation interval).
-- [ ] `--every=s` per-rule evaluation interval override.
-- [ ] `--at=value` threshold override for predicates (allowed on both `when` and `if`).
-- [ ] Inline `elseif`: first true branch wins, later conditions not evaluated, `else` only when nothing matched, one `end;` closes the chain.
-- [ ] `elseif` failures: after `else`, without `if`; never evaluated inside a skipped parent.
-- [ ] Remaining Tier 1 properties and predicates: `mode`, `stockpile`, `oxygen`, `position`, `angle`, `locked`, `attached`, `detected`, `occupied`, `dampeners`, `handbrake`, `effectiveness`, `ship gravity`, `ship moving`; add predicates `stockpiling connectable disconnected pressurized depressurized extended retracted extending retracting attached detached detected clear occupied weak moving stopped inspace ingravity`.
+- [x] Add `<=` and `>=` to `Compare`.
+- [x] `--band=n` hysteresis: separate trip/reset thresholds; predicates carry default bands (`low` 5%, `critical` 3%, `RegisterPredicate(name, rows, band)`); implicit 2% ratio / 1-unit band for `<`/`>`/`<=`/`>=`. A bare `--band=60` on a ratio threshold means 60%. `--band=0` turns it off. `==`/`!=` have no band.
+- [x] `--for=s` debounce: start timer on first trip, clear on drop; accumulate `Runtime.TimeSinceLastRun` on a module clock (a task scheduled every cycle), not `DateTime`. It delays the then routine only; the else routine runs as soon as the band releases.
+- [x] `--cooldown=s` minimum time between firings. The default is no extra hold: a rule is evaluated once per pass, so it already fires at most once per evaluation interval.
+- [x] `--every=s` per-rule evaluation interval override. A rule with `--every` is checked each cycle against its own due time; other rules still run on the shared pass.
+- [x] `--at=value` threshold override for predicates (allowed on both `when` and `if`; an error on an expression).
+- [x] Inline `elseif`: first true branch wins, later conditions not evaluated, `else` only when nothing matched, one `end;` closes the chain.
+- [x] `elseif` failures: after `else`, without `if`; never evaluated inside a skipped parent.
+- [x] `--band`/`--for`/`--cooldown`/`--every` on `if` fail the step with "--x only works on a when rule"; an unknown option is "bad syntax"; a bad value is "bad option: --x".
+- [x] Remaining Tier 1 properties and predicates: `mode`, `stockpile`, `oxygen`, `position`, `angle`, `locked`, `attached`, `detected`, `occupied`, `dampeners`, `handbrake`, `effectiveness`, `gravity`, `moving`; `status` for jump drives, air vents and pistons; predicates `stockpiling disconnected pressurized depressurized extended retracted extending retracting attached detached detected clear occupied weak moving stopped inspace ingravity` (`connectable`, `pressurized` and the other enum words work as `status == word`). `on`/`off` stay on `enabled`, so use `dampeners == 1` and `handbrake == 1` for the controller toggles. `stopped` means the ship, so a piston uses `status == stopped`.
 
 ### Tests
 
-- [ ] Flapping input around a threshold with `--band` and `--for` fires at most once.
-- [ ] Cooldown honored; `--every` overrides the shared interval; `--at` overrides a predicate threshold.
-- [ ] `--band`/`--for`/`--cooldown`/`--every` on `if` fail the step.
-- [ ] All `elseif` cases listed above.
-- [ ] Generators on at 20%, off at 80% with `--band=60` pair behaves correctly.
+- [x] Flapping input around a threshold with `--band` and `--for` fires at most once.
+- [x] Cooldown honored; `--every` overrides the shared interval; `--at` overrides a predicate threshold.
+- [x] `--band`/`--for`/`--cooldown`/`--every` on `if` fail the step.
+- [x] All `elseif` cases listed above.
+- [x] Generators on at 20%, off at 80% with `--band=60` pair behaves correctly.
 
-**Done when:** Phase 2 tests pass; no regression in Phase 1 tests.
+**Done when:** Phase 2 tests pass; no regression in Phase 1 tests. **Met:** 588 passed (547 + 41 new). Two Phase 1 expectations changed on purpose: `--for`/`--band`/`--cooldown`/`--every` on `if` now give the clearer message, and `--for` on `when` is valid.
+
+---
+
+## Phase 2.5 - Vocabulary ownership
+
+Keeps Core light: Core owns the engine, and the scripts that own the blocks (Mother OS, MAPS) own the vocabulary. Players tune it in Custom Data.
+
+- [x] `ConditionModule` registers only `enabled`, `working` and the predicates `on off working broken`. Properties, predicates, bands and state words are all registration, and the vocabulary is cleared on each boot so a reboot never doubles it.
+- [x] Properties are a list of selectors per key, one per block type (`RegisterProperty<T>`). The first that answers for a block wins, so each module registers the block type it owns (`charge` for batteries and jump drives, `status` for doors, gear, vents...). Registering a key for a block type again is a no-op, so modules that share a base class can register in the base.
+- [x] `RegisterPredicate` adds rows to an existing predicate (de-duplicated) instead of replacing it, and only sets the band when one is given. `low` is a battery, tank and air vent row.
+- [x] State words are registered with the status that uses them (`RegisterWords`, `Word`), replacing the hard coded list.
+- [x] `BlockSet<T>` helpers on `BaseModule.Block<T>()`: `.Number` (average), `.Flag` (any), `.Status` (enum words, any), and `RegisterPredicate` on `BaseExtensionModule`.
+- [x] `[predicates]` in the Programmable Block's Custom Data adds or replaces a predicate (`name = rows`) and its default band (`name.band`). The entries are written over the registered predicates, so a removed entry is restored on the next boot.
+- [x] A malformed predicate row reports `bad condition: row` instead of throwing.
+- [x] Mother OS registers its vocabulary from the module that owns each block (battery, tank, landing gear, door, air vent, piston, mechanical block, motor stator, sensor, cockpit, thruster), and gains `ConnectorExtensionModule` and `JumpDriveModule`. MAPS registers `speed`, `moving`, `gravity`, `altitude` from `FlightControlModule`.
+
+### Tests
+
+- [x] Core: the engine tests run against `FakeConditionVocabulary`, a stand-in extension module registered with `ScriptBuilder.WithModules`.
+- [x] Core: modules add rows to one predicate, repeated registrations are ignored, `[predicates]` add, replace and restore, and a reboot does not double the vocabulary.
+- [x] Mother OS: `ConditionVocabularyTests` covers the vocabulary of each module (moved from Core).
+- [x] MAPS: `FlightControlConditionTests` covers speed, altitude, moving and gravity (moved from Core).
+
+**Done when:** Core, Mother OS and MAPS suites pass. **Met:** Core 582, Mother OS 384, MAPS 42.
+
+Follow-ups: Core still has `ConnectorModule` (commands and `onLock` hooks), which Mother OS could own if MAPS docking does not need it. `Tier 2` properties (Phase 4) should be registered by the owning script from the start.
 
 ---
 
@@ -167,7 +194,7 @@ Add [ConditionModuleTests.cs](../../tests/MotherCore.Tests/Tests/Module/) and ex
 
 - [ ] `and`/`or` composition in `when` (several clauses, quoted targets only).
 - [ ] Variable thresholds (`--at=$MIN_POWER`, `$VAR` in values).
-- [ ] Extension registration API finalised and documented for `RegisterProperty` / `RegisterPredicate`.
+- [x] Extension registration API finalised and documented for `RegisterProperty` / `RegisterPredicate` (see Phase 2.5).
 - [ ] Tier 2 properties: `count`, `storage <key>`, `var <name>`, `stored`/`output`/`input`, `capacity`, merge block `status`, `open`, rotor/piston limits and speeds, `timer` `counting`.
 - [ ] Autopilot extension registers `fcs`, `plan`, `dock` targets (in the Autopilot script, not Core).
 - [ ] Rule management commands: `rule/on name`, `rule/off name`, `rule/list`.

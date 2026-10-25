@@ -22,6 +22,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Waypoint\IWaypoint.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Waypoint\NamedWaypoint.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseCoreModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseExtensionModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\BlockCatalogue.cs" />
@@ -29,6 +30,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\Events\ConstructRefreshedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BlockCatalogue\IBlockStateHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Clock\Clock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\Condition\ConditionModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\BlockMessages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\CommandBus.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HaltCommand.cs" />

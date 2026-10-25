@@ -57,6 +57,7 @@ namespace IngameScript
             "variables",
             "commands",
             "hooks",
+            "rules",
         };
 
         /// <summary>

@@ -62,7 +62,17 @@ if (errors.Count > 0)
     return 0;
 }
 
+var compact = NewlineStripper.Strip(optimized);
+var compactErrors = ScriptCompilation.Create(compact, references).Errors();
+if (compactErrors.Count > 0)
+{
+    Console.WriteLine($"ScriptOptimizer: skipped line break removal, it produced {compactErrors.Count} compile error(s)");
+    foreach (var d in compactErrors.Take(5))
+        Console.WriteLine("  " + ScriptCompilation.Describe(d));
+    compact = optimized;
+}
+
 var encoding = new UTF8Encoding(hasBom);
-File.WriteAllBytes(scriptPath, encoding.GetPreamble().Concat(encoding.GetBytes(optimized)).ToArray());
-Console.WriteLine($"ScriptOptimizer: var for {edits.Count} locals, {script.Length} -> {optimized.Length} characters");
+File.WriteAllBytes(scriptPath, encoding.GetPreamble().Concat(encoding.GetBytes(compact)).ToArray());
+Console.WriteLine($"ScriptOptimizer: var for {edits.Count} locals, {script.Length} -> {optimized.Length} characters, line breaks {optimized.Length} -> {compact.Length}");
 return 0;
