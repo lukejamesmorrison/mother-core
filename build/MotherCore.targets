@@ -3,7 +3,10 @@
   <!--
     Post-pack optimization of the packaged script, shared by every project that imports MotherCore.projitems.
     Runs after MDK packs the script and before an extension's own post-pack target (MinifyScriptFile), so
-    whatever that target copies or publishes is already optimized.
+    whatever that target copies or publishes is already optimized. The optimizer compiles the script with the
+    project's references, so it can use `var` for locals, alias long collection types (Dictionary<string,object>
+    and similar) with one-character subclasses, drop `public` from members only used by their own type, and
+    remove line breaks. Each pass is checked by recompiling, and a pass that breaks the script is skipped.
 
     Properties (all optional):
       MotherCoreOptimize    Set to false to skip the optimizer.

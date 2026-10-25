@@ -24,7 +24,11 @@ using VRageMath;
 namespace IngameScript
 {
     /// <summary>
-    /// The ConnectorModule is responsible for managing connector blocks on the grid.
+    /// The ConnectorModule monitors connector blocks on the grid. It emits events 
+    /// and runs hooks when a connector locks, unlocks or becomes ready to lock, 
+    /// which the BlockCatalogue uses to keep the construct up to date. It does 
+    /// not offer commands: scripts that let players operate connectors (ie. 
+    /// Mother OS) register those themselves.
     /// </summary>
     public class ConnectorModule : BaseCoreModule
     {
@@ -40,21 +44,21 @@ namespace IngameScript
         public ConnectorModule(Mother mother) : base(mother) { }
 
         /// <summary>
-        /// Boot the module. We reference modules, register commands, subscribe 
-        /// to events and register our connectors for state monitoring.
+        /// Boot the module. We reference modules, register our connectors for 
+        /// state monitoring, and add the connector state to conditions so every 
+        /// script can test one (<c>if "Dock" connected</c>).
         /// </summary>
         public override void Boot()
         {
             // Modules
             BlockCatalogue = Mother.GetModule<BlockCatalogue>();
 
-            // Commands
-            RegisterCommand(new LockConnectorCommand(this));
-
-            Block<IMyShipConnector>("connector")
-                .Command("unlock", UnlockConnector, BlockMessages.BlockUnlocked)
-                .Command("toggle", ToggleConnector, BlockMessages.BlockToggled)
+            Block<IMyShipConnector>()
+                .Status("status", connector => connector.Status)
                 .Monitor(connector => connector.Status, HandleConnectorStateChange);
+
+            // connected and connectable are state words of the status above
+            Mother.GetModule<ConditionModule>().RegisterPredicate("disconnected", "status == unconnected");
         }
 
         /// <summary>
@@ -94,37 +98,6 @@ namespace IngameScript
                 Emit<ConnectorReadyToLockEvent>(connector);
                 BlockCatalogue.RunHook(connector, "onReady");
             }
-        }
-
-        /// <summary>
-        /// Locks the connector. This is used to connect the connector to another connector.
-        /// </summary>
-        /// <param name="connector"></param>
-        public void LockConnector(IMyShipConnector connector)
-        {
-            connector.Connect();
-        }
-
-        /// <summary>
-        /// Unlocks the connector. This is used to disconnect the connector from another connector.
-        /// </summary>
-        /// <param name="connector"></param>
-        public void UnlockConnector(IMyShipConnector connector)
-        {
-            connector.Disconnect();
-        }
-
-        /// <summary>
-        /// Toggles the connector. This is used to connect or disconnect the connector from another connector.
-        /// </summary>
-        /// <param name="connector"></param>
-        public void ToggleConnector(IMyShipConnector connector)
-        {
-            if(connector.Status == MyShipConnectorStatus.Connected)
-                UnlockConnector(connector);
-
-            else
-                LockConnector(connector);
         }
     }
 }

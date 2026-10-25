@@ -12,7 +12,7 @@
         /// </summary>
         public static T Parse<T>(string value)
         {
-            return (T)System.Convert.ChangeType(value, typeof(T));
+            return (T) System.Convert.ChangeType(value, typeof(T));
         }
     }
 }

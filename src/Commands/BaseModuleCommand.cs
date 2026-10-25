@@ -44,34 +44,16 @@ namespace IngameScript
         public string GetCommandName() => Name;
 
         /// <summary>
-        /// Parses a string representing an incremental value.
+        /// Parses a string representing an incremental value. Forwards to
+        /// <see cref="TerminalCommand.GetIncrement(string)"/>; lambda commands
+        /// should call that directly. Remove once no command class uses it.
         /// </summary>
         /// <param name="valueString"></param>
         /// <param name="options"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
         protected float GetIncrementalValue(string valueString, Dictionary<string, string> options)
-        {
-            float parsedValue;
-
-            if (!float.TryParse(valueString, out parsedValue))
-                throw new ArgumentException("Invalid numerical value provided.");
-
-            // Determine increment or decrement flags
-            bool isIncrement = options.ContainsKey("add");
-            bool isDecrement = options.ContainsKey("sub");
-
-            // we assume no increment or decrement by default
-            float output = 0;
-
-            if (isIncrement)
-                output = parsedValue;
-
-            else if (isDecrement)
-                output = -parsedValue;
-
-            return output;
-        }
+            => TerminalCommand.GetIncrement(valueString, options);
 
         /// <summary>
         /// Calculates the distributed value for cumulative operations across multiple blocks.
@@ -82,12 +64,7 @@ namespace IngameScript
         /// <param name="isCumulative">Whether cumulative mode is enabled.</param>
         /// <returns>The value per block (distributed if cumulative, otherwise the original value).</returns>
         protected float GetDistributedValue(float totalValue, int blockCount, bool isCumulative)
-        {
-            if (isCumulative && blockCount > 1)
-                return totalValue / blockCount;
-
-            return totalValue;
-        }
+            => TerminalCommand.GetDistributedValue(totalValue, blockCount, isCumulative);
 
         /// <summary>
         /// Determines if shared mode is enabled based on command options. When enabled,
@@ -95,9 +72,6 @@ namespace IngameScript
         /// </summary>
         /// <param name="options">The command options dictionary.</param>
         /// <returns>True if shared mode is enabled.</returns>
-        protected bool IsSharedMode(Dictionary<string, string> options)
-        {
-            return options.ContainsKey("share");
-        }
+        protected bool IsSharedMode(Dictionary<string, string> options) => options.ContainsKey("share");
     }
 }

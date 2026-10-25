@@ -31,8 +31,7 @@ var references = File.ReadAllLines(referencesPath)
     .Select(l => (MetadataReference)MetadataReference.CreateFromFile(l))
     .ToList();
 
-var original = ScriptCompilation.Create(script, references);
-var baseline = original.Errors();
+var baseline = ScriptCompilation.Create(script, references).Errors();
 if (baseline.Count > 0)
 {
     Console.WriteLine($"ScriptOptimizer: skipped, the script has {baseline.Count} compile error(s) before optimizing");
@@ -41,38 +40,49 @@ if (baseline.Count > 0)
     return 0;
 }
 
-var edits = VarRewriter.FindEdits(original);
-var offset = ScriptCompilation.Prefix.Length;
-var sb = new StringBuilder(script);
-foreach (var span in edits.OrderByDescending(e => e.Start))
+// Keeps a pass's result only if it still compiles, so a faulty pass costs size, never a broken script.
+string Accept(string pass, string before, string after)
 {
-    var start = span.Start - offset;
-    var next = start + span.Length < script.Length ? script[start + span.Length] : ' ';
-    var needsSpace = char.IsLetterOrDigit(next) || next == '_';
-    sb.Remove(start, span.Length).Insert(start, needsSpace ? "var " : "var");
-}
-var optimized = sb.ToString();
+    if (after == before)
+        return before;
 
-var errors = ScriptCompilation.Create(optimized, references).Errors();
-if (errors.Count > 0)
-{
-    Console.WriteLine($"ScriptOptimizer: skipped, optimizing produced {errors.Count} compile error(s)");
+    var errors = ScriptCompilation.Create(after, references).Errors();
+    if (errors.Count == 0)
+        return after;
+
+    Console.WriteLine($"ScriptOptimizer: skipped {pass}, it produced {errors.Count} compile error(s)");
     foreach (var d in errors.Take(5))
         Console.WriteLine("  " + ScriptCompilation.Describe(d));
-    return 0;
+    return before;
 }
 
-var compact = NewlineStripper.Strip(optimized);
-var compactErrors = ScriptCompilation.Create(compact, references).Errors();
-if (compactErrors.Count > 0)
+var current = script;
+var summary = new List<string>();
+
+// "var" runs first: once a type is aliased, "var" is no longer shorter than the declared type.
+var varEdits = VarRewriter.FindEdits(ScriptCompilation.Create(current, references));
+var withVar = ScriptEdits.Apply(current, varEdits.Select(span => ScriptEdits.Replace(current, span, "var")));
+var afterVar = Accept("var", current, withVar);
+summary.Add($"var for {(afterVar == current ? 0 : varEdits.Count)} locals {current.Length} -> {afterVar.Length}");
+current = afterVar;
+
+var aliases = AliasRewriter.Rewrite(current, ScriptCompilation.Create(current, references), references);
+if (aliases != null)
 {
-    Console.WriteLine($"ScriptOptimizer: skipped line break removal, it produced {compactErrors.Count} compile error(s)");
-    foreach (var d in compactErrors.Take(5))
-        Console.WriteLine("  " + ScriptCompilation.Describe(d));
-    compact = optimized;
+    var afterAliases = Accept("collection aliases", current, aliases.Script);
+    summary.Add($"{(afterAliases == current ? 0 : aliases.Aliases)} collection aliases at {(afterAliases == current ? 0 : aliases.Sites)} sites {current.Length} -> {afterAliases.Length}");
+    current = afterAliases;
 }
+
+var narrowEdits = AccessNarrower.FindEdits(current, ScriptCompilation.Create(current, references));
+var afterNarrow = Accept("public narrowing", current, ScriptEdits.Apply(current, narrowEdits));
+summary.Add($"{(afterNarrow == current ? 0 : narrowEdits.Count)} members narrowed from public {current.Length} -> {afterNarrow.Length}");
+current = afterNarrow;
+
+var compact = Accept("line break removal", current, NewlineStripper.Strip(current));
+summary.Add($"line breaks {current.Length} -> {compact.Length}");
 
 var encoding = new UTF8Encoding(hasBom);
 File.WriteAllBytes(scriptPath, encoding.GetPreamble().Concat(encoding.GetBytes(compact)).ToArray());
-Console.WriteLine($"ScriptOptimizer: var for {edits.Count} locals, {script.Length} -> {optimized.Length} characters, line breaks {optimized.Length} -> {compact.Length}");
+Console.WriteLine($"ScriptOptimizer: {script.Length} -> {compact.Length} characters ({string.Join(", ", summary)})");
 return 0;

@@ -138,7 +138,7 @@ namespace IngameScript
             ConstructViews.Clear();
 
             // Register commands
-            Mother.RegisterCommand(new PingCommand(Mother));
+            Mother.RegisterCommand("ping", 0, c => { Ping(); return "Pinging all grids"; });
 
             // Load channels
             LoadChannels();

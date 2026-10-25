@@ -99,6 +99,62 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Parses a string representing an incremental value. The result is the
+        /// value when --add is set, its negation when --sub is set, and 0 otherwise.
+        /// </summary>
+        /// <param name="valueString"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public float GetIncrement(string valueString) => GetIncrement(valueString, Options);
+
+        /// <summary>
+        /// Parses a string representing an incremental value from a set of options.
+        /// </summary>
+        /// <param name="valueString"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static float GetIncrement(string valueString, Dictionary<string, string> options)
+        {
+            float parsedValue;
+
+            if (!float.TryParse(valueString, out parsedValue))
+                throw new ArgumentException("Invalid numerical value provided.");
+
+            if (options.ContainsKey("add"))
+                return parsedValue;
+
+            if (options.ContainsKey("sub"))
+                return -parsedValue;
+
+            // we assume no increment or decrement by default
+            return 0;
+        }
+
+        /// <summary>
+        /// Calculates the distributed value for cumulative operations across multiple blocks.
+        /// When cumulative mode is enabled, the total value is divided evenly among all blocks.
+        /// </summary>
+        /// <param name="totalValue">The total value to distribute.</param>
+        /// <param name="blockCount">The number of blocks to distribute across.</param>
+        /// <param name="isCumulative">Whether cumulative mode is enabled.</param>
+        /// <returns>The value per block (distributed if cumulative, otherwise the original value).</returns>
+        public static float GetDistributedValue(float totalValue, int blockCount, bool isCumulative)
+        {
+            if (isCumulative && blockCount > 1)
+                return totalValue / blockCount;
+
+            return totalValue;
+        }
+
+        /// <summary>
+        /// Determines if shared mode (--share) is enabled. When enabled, values
+        /// are distributed evenly across all blocks in the group.
+        /// </summary>
+        /// <returns>True if shared mode is enabled.</returns>
+        public bool IsShared() => Options.ContainsKey("share");
+
+        /// <summary>
         /// Converts a string to a boolean. Recognizes "true" (case insensitive) and "1" as true.
         /// </summary>
         /// <param name="value"></param>

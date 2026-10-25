@@ -98,6 +98,18 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Register a command whose behaviour is a lambda closing over the module.
+        /// </summary>
+        /// <param name="name">The command name, ie. view/up.</param>
+        /// <param name="minArgs">Fewer arguments than this are answered with <paramref name="usage"/> and the lambda is not called.</param>
+        /// <param name="run">Runs the command and returns the response text.</param>
+        /// <param name="usage">Response for too few arguments. Defaults to <see cref="CommandBus.Messages.NoArgumentsProvided"/>.</param>
+        public void RegisterCommand(string name, int minArgs, Func<TerminalCommand, string> run, string usage = null)
+        {
+            RegisterCommand(new LambdaCommand(name, minArgs, run, usage));
+        }
+
+        /// <summary>
         /// Register a command that applies an action to all blocks of type T 
         /// matching the name argument.
         /// </summary>

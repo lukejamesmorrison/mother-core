@@ -61,8 +61,8 @@ namespace IngameScript
             CommandBus CommandBus = Mother.GetModule<CommandBus>();
 
             // Commands
-            CommandBus.RegisterCommand(new ClearCommand(this));
-            CommandBus.RegisterCommand(new PrintCommand(this));
+            CommandBus.RegisterCommand("clear", 0, c => { ClearConsole(); return ""; });
+            CommandBus.RegisterCommand("print", 0, c => c.Arguments[0]);
         }
 
         /// <summary>

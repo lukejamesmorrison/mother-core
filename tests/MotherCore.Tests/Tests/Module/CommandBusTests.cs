@@ -18,16 +18,16 @@ namespace MotherCore.Tests.Tests.Module
         public void A_Module_Command_Can_Be_Registered()
         {
             CommandBus commandBus = ModuleFactory<CommandBus>().Boot();
-            commandBus.RegisterCommand(new HelpCommand(commandBus));
+            commandBus.RegisterCommand("help", 0, c => "");
 
-            Assert.That(commandBus.ModuleCommands.Any(command => command is HelpCommand), Is.True);
+            Assert.That(commandBus.ModuleCommands.Any(command => command.GetCommandName() == "help"), Is.True);
         }
 
         [Test]
         public void A_Module_Command_Can_Be_Run_From_A_Terminal_Command()
         {
             CommandBus commandBus = ModuleFactory<CommandBus>().Boot();
-            commandBus.RegisterCommand(new HelpCommand(commandBus));
+            commandBus.RegisterCommand("help", 0, c => "");
 
             bool commandRun = commandBus.RunTerminalCommand("help");
 
@@ -38,17 +38,15 @@ namespace MotherCore.Tests.Tests.Module
         public void Multiple_Module_Commands_Can_Be_Registered()
         {
             CommandBus commandBus = ModuleFactory<CommandBus>().Boot();
-            var clock = commandBus.Mother.GetModule<Clock>();
 
+            int helpCountBefore = commandBus.ModuleCommands.Count(command => command.GetCommandName() == "help");
+            int haltCountBefore = commandBus.ModuleCommands.Count(command => command.GetCommandName() == "halt");
 
-            int helpCountBefore = commandBus.ModuleCommands.Count(command => command is HelpCommand);
-            int haltCountBefore = commandBus.ModuleCommands.Count(command => command is HaltCommand);
+            commandBus.RegisterCommand("help", 0, c => "");
+            commandBus.RegisterCommand("halt", 0, c => "");
 
-            commandBus.RegisterCommand(new HelpCommand(commandBus));
-            commandBus.RegisterCommand(new HaltCommand(clock));
-
-            Assert.That(commandBus.ModuleCommands.Count(command => command is HelpCommand), Is.EqualTo(helpCountBefore + 1));
-            Assert.That(commandBus.ModuleCommands.Count(command => command is HaltCommand), Is.EqualTo(haltCountBefore + 1));
+            Assert.That(commandBus.ModuleCommands.Count(command => command.GetCommandName() == "help"), Is.EqualTo(helpCountBefore + 1));
+            Assert.That(commandBus.ModuleCommands.Count(command => command.GetCommandName() == "halt"), Is.EqualTo(haltCountBefore + 1));
         }
 
         // --- Variable substitution ---
@@ -92,7 +90,7 @@ namespace MotherCore.Tests.Tests.Module
         public void It_Runs_Terminal_Command_Without_Variables_When_None_Defined()
         {
             CommandBus commandBus = ModuleFactory<CommandBus>().Boot();
-            commandBus.RegisterCommand(new HelpCommand(commandBus));
+            commandBus.RegisterCommand("help", 0, c => "");
 
             bool commandRun = commandBus.RunTerminalCommand("help");
 
@@ -154,7 +152,7 @@ namespace MotherCore.Tests.Tests.Module
         public void GetSelfCommandNames_Includes_Module_Commands()
         {
             CommandBus commandBus = ModuleFactory<CommandBus>().Boot();
-            commandBus.RegisterCommand(new HelpCommand(commandBus));
+            commandBus.RegisterCommand("help", 0, c => "");
 
             List<string> names = commandBus.GetSelfCommandNames();
 
@@ -190,7 +188,7 @@ namespace MotherCore.Tests.Tests.Module
 
             CommandBus commandBus = script.Mother.GetModule<CommandBus>();
 
-            commandBus.RegisterCommand(new HelpCommand(commandBus));
+            commandBus.RegisterCommand("help", 0, c => "");
 
             List<string> names = commandBus.GetSelfCommandNames();
 
@@ -637,7 +635,7 @@ namespace MotherCore.Tests.Tests.Module
         /// <summary>
         /// The halt command is registered on boot. Executing it should call
         /// Clock.Halt(), which clears all active coroutines and all queued tasks.
-        /// HaltCommand.Execute() is called directly here to avoid the re-entrant
+        /// Calling the registered halt command's Execute() directly here avoids the re-entrant
         /// dispose issue that occurs when Clock.Halt() is invoked from inside a
         /// running coroutine's MoveNext() call.
         /// </summary>
@@ -691,14 +689,14 @@ namespace MotherCore.Tests.Tests.Module
             Assert.That(clock.QueuedTaskCount, Is.EqualTo(queuedBefore + 1));
 
             // Verify halt is registered on boot.
+            // Execute() directly (not through the terminal) tests Clock.Halt() without triggering
+            // the re-entrant dispose that happens when Halt() runs inside a coroutine.
             var haltCommand = commandBus.ModuleCommands
-                .First(c => c.GetCommandName() == "halt") as HaltCommand;
+                .First(c => c.GetCommandName() == "halt");
 
             Assert.That(haltCommand, Is.Not.Null,
-                "HaltCommand should be registered on boot.");
+                "halt should be registered on boot.");
 
-            // Call Execute() directly � tests Clock.Halt() without triggering
-            // the re-entrant dispose that happens when Halt() runs inside a coroutine.
             haltCommand.Execute(new TerminalCommand("halt"));
 
             Assert.That(script.Clock.CoroutineCount, Is.EqualTo(0),

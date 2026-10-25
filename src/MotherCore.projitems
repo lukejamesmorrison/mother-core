@@ -9,10 +9,10 @@
     <Import_RootNamespace>IngameScript</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)Commands\BootCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BaseModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BlockCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\IModuleCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Commands\LambdaCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\PurgeCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\RenameCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ActivityMonitor\ActivityMonitor.cs" />
@@ -33,16 +33,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Condition\ConditionModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\BlockMessages.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\CommandBus.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HaltCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\Commands\HelpCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\CommandBus\TerminalRoutine.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Commands\SetVariableCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Events\SystemBootedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Events\SystemConfigChangedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\VersionManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Configuration\Configuration.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Commands\LockConnectorCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\ConnectorModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorLockedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ConnectorModule\Events\ConnectorReadyToLockEvent.cs" />
@@ -56,7 +52,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ICoreModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IExtensionModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IModule.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Commands\PingCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestFailedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestReceivedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestSentEvent.cs" />
@@ -66,8 +61,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Response.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Route.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Router.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\Commands\GetCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\Commands\SetCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\LocalStorage\LocalStorage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Log\Log.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MechanicalBlockModule\Events\MechanicalBlockAttachedEvent.cs" />
@@ -78,8 +71,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\MergeBlockModule\MergeBlockModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\NumberHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\Security.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Commands\ClearCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Commands\PrintCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Terminal\Terminal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mother.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\ColorHelper.cs" />

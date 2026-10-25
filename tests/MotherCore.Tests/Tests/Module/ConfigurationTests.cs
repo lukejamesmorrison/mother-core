@@ -299,6 +299,12 @@ namespace MotherCore.Tests.Module
 
         // ---- var/set Command Tests ----
 
+        /// <summary>
+        /// Runs a parsed command through the module's registered var/set command.
+        /// </summary>
+        static string RunVarSet(Configuration config, TerminalCommand command)
+            => config.GetCommands().Find(c => c.GetCommandName() == "var/set").Execute(command);
+
         [Test]
         public void VarSet_Updates_Variable_In_Memory()
         {
@@ -313,8 +319,7 @@ namespace MotherCore.Tests.Module
             var config = script.Mother.GetModule<Configuration>();
 
             var command = new TerminalCommand("var/set PLAYER Alex");
-            var setCmd = new SetVariableCommand(config);
-            setCmd.Execute(command);
+            RunVarSet(config, command);
 
             Assert.That(script.Mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"));
 
@@ -337,7 +342,7 @@ namespace MotherCore.Tests.Module
             string originalCustomData = script.Mother.ProgrammableBlock.CustomData;
 
             var command = new TerminalCommand("var/set PLAYER Alex");
-            new SetVariableCommand(config).Execute(command);
+            RunVarSet(config, command);
 
             Assert.That(script.Mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"));
             Assert.That(script.Mother.ProgrammableBlock.CustomData, Is.EqualTo(originalCustomData));
@@ -356,7 +361,7 @@ namespace MotherCore.Tests.Module
             var config = script.Mother.GetModule<Configuration>();
 
             var command = new TerminalCommand("var/set PLAYER Alex --save");
-            new SetVariableCommand(config).Execute(command);
+            RunVarSet(config, command);
 
             Assert.That(script.Mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"));
 
@@ -376,7 +381,7 @@ namespace MotherCore.Tests.Module
             var config = script.Mother.GetModule<Configuration>();
 
             var command = new TerminalCommand("var/set");
-            string result = new SetVariableCommand(config).Execute(command);
+            string result = RunVarSet(config, command);
 
             Assert.That(result, Is.EqualTo(CommandBus.Messages.NoArgumentsProvided));
         }
@@ -390,7 +395,7 @@ namespace MotherCore.Tests.Module
             var config = script.Mother.GetModule<Configuration>();
 
             var command = new TerminalCommand("var/set PLAYER");
-            string result = new SetVariableCommand(config).Execute(command);
+            string result = RunVarSet(config, command);
 
             Assert.That(result, Is.EqualTo(CommandBus.Messages.NoArgumentsProvided));
         }

@@ -384,7 +384,16 @@ namespace IngameScript
         void RegisterCoreCommands()
         {
             RegisterCommand(new PurgeCommand(this));
-            RegisterCommand(new BootCommand(this));
+            RegisterCommand("boot", 0, c =>
+            {
+                // Set a pending boot flag rather than calling Boot() directly.
+                // Calling Boot() from inside a coroutine shifts BootSequence to a
+                // lower Coroutines index, causing it to execute in the same Clock.Run()
+                // tick while the system is still in WORKING state (crash).
+                PendingBoot = true;
+
+                return "Rebooting...";
+            });
             RegisterCommand(new RenameCommand(this));
         }
 
@@ -586,6 +595,19 @@ namespace IngameScript
         public void RegisterCommand(IModuleCommand command)
         {
             GetModule<CommandBus>().RegisterCommand(command);
+        }
+
+        /// <summary>
+        /// Register a lambda command with Mother.
+        /// Accessor for CommandBus.RegisterCommand()
+        /// </summary>
+        /// <param name="name">The command name.</param>
+        /// <param name="minArgs">Fewer arguments than this are answered with <paramref name="usage"/>.</param>
+        /// <param name="run">Runs the command and returns the response text.</param>
+        /// <param name="usage">Response for too few arguments. Defaults to <see cref="CommandBus.Messages.NoArgumentsProvided"/>.</param>
+        public void RegisterCommand(string name, int minArgs, Func<TerminalCommand, string> run, string usage = null)
+        {
+            RegisterCommand(new LambdaCommand(name, minArgs, run, usage));
         }
 
         /// <summary>

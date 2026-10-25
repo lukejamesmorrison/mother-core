@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace IngameScript
 {
@@ -9,11 +10,17 @@ namespace IngameScript
     /// </summary>
     public enum CommandExecutionOutcome
     {
+        // The module has been excuted.
         ModuleExecuted,
+        // The command has been scheduled to wait.
         WaitScheduled,
+        // The command has been delegated to another construct instance with an important command.
         DelegatedToImportantConstruct,
+        // The command has been delegated to another construct instance with a non-important command.
         DelegatedToConstruct,
+        // The command has been sent to a remote grid for execution.
         RemoteRoutineSent,
+        // The command was not found in any module or construct instance.
         CommandNotFound,
     }
 
@@ -146,8 +153,24 @@ namespace IngameScript
             ExecutionCounts.Clear();
 
             // Commands
-            RegisterCommand(new HelpCommand(this));
-            RegisterCommand(new HaltCommand(Clock));
+            RegisterCommand("help", 0, c =>
+            {
+                var sb = new StringBuilder();
+
+                ModuleCommands.ForEach(moduleCommand => {
+                    sb.Append(moduleCommand.GetCommandName())
+                    .Append('\n');
+                });
+
+                return $"{sb}";
+            });
+
+            RegisterCommand("halt", 0, c =>
+            {
+                Clock.Halt();
+
+                return "Halted.";
+            });
 
             // Routes
             // External commands from remote grids - relay handles routing
@@ -243,6 +266,20 @@ namespace IngameScript
         new public void RegisterCommand(IModuleCommand command)
         {
             ModuleCommands.Add(command);
+        }
+
+        /// <summary>
+        /// Registers a lambda command with the CommandBus. Declared here so the
+        /// command goes straight to <see cref="ModuleCommands"/> instead of the
+        /// module's own command list.
+        /// </summary>
+        /// <param name="name">The command name.</param>
+        /// <param name="minArgs">Fewer arguments than this are answered with <paramref name="usage"/>.</param>
+        /// <param name="run">Runs the command and returns the response text.</param>
+        /// <param name="usage">Response for too few arguments. Defaults to <see cref="Messages.NoArgumentsProvided"/>.</param>
+        new public void RegisterCommand(string name, int minArgs, Func<TerminalCommand, string> run, string usage = null)
+        {
+            RegisterCommand(new LambdaCommand(name, minArgs, run, usage));
         }
 
         /// <summary>

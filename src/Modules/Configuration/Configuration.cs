@@ -123,7 +123,18 @@ namespace IngameScript
             Mother.GetModule<EventBus>()?.Subscribe<SystemConfigChangedEvent>(this);
 
             // Commands
-            RegisterCommand(new SetVariableCommand(this));
+            RegisterCommand("var/set", 2, c =>
+            {
+                string name = c.Arguments[0];
+                string value = c.Arguments[1];
+                bool save = c.Options.ContainsKey("save");
+
+                SetVariable(name, value, save);
+
+                return save
+                    ? $"${name} = \"{value}\" (saved)"
+                    : $"${name} = \"{value}\"";
+            });
         }
 
         /// <summary>
