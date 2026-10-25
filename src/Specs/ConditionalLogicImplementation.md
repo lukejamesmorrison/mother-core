@@ -85,7 +85,7 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 - [x] Per rule: step 1 must be `when`; steps up to a top-level `else;` are the then routine; the rest the else routine. An `else;` inside an inline `if` does not split the rule.
 - [x] Rule state per rule: `Active`. `Since` and `LastFired` arrive with `--for` / `--cooldown` in Phase 2.
 - [x] Cache the resolved block list on the rule; never call `GetBlocksOfType` per tick.
-- [x] Register one scheduled task with a shared interval (default 1.6 s, `[general] ruleInterval` in seconds, read at boot).
+- [x] Register one scheduled task with a shared interval (default 0.5 s, `[general] ruleInterval` in seconds, read at boot).
 - [x] Edge trigger: false->true runs then routine, true->false runs else routine, via `CommandBus.RunTerminalCommand`. A rule starts false, so a rule that is true at boot runs its then routine on the first pass. A rebuild keeps each rule's last result, so it never fires a rule again.
 - [x] Rebuild rules on `SystemBootedEvent`, `SystemConfigChangedEvent`, `BlockConfigChangedEvent`, `ConstructRefreshedEvent` (only while WORKING).
 - [x] Error handling: log once naming the rule and disable only that rule for invalid operator, unknown property/predicate, unresolved target, or bad option. Never throw.

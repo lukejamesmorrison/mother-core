@@ -664,13 +664,24 @@ Time source: accumulate `Runtime.TimeSinceLastRun` rather than `DateTime`.
 - **Size reduction tips**: one parse path (`when` -> `TerminalCommand`, predicate or 3-term expression); one `Compare(op, a, b)` switch; registries as collection initializers; no per-rule classes (tuple/array row); no LINQ in hot paths.
 - **Rejected**: a `[when]` section (superseded by `[rules]`), rules inside `[hooks]` (see "Where rules live"), and `if ... then ...` inside `[commands]` (commands run on demand, not continuously; a rule can still call a command).
 
+## Shared vocabulary across the construct
+
+A property, predicate or state word is defined by the one script that owns the blocks (Mother OS: `charge`, `low`; MAPS: `altitude`, `speed`). Any other Mother Core script on the same construct can use it in a condition without registering anything, so Mother GUI's `when ship altitude < 100` and `if ship inspace` work with MAPS present. See [construct-shared-conditions.md](../../specs/construct-shared-conditions.md) for the design.
+
+- **Names travel in the existing `sync` ping** (`Props`, `Preds`), only on the construct channel. The condition itself is evaluated on the owner, because the property readers are delegates that cannot be sent over IGC.
+- **Local first.** A name registered locally is evaluated locally. Only a condition that no local block answers is sent to the scripts that advertise the name (for example `low` for a group of batteries when only the tank row is defined locally). The owner replies `1`, `0` or `?`, and the lowest script id that replies `1` or `0` decides. If every owner replies `?`, the condition is false.
+- **`when` rules** keep their state (`Tripped`, `--for`, `--cooldown`, `--every`) on the script that holds the rule and use the last answer received, so a remote answer is up to one pass old. The rule is also evaluated again when a reply arrives, so it acts on an answer as soon as it comes in rather than on the next pass. An owner that stops answering for 3 syncs makes the rule false, with one log line. A rule on a name no script owns yet is kept, and starts working when the owner's sync arrives.
+- **Inline `if` and `elseif`** pause the routine until the owner replies. `[general] condTimeout` (seconds, default 2) is how long they wait, then the step fails with `Command failed: <step> (no answer from script <id> for <name>)`. An `if` on a name no script owns fails at once. A local `if` returns in the same step with no request, and a skipped branch never sends one.
+- **Batching.** Conditions due in the same cycle go to an owner in one request (up to 10, identical conditions sent once).
+- **Construct only, read only.** The `cond` route only accepts requests from scripts on this construct and never runs a command or changes a block.
+
 ## Error Handling
 
-- Invalid operator, unknown property/predicate or unresolved target: log once to the Mother console naming the rule, and disable only that rule. Do not throw.
+- Invalid operator, unknown property/predicate or unresolved target: log once to the Mother console naming the rule, and disable only that rule. Do not throw. A name that no script on the construct defines keeps the rule pending instead (logged once, with `(no script on the construct has it)` when other scripts are present), and it starts working when an owner appears.
 - Empty target list or no block exposing the property: evaluate as false, retry on cache rebuild.
 - Duplicate or unknown `--option` on `when`: same as other commands (duplicate options already throw in `TerminalCommand`); the rule is disabled and logged.
 - A rule with no steps after `when`: valid but warns once.
-- `if` with an unknown predicate/property/target, or with a stateful option (`--for` etc.): the step fails like any failing command (`state.Failed`), prints the reason and stops the routine. An `if` with no matching `end` is closed implicitly; an `else`/`elseif`/`end` with no open `if` fails the step.
+- `if` with an unknown predicate/property/target, or with a stateful option (`--for` etc.): the step fails like any failing command (`state.Failed`), prints the reason and stops the routine. An `if` that waits for another script and gets no answer within `condTimeout` fails the same way. An `if` with no matching `end` is closed implicitly; an `else`/`elseif`/`end` with no open `if` fails the step.
 - Rule routine failure must not stop the evaluation loop.
 
 ## Phases

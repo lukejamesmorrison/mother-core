@@ -63,6 +63,20 @@ namespace IngameScript
             /// and when --every makes it due next.
             /// </summary>
             public double Since, Due, LastFired = double.NegativeInfinity;
+
+            /// <summary>
+            /// Pending is true while the condition names something no script on
+            /// the construct defines yet, so the rule is kept but never evaluated.
+            /// </summary>
+            public bool Pending;
+
+            /// <summary>
+            /// The scripts on the construct that define the name the condition is
+            /// built on, by id, or null. They answer for the blocks this script
+            /// has no vocabulary for. Cond is the condition text sent to them.
+            /// </summary>
+            public List<long> Owners;
+            public string Cond;
         }
 
         /// <summary>
@@ -120,6 +134,33 @@ namespace IngameScript
         List<Rule> Rules = new List<Rule>();
 
         /// <summary>
+        /// Conditions waiting to go to the scripts that answer them, by script
+        /// id. Each is a "1" or "0" (the sender's tripped state) followed by the
+        /// condition, and maps to what to do with its result. Sent in batches by
+        /// Flush.
+        /// </summary>
+        readonly Dictionary<long, Dictionary<string, Action<string>>> Outbox = new Dictionary<long, Dictionary<string, Action<string>>>();
+
+        /// <summary>
+        /// The last answer of a script to a condition ("id|condition"): 1, 0 or
+        /// -1 when it has no block that answers, and when it was heard. Until
+        /// the first answer arrives Heard holds when it was first asked.
+        /// </summary>
+        readonly Dictionary<string, int> Replies = new Dictionary<string, int>();
+        readonly Dictionary<string, double> Heard = new Dictionary<string, double>();
+
+        /// <summary>
+        /// Seconds without an answer after which a remote answer is dropped. The
+        /// scripts on a construct sync every 5 seconds, so this is 3 syncs.
+        /// </summary>
+        const double Stale = 15;
+
+        /// <summary>
+        /// The most conditions in one request.
+        /// </summary>
+        const int Batch = 10;
+
+        /// <summary>
         /// Seconds on the module clock, accumulated from Runtime.TimeSinceLastRun.
         /// Next is when the shared pass is due, and Fast is true while any rule
         /// has its own --every and so needs checking between shared passes.
@@ -127,9 +168,16 @@ namespace IngameScript
         double Now, Next, Interval;
         bool Fast;
 
+        /// <summary>
+        /// Seconds an inline if waits for the scripts that answer it, from
+        /// [general] condTimeout (default 2).
+        /// </summary>
+        double Timeout;
+
         BlockCatalogue BlockCatalogue;
         CommandBus CommandBus;
         Configuration Configuration;
+        IntergridMessageService IMS;
 
         /// <summary>
         /// Constructor.
@@ -139,16 +187,20 @@ namespace IngameScript
 
         /// <summary>
         /// Boot the module. Listens for config and construct changes, and
-        /// schedules the rule pass every [general] ruleInterval seconds (default 1.6).
+        /// schedules the rule pass every [general] ruleInterval seconds (default 0.5).
         /// </summary>
         public override void Boot()
         {
             BlockCatalogue = Mother.GetModule<BlockCatalogue>();
             CommandBus = Mother.GetModule<CommandBus>();
             Configuration = Mother.GetModule<Configuration>();
+            IMS = Mother.GetModule<IntergridMessageService>();
 
             Rules = new List<Rule>();
             Logged.Clear();
+            Outbox.Clear();
+            Replies.Clear();
+            Heard.Clear();
             Now = 0;
             Fast = false;
 
@@ -166,9 +218,13 @@ namespace IngameScript
             Subscribe<SystemConfigChangedEvent>();
             Subscribe<BlockConfigChangedEvent>();
             Subscribe<ConstructRefreshedEvent>();
+            Subscribe<ConstructVocabChangedEvent>();
 
             if (!double.TryParse(Configuration.Get("general.ruleInterval"), out Interval) || Interval < 0)
                 Interval = 0.5;
+
+            if (!double.TryParse(Configuration.Get("general.condTimeout"), out Timeout) || Timeout <= 0)
+                Timeout = 2;
 
             Next = Interval;
             Mother.GetModule<Clock>().Schedule(Tick);
@@ -177,7 +233,7 @@ namespace IngameScript
         /// <summary>
         /// Advances the module clock every cycle, and runs the shared pass when
         /// it is due. While a rule has its own --every, each cycle also checks
-        /// those rules.
+        /// those rules. Conditions queued by inline ifs go out every cycle.
         /// </summary>
         void Tick()
         {
@@ -189,6 +245,8 @@ namespace IngameScript
 
             if (shared || Fast)
                 EvaluateRules(shared);
+            else
+                Flush();
         }
 
         /// <summary>
@@ -287,18 +345,272 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Evaluates a condition step once. This is the single entry point for
-        /// both "if" and "when".
+        /// The names this script defines, for the sync other scripts on the
+        /// construct use to resolve names they do not define.
+        /// </summary>
+        /// <param name="preds">True for predicates and state words, false for properties.</param>
+        /// <returns>Lower case names joined by commas.</returns>
+        public string Names(bool preds)
+        {
+            var names = new List<string>();
+
+            if (preds)
+            {
+                names.AddRange(Preds.Keys);
+                names.RemoveAll(n => n.EndsWith(".band"));
+                names.AddRange(Words);
+            }
+            else
+                names.AddRange(Props.Keys);
+
+            return string.Join(",", names);
+        }
+
+        /// <summary>
+        /// Evaluates an inline condition step once, against the vocabulary this
+        /// script defines. Names only other scripts define are not asked of them
+        /// here (see <see cref="Check"/>, and "when" rules).
         /// </summary>
         /// <param name="command">ie. "Batteries" low, ship speed > 30.</param>
         /// <param name="error">Why the condition is invalid, or null.</param>
         /// <returns>The result. False when there is an error.</returns>
         public bool Evaluate(TerminalCommand command, out string error)
         {
-            var rule = new Rule();
-            error = Parse(command, rule, false);
+            return Check(command, false, false, out error) > 0;
+        }
 
-            return error == null && Test(rule);
+        /// <summary>
+        /// Starts evaluating an inline condition step. A condition this script
+        /// can answer, or that no script can, returns its result at once. When no
+        /// block here answers and other scripts define the name, the condition
+        /// is queued for them (see <see cref="Flush"/>) and the result comes
+        /// from <paramref name="poll"/> once they reply.
+        /// </summary>
+        /// <param name="command">ie. ship altitude &lt; 100.</param>
+        /// <param name="error">Why the condition is invalid, or null.</param>
+        /// <param name="poll">Set when the result is 2. Returns null while waiting, then "1" or "0", or why it failed (no answer in time).</param>
+        /// <returns>1 when true, 0 when false (or on error), and 2 when it must wait for a reply.</returns>
+        public int Begin(TerminalCommand command, out string error, out Func<string> poll)
+        {
+            var rule = new Rule();
+            poll = null;
+            error = Parse(command, rule, false, true);
+
+            if (error != null)
+                return 0;
+
+            int answer = Probe(rule, false);
+
+            if (answer >= 0 || rule.Owners == null)
+                return answer > 0 ? 1 : 0;
+
+            var replies = new Dictionary<long, string>();
+            var owners = new List<long>(rule.Owners);
+            double end = Now + Timeout;
+            string name = command.Arguments[1];
+
+            foreach (var owner in owners)
+            {
+                long id = owner;
+                Ask(id, rule.Cond, false, r => replies[id] = r);
+            }
+
+            // The lowest script id that has a block that answers decides, as for a rule
+            poll = () =>
+            {
+                foreach (var owner in owners)
+                {
+                    string r;
+
+                    if (!replies.TryGetValue(owner, out r))
+                        return Now >= end ? $"no answer from script {owner} for {name}" : null;
+
+                    if (r == "1" || r == "0")
+                        return r;
+                }
+
+                return "0";
+            };
+
+            return 2;
+        }
+
+        /// <summary>
+        /// Evaluates a condition, telling apart a false from a condition that no
+        /// block answers. Names that this script does not define are not asked
+        /// of other scripts.
+        /// </summary>
+        /// <param name="command">ie. "Batteries" low.</param>
+        /// <param name="stateful">True to allow the --band option, as the script that holds a rule sends it.</param>
+        /// <param name="tripped">True when the rule is already tripped, so its band applies.</param>
+        /// <param name="error">Why the condition is invalid, or null.</param>
+        /// <returns>1 when true, 0 when false and -1 when no block answers.</returns>
+        public int Check(TerminalCommand command, bool stateful, bool tripped, out string error)
+        {
+            var rule = new Rule();
+            error = Parse(command, rule, stateful, false);
+
+            return error == null ? Probe(rule, tripped) : 0;
+        }
+
+        /// <summary>
+        /// Answers a condition for another script on the construct.
+        /// </summary>
+        /// <param name="condition">The condition text, ie. ship altitude &lt; 100.</param>
+        /// <param name="tripped">True when the asking rule is tripped, so its band applies.</param>
+        /// <returns>"1", "0", "?" when no block here answers, or "!" and why the condition is invalid.</returns>
+        public string Answer(string condition, bool tripped)
+        {
+            string error;
+
+            try
+            {
+                int result = Check(new TerminalCommand("if " + condition), true, tripped, out error);
+
+                return error != null 
+                    ? "!" + error 
+                    : result < 0 
+                        ? "?" 
+                        : result + "";
+            }
+            catch (Exception e)
+            {
+                return "!" + e.Message;
+            }
+        }
+
+        /// <summary>
+        /// Queues a condition for a script on the construct. The queue is sent
+        /// by Flush, one request per script for up to 10 conditions, and the same
+        /// condition queued twice is sent once.
+        /// </summary>
+        /// <param name="owner">The script id.</param>
+        /// <param name="condition">The condition text.</param>
+        /// <param name="tripped">True when the asking rule is tripped, so its band applies.</param>
+        /// <param name="onResult">Receives "1", "0", "?" or "!" and why the condition is invalid, or null.</param>
+        public void Ask(long owner, string condition, bool tripped, Action<string> onResult = null)
+        {
+            Dictionary<string, Action<string>> queue;
+            string key = (tripped ? "1" : "0") + condition;
+
+            if (!Outbox.TryGetValue(owner, out queue))
+                Outbox[owner] = queue = new Dictionary<string, Action<string>>();
+
+            Action<string> calls;
+            queue.TryGetValue(key, out calls);
+            queue[key] = calls + onResult;
+        }
+
+        /// <summary>
+        /// Sends the queued conditions: one request for each script, split into
+        /// groups of 10. The condition and tripped state are sent as C0, T0, C1,
+        /// T1 and so on, and the results come back as R0, R1 in the same order.
+        /// </summary>
+        public void Flush()
+        {
+            foreach (var owner in Outbox)
+            {
+                var keys = new List<string>(owner.Value.Keys);
+
+                for (int i = 0; i < keys.Count; i += Batch)
+                {
+                    var body = new Dictionary<string, object>();
+                    var group = keys.GetRange(i, Math.Min(Batch, keys.Count - i));
+                    long id = owner.Key;
+                    var calls = owner.Value;
+
+                    for (int j = 0; j < group.Count; j++)
+                    {
+                        body["C" + j] = group[j].Substring(1);
+                        body["T" + j] = group[j][0] + "";
+                    }
+
+                    IMS.SendAwaitedRequest(id, IMS.CreateRequest("cond", body), response =>
+                    {
+                        if (response.HString("Status") != "200")
+                            return;
+
+                        for (int j = 0; j < group.Count; j++)
+                        {
+                            string result = response.BString("R" + j), text = group[j].Substring(1), key = id + "|" + text;
+
+                            if (result == "")
+                                continue;
+
+                            Replies[key] = result == "1" ? 1 : result == "0" ? 0 : -1;
+                            Heard[key] = Now;
+
+                            if (result[0] == '!')
+                                Log($"Script {id} cannot answer {text}: {result.Substring(1)}");
+
+                            calls[group[j]]?.Invoke(result);
+
+                            // A rule acts on its answer as it arrives, not a pass later
+                            foreach (var rule in Rules)
+                                if (rule.Cond == text && !rule.Pending && rule.Owners != null && rule.Owners.Contains(id))
+                                    Run(rule, false);
+                        }
+                    });
+                }
+            }
+
+            Outbox.Clear();
+        }
+
+        /// <summary>
+        /// The answer of the scripts that define a rule's name, for a condition
+        /// no block on this script answers. It queues the condition and uses
+        /// the last answer received, which is false until the first arrives. The
+        /// lowest script id that has a block that answers decides, and an owner
+        /// that left the construct or has not answered for a while is skipped.
+        /// </summary>
+        bool Remote(Rule rule, bool tripped, bool ask = true)
+        {
+            if (rule.Owners == null)
+                return false;
+
+            // A rule's answer is as old as the pass that asked for it
+            double limit = Stale + (rule.Every > 0 ? rule.Every : Interval);
+            var asked = new List<long>();
+
+            foreach (var owner in rule.Owners)
+            {
+                if (IMS.ConstructVocab.ContainsKey(owner))
+                {
+                    string key = owner + "|" + rule.Cond;
+
+                    if (ask)
+                        Ask(owner, rule.Cond, tripped);
+
+                    asked.Add(owner);
+
+                    if (!Heard.ContainsKey(key))
+                        Heard[key] = Now;
+                }
+                else if (ask)
+                    Log($"Rule {rule.Name}: script {owner} left the construct");
+            }
+
+            foreach (var owner in asked)
+            {
+                string key = owner + "|" + rule.Cond;
+                int result;
+
+                if (Now - Heard[key] > limit)
+                {
+                    Log($"Rule {rule.Name}: no answer from script {owner}");
+                    continue;
+                }
+
+                // A lower script that has not answered yet decides, so wait for it
+                if (!Replies.TryGetValue(key, out result))
+                    return false;
+
+                if (result >= 0)
+                    return result == 1;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -313,34 +625,45 @@ namespace IngameScript
         {
             foreach (var rule in Rules)
             {
-                try
+                if (rule.Pending || (rule.Every > 0 ? Now < rule.Due : !shared))
+                    continue;
+
+                rule.Due = Now + rule.Every;
+                Run(rule, true);
+            }
+
+            Flush();
+        }
+
+        /// <summary>
+        /// Evaluates one rule and runs its then or else routine on a change.
+        /// </summary>
+        /// <param name="ask">False when re-evaluating on an answer that just arrived, so nothing is asked again.</param>
+        void Run(Rule rule, bool ask)
+        {
+            try
+            {
+                int answer = Probe(rule, rule.Tripped);
+                bool trip = answer > 0 || answer < 0 && Remote(rule, rule.Tripped, ask);
+
+                if (trip != rule.Tripped)
                 {
-                    if (rule.Every > 0 ? Now < rule.Due : !shared)
-                        continue;
-
-                    rule.Due = Now + rule.Every;
-
-                    bool trip = Test(rule, rule.Tripped);
-
-                    if (trip != rule.Tripped)
-                    {
-                        rule.Tripped = trip;
-                        rule.Since = Now;
-                    }
-
-                    bool now = trip && Now - rule.Since >= rule.For;
-
-                    if (now == rule.Active || Now - rule.LastFired < rule.Cooldown)
-                        continue;
-
-                    rule.Active = now;
-                    rule.LastFired = Now;
-                    CommandBus.RunTerminalCommand(now ? rule.Then : rule.Else);
+                    rule.Tripped = trip;
+                    rule.Since = Now;
                 }
-                catch (Exception e)
-                {
-                    Log($"Rule {rule.Name}: {e.Message}");
-                }
+
+                bool now = trip && Now - rule.Since >= rule.For;
+
+                if (now == rule.Active || Now - rule.LastFired < rule.Cooldown)
+                    return;
+
+                rule.Active = now;
+                rule.LastFired = Now;
+                CommandBus.RunTerminalCommand(now ? rule.Then : rule.Else);
+            }
+            catch (Exception e)
+            {
+                Log($"Rule {rule.Name}: {e.Message}");
             }
         }
 
@@ -373,8 +696,9 @@ namespace IngameScript
         /// that keep state (--band, --for, --cooldown, --every) are only valid
         /// for a "when" rule.
         /// </summary>
+        /// <param name="ask">True to let scripts on the construct answer for names this script does not define.</param>
         /// <returns>Why the condition is invalid, or null.</returns>
-        string Parse(TerminalCommand command, Rule rule, bool stateful)
+        string Parse(TerminalCommand command, Rule rule, bool stateful, bool ask)
         {
             var args = command.Arguments;
 
@@ -429,15 +753,33 @@ namespace IngameScript
             if (ship && Mother.ShipController != null)
                 rule.Blocks.Add(Mother.ShipController);
 
-            if (rule.Blocks.Count == 0)
+            // The name the condition is built on: a property, or else a predicate
+            string name = args[1].ToLower();
+            bool known = args.Count == 4 ? Props.ContainsKey(name) : Preds.ContainsKey(name) || Words.Contains(name);
+
+            if (ask)
+                rule.Owners = OwnersOf(name);
+
+            // A name only another script defines is evaluated there, and the ship
+            // is the controller that script sees. Any other target must exist here too,
+            // which also catches a $VARIABLE that only another script defines.
+            if (rule.Blocks.Count == 0 && !(ship && rule.Owners != null && !known))
                 return "no target: " + args[0];
+
+            rule.Pending = ask && !known && rule.Owners == null;
+            if (rule.Owners != null)
+            {
+                rule.Cond = (ship ? "ship" : "\"" + args[0] + "\"") + " " + string.Join(" ", args.GetRange(1, args.Count - 1))
+                    + (at == null ? "" : " --at=" + at) + (band == null ? "" : " --band=" + band);
+
+                if (!known)
+                    return rule.Cond.IndexOf('$') >= 0 ? "unknown variable in: " + rule.Cond : null;
+            }
 
             string rows = args.Count == 4 ? $"{args[1]} {args[2]} {args[3]}" : null;
 
             if (rows == null)
             {
-                string name = args[1].ToLower();
-
                 if (Preds.TryGetValue(name, out rows))
                     Preds.TryGetValue(name + ".band", out pband);
                 else
@@ -492,12 +834,12 @@ namespace IngameScript
 
         /// <summary>
         /// Tests a condition against its blocks. The first term that any block
-        /// answers decides. Blocks that do not support it (NaN) are skipped,
-        /// and a condition no block can answer is false.
+        /// answers decides. Blocks that do not support it (NaN) are skipped.
         /// </summary>
         /// <param name="rule"></param>
         /// <param name="tripped">True when the rule is already tripped, so its band applies.</param>
-        bool Test(Rule rule, bool tripped = false)
+        /// <returns>1 when true, 0 when false, and -1 when no block answers any term.</returns>
+        int Probe(Rule rule, bool tripped)
         {
             foreach (var term in rule.Terms)
             {
@@ -520,17 +862,34 @@ namespace IngameScript
                         continue;
 
                     if (term.Any && term.Cmp(v, limit))
-                        return true;
+                        return 1;
 
                     sum += v;
                     count++;
                 }
 
                 if (count > 0)
-                    return !term.Any && term.Cmp(sum / count, limit);
+                    return !term.Any && term.Cmp(sum / count, limit) ? 1 : 0;
             }
 
-            return false;
+            return -1;
+        }
+
+        /// <summary>
+        /// The ids of the scripts on the construct that define a name.
+        /// </summary>
+        /// <returns>The ids, or null when no script does.</returns>
+        List<long> OwnersOf(string name)
+        {
+            var owners = new List<long>();
+
+            foreach (var script in IMS.ConstructVocab)
+                if (script.Value.Contains(name))
+                    owners.Add(script.Key);
+
+            owners.Sort();
+
+            return owners.Count > 0 ? owners : null;
         }
 
         /// <summary>
@@ -609,10 +968,11 @@ namespace IngameScript
                     error = e.Message;
                 }
 
-                if (error == null)
+                if (error == null || rule.Pending)
                     rules.Add(rule);
-                else
-                    Log($"Rule {rule.Name} disabled: {error}");
+
+                if (error != null)
+                    Log($"Rule {rule.Name} disabled: {error}" + (rule.Pending && IMS.ConstructVocab.Count > 0 ? " (no script on the construct has it)" : ""));
             }
         }
 
@@ -633,7 +993,7 @@ namespace IngameScript
             if (!Mother.TrySubstituteVariables(steps[0].CommandString, out cond, out error))
                 return error;
 
-            error = Parse(new TerminalCommand(cond), rule, true);
+            error = Parse(new TerminalCommand(cond), rule, true, true);
 
             if (error != null)
                 return error;

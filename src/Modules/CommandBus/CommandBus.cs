@@ -401,7 +401,24 @@ namespace IngameScript
 
                 if (name == "if" || name == "elseif" || name == "else" || name == "end")
                 {
-                    string error = RunIfStep(command, state, floor, resolve);
+                    Func<string> poll;
+                    string error = RunIfStep(command, state, floor, resolve, out poll);
+
+                    // A condition that needs another script's answer pauses the routine, not the script
+                    while (error == null && poll != null)
+                    {
+                        string answer = poll();
+
+                        if (answer == null)
+                            yield return 0;
+                        else if (answer == "1" || answer == "0")
+                        {
+                            ApplyIf(name, state.Ifs, answer == "1");
+                            poll = null;
+                        }
+                        else
+                            error = answer;
+                    }
 
                     if (error != null)
                         Fail(state, command, error);
@@ -427,12 +444,14 @@ namespace IngameScript
         /// <param name="state"></param>
         /// <param name="floor">How many open blocks belong to the caller, and cannot be closed here.</param>
         /// <param name="resolve">Whether the step still needs variable resolution.</param>
+        /// <param name="poll">Set when the condition waits for a reply from another script. Poll it until it has the result, then call ApplyIf.</param>
         /// <returns>Why the step failed, or null.</returns>
-        string RunIfStep(TerminalCommand command, RoutineState state, int floor, bool resolve)
+        string RunIfStep(TerminalCommand command, RoutineState state, int floor, bool resolve, out Func<string> poll)
         {
             var ifs = state.Ifs;
             int top = ifs.Count - 1;
             string name = command.Name;
+            poll = null;
 
             if (name == "if")
             {
@@ -466,17 +485,29 @@ namespace IngameScript
 
             TerminalRoutine body;
             string error = resolve ? ResolveStep(ref command, out body) : null;
-            bool result = error == null && Mother.GetModule<ConditionModule>().Evaluate(command, out error);
 
-            if (error == null)
-            {
-                if (name == "if")
-                    ifs.Add(result ? 3 : 0);
-                else
-                    ifs[top] = result ? 3 : 0;
-            }
+            if (error != null)
+                return error;
+
+            int result = Mother.GetModule<ConditionModule>().Begin(command, out error, out poll);
+
+            if (error == null && poll == null)
+                ApplyIf(name, ifs, result > 0);
 
             return error;
+        }
+
+        /// <summary>
+        /// Opens an if block, or sets the branch of an elseif, from the result
+        /// of its condition. The block is the top one, as nothing else changes
+        /// the stack while a condition waits.
+        /// </summary>
+        void ApplyIf(string name, List<int> ifs, bool result)
+        {
+            if (name == "if")
+                ifs.Add(result ? 3 : 0);
+            else
+                ifs[ifs.Count - 1] = result ? 3 : 0;
         }
 
         /// <summary>

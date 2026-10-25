@@ -164,6 +164,12 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Counts the identifiers generated, so messages created in the same
+        /// instant (a batch of requests) never share one.
+        /// </summary>
+        static int Sequence;
+
+        /// <summary>
         /// Generate a unique identifier for the message object. We use a random 
         /// number for simplicity.
         /// </summary>
@@ -173,7 +179,7 @@ namespace IngameScript
             long timestamp = DateTime.UtcNow.Ticks;
             int counter = new Random().Next(0, 1000);
 
-            return $"{timestamp}_{counter}";
+            return $"{timestamp}_{counter}_{Sequence++}";
         }
 
         /// <summary>

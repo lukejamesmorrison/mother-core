@@ -52,6 +52,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ICoreModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IExtensionModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\ConstructVocabChangedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestFailedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestReceivedEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\IntergridMessageService\Events\RequestSentEvent.cs" />

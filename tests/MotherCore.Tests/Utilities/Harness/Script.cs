@@ -1183,11 +1183,6 @@ namespace MotherCore.Tests.Utilities
             var builder = ProgramFactory.CreateProgram<TProgram>();
             var programmableBlock = ProgrammableBlockFactory.Create(cubeGrid: PrimaryGrid);
 
-            _gridTerminalSystem.AddBlock(programmableBlock, PrimaryGrid);
-            builder = builder
-                .WithMe(programmableBlock)
-                .WithGridTerminalSystem(_gridTerminalSystem);
-
             if (_network != null)
             {
                 NetworkIGC = _network.CreateNetworkEndpoint();
@@ -1199,6 +1194,18 @@ namespace MotherCore.Tests.Utilities
                 _resolvedIgc = _igc;
                 builder = builder.WithIgc(_igc);
             }
+
+            // In the game IGC.Me is the EntityId of the programmable block, and
+            // scripts use it to tell whether a message came from their construct
+            var fakeBlock = programmableBlock as FakeTerminalBlock;
+
+            if (NetworkIGC != null && fakeBlock != null)
+                fakeBlock.EntityId = NetworkIGC.Me;
+
+            _gridTerminalSystem.AddBlock(programmableBlock, PrimaryGrid);
+            builder = builder
+                .WithMe(programmableBlock)
+                .WithGridTerminalSystem(_gridTerminalSystem);
 
             if (_storage != null)
                 builder = builder.WithStorage(_storage);

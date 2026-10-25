@@ -1,8 +1,8 @@
 # Construct-shared condition vocabulary
 
-Status: idea (short spec, nothing implemented). Builds on the conditional logic engine (`src/Specs/ConditionalLogicSpec.md`, `ConditionModule`) and the construct sync used for commands and views (`IntergridMessageService`).
+Status: **implemented** (phases 0 to 6). `when` rules and inline `if` / `elseif` use names defined by other scripts on the construct. Builds on the conditional logic engine (`src/Specs/ConditionalLogicSpec.md`, `ConditionModule`) and the construct sync used for commands and views (`IntergridMessageService`).
 
-Last updated: 2026-10-25 (-04:00). Code read at that time, not run.
+Last updated: 2026-10-25 (-04:00). The MotherCore suite has 700 tests, Mother OS 391, MAPS 46 and Mother GUI 48, all passing.
 
 ## Problem
 
@@ -87,7 +87,7 @@ One request carries every condition that is due for one owner, so the cost grows
 
 The script that holds the rule keeps everything stateful: `Tripped`, `Since`, `--for`, `--cooldown`, `--every`, `Active`, and runs `Then`/`Else` itself. Only the boolean per pass travels. Hysteresis stays correct because `Tripped` is sent with each request, so the owner applies the band the same way a local rule would.
 
-`Test(rule)` for a remote `when` rule returns the **last answer received**, and sends a new request when the rule is due. A rule never blocks waiting for a reply. The result is one pass old, which is covered by `--for` and the 0.5 s default `ruleInterval`. Inline `if` works differently, see 6.
+`Test(rule)` for a remote `when` rule returns the **last answer received**, and sends a new request when the rule is due. A rule never blocks waiting for a reply. The rule is evaluated again as soon as a reply arrives (without asking again), so it acts on an answer one round trip after the pass that asked, not a pass later. `--for` counts from then. Inline `if` works differently, see 6.
 
 ### 5. Late or missing owners
 
@@ -160,76 +160,92 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 
 ### Phase 0 - Groundwork
 
-- [ ] Run the existing test suite and record the pass count as the baseline.
-- [ ] Read how `World` boots two scripts with different vocabularies (`FakeConditionVocabulary` registers one script's names), and write down how a test makes script A own `altitude` and script B not.
-- [ ] Read `Request`/`Response` body access (`BString`, `CreateResponse`) and `SendUnicastRequest` with a response callback, and note how a response is matched back to its request (`activeRequests`, `RespondingToId`).
-- [ ] Confirm where `Evaluate` is called from (`CommandBus.RunIfStep` and the rule pass) so the non-blocking form changes both.
+- [x] Run the existing test suite and record the pass count as the baseline.
+- [x] Read how `World` boots two scripts with different vocabularies (`FakeConditionVocabulary` registers one script's names), and write down how a test makes script A own `altitude` and script B not.
+- [x] Read `Request`/`Response` body access (`BString`, `CreateResponse`) and `SendUnicastRequest` with a response callback, and note how a response is matched back to its request (`activeRequests`, `RespondingToId`).
+- [x] Confirm where `Evaluate` is called from (`CommandBus.RunIfStep` and the rule pass) so the non-blocking form changes both.
 
-**Done when:** baseline recorded, the two-script test setup is understood.
+**Findings:**
+
+- Baseline: 648 tests passing.
+- Two scripts: `world.CreateScript(grid).WithMother().WithModules(m => new FakeConditionVocabulary(m)).OnNetwork().Boot()` for the owner, the same without `WithModules` for the asker. Scripts on one grid share a terminal system, so both see every block (as in the game), and only the registered vocabulary differs. Each script's `BlockCatalogue` must be refreshed (`RefreshConstruct()` and a few `Clock.Run()`) after the others boot, or it does not know their programmable blocks and the `cond` route refuses them. `IGC.Me` must equal the programmable block's EntityId, as in the game (the harness sets it).
+- `activeRequests` is cleared at the end of every `HandleIncomingIGCMessages`, so a callback is lost if any other message is handled before the response arrives. That is fine for `sync`, which repeats, but not for `cond` (see Phase 3).
+- `Evaluate` is called from `CommandBus.RunIfStep` only. The rule pass in `EvaluateRules` has its own path (`Probe`).
+- Message ids were `timestamp_random`, and two requests created in the same instant shared one. `GenerateUniqueId` now adds a counter, so a batch of requests each has its own id.
+
+**Done when:** baseline recorded, the two-script test setup is understood. **Met.**
 
 ### Phase 1 - Advertise names
 
-- [ ] `ConditionModule`: add `Names()` returning the lower case keys of `Props` and `Preds`, plus the `Words`, as one comma separated string. Skip `name.band` keys.
-- [ ] `IntergridMessageService`: add `ConstructVocab` (`Dictionary<long, HashSet<string>>`), cleared in `Boot()` next to `ConstructViews`.
-- [ ] Add `Props` and `Preds` keys to the bodies built in `ConstructPing` and `HandleSyncRequest`, from `ConditionModule.Names()`. Guard with `Mother.GetModule<ConditionModule>()` so a script without the module still syncs.
-- [ ] `SyncConstructCommands`: store the names per origin (skip self), and when the stored set differs, emit `ConstructVocabChangedEvent` (new, `src/Modules/IntergridMessageService/Events/`). Add the new files to [MotherCore.projitems](../src/MotherCore.projitems).
-- [ ] Tests: two scripts sync and each holds the other's names in `ConstructVocab`. A script's own names are not stored. A changed set emits the event once, an unchanged set emits nothing.
+- [x] `ConditionModule`: add `Names(bool preds)` returning the lower case keys of `Props` (false), or of `Preds` plus the `Words` (true), as one comma separated string. Skips `name.band` keys. It takes the flag because `Props` and `Preds` are two keys.
+- [x] `IntergridMessageService`: add `ConstructVocab` (`Dictionary<long, HashSet<string>>`), cleared in `Boot()` next to `ConstructViews`.
+- [x] Add `Props` and `Preds` keys to the bodies built in `ConstructPing` and `HandleSyncRequest` (one shared `SyncBody()`), from `ConditionModule.Names()`. Guard with `Mother.GetModule<ConditionModule>()` so a script without the module still syncs.
+- [x] `SyncConstructCommands`: store the names per origin (skip self), and when the stored set differs, emit `ConstructVocabChangedEvent` (new, `src/Modules/IntergridMessageService/Events/`). A script heard for the first time with no names emits nothing. Added to [MotherCore.projitems](../src/MotherCore.projitems).
+- [x] Tests: two scripts sync and each holds the other's names in `ConstructVocab`. A script's own names are not stored. A changed set emits the event once, an unchanged set emits nothing.
 
-**Done when:** after a sync, script B knows that script A owns `altitude`, and the event fires only on change.
+**Done when:** after a sync, script B knows that script A owns `altitude`, and the event fires only on change. **Met.**
 
 ### Phase 2 - Resolve and hold remote terms
 
-- [ ] `Term`: add `Owners` (`List<long>`, the scripts that advertise the name, sorted by id). A term with owners is remote.
-- [ ] `Parse`: an unknown property or predicate that appears in `ConstructVocab` is marked remote instead of returning `unknown property`. A name no script owns returns a new pending state instead of dropping the rule.
-- [ ] `Rule`: add `Pending` (waiting on a name no script owns yet). `Load` keeps pending rules, logs once, and `Rebuild` retries them.
-- [ ] Subscribe `ConditionModule` to `ConstructVocabChangedEvent` and call `Rebuild()`. Rebuild keeps each rule's state by name, as it does today.
-- [ ] A local name is parsed as local even if another script also advertises it. `Test` stays unchanged for local terms.
-- [ ] Add a three state result for `Test`: true, false and *unanswered* (no local block answered any row). Keep the existing bool `Test` as a wrapper for local callers.
-- [ ] Tests: a rule on `altitude` in script B is kept, not dropped, and logs once. It resolves after A's sync arrives. A local name is never marked remote. `Test` reports unanswered for a battery group when only the tank row of `low` is local.
+- [x] `Term`: add `Owners` (`List<long>`, the scripts that advertise the name, sorted by id). A term with owners is remote. **Done on `Rule` instead** (`Rule.Owners`, `Rule.Cond`): a predicate that no local module defines has no rows to build terms from, so the whole condition is remote and is sent as text.
+- [x] `Parse`: an unknown property or predicate that appears in `ConstructVocab` is marked remote instead of returning `unknown property`. A name no script owns returns a new pending state instead of dropping the rule. A remote name skips the local target check only for `ship` (the owner's controller). Any other target must exist on this script too, and a `$VARIABLE` that only another script defines is left unresolved here, so it is refused locally (`no target: $X`, or `unknown variable in: ...` in the value) and never sent. An inline `if` (`ask` false) still returns the old error until Phase 5.
+- [x] `Rule`: add `Pending` (waiting on a name no script owns yet). `Load` keeps pending rules, logs once, and `Rebuild` retries them. The log is `Rule x disabled: unknown property: y`, with ` (no script on the construct has it)` added when other scripts are on the construct, so a lone script logs what it did before.
+- [x] Subscribe `ConditionModule` to `ConstructVocabChangedEvent` and call `Rebuild()`. Rebuild keeps each rule's state by name, as it does today.
+- [x] A local name is parsed as local even if another script also advertises it. A remote predicate row is not supported inside a local predicate: a row with an unknown property is still the old error.
+- [x] Add a three state result for `Test`: true, false and *unanswered* (no local block answered any row). `Test` became `Probe` (private) and `Check` (public, for the `cond` route and tests). `Evaluate` wraps `Check`.
+- [x] Tests: a rule on `altitude` in script B is kept, not dropped, and logs once. It resolves after A's sync arrives. A local name is never marked remote. `Check` reports unanswered for a battery group when only the tank row of `low` is local.
 
-**Done when:** a rule naming a remote property no longer disables, and local evaluation is unchanged (all existing `ConditionModuleTests` pass).
+**Done when:** a rule naming a remote property no longer disables, and local evaluation is unchanged (all existing `ConditionModuleTests` pass). **Met.**
 
 ### Phase 3 - `cond` route and batching
 
-- [ ] `ConditionModule`: add the outbox (`Dictionary<long, List<string>>` of pending conditions per owner) and a pending result table keyed by owner and index, so a result can be matched back.
-- [ ] Add `ConditionModule.Ask(ownerId, condition, tripped, onResult)`: dedupes identical `(Condition, Tripped)` in the outbox and returns an index.
-- [ ] Flush the outbox at the end of `Tick`: one request per owner, split into groups of 10, built with `IMS.CreateRequest("cond", ...)` using the `C0`/`T0`, `C1`/`T1` keys, sent with `SendUnicastRequest(ownerId, request, onResponse)`.
-- [ ] `IntergridMessageService`: register the `cond` route. It first checks the construct only rules: arrived on `CONSTRUCT_CHANNEL_TAG` only, and `OriginIsOnConstruct(OriginId)`. Otherwise it returns `null` and does nothing. It builds a `TerminalCommand` per condition, calls the owner's `ConditionModule.Evaluate`, and replies `R0`, `R1`, ... as `1`, `0`, `?` or `!reason`.
-- [ ] `Evaluate` returns the three state result for the owner so `?` is possible. A condition with `--band` and `Tripped = 1` applies the band as a local tripped rule would (reuse `Test(rule, tripped)`).
-- [ ] The response callback writes each result into the pending table. Late replies for an expired request are dropped.
-- [ ] Tests: 8 remote rules for one owner send 1 request, for two owners send 2, 12 conditions split into 2 requests. Identical conditions are sent once. A request from another channel or an off construct origin gets no reply and nothing is evaluated. `cond` never runs a command.
+- [x] `ConditionModule`: add the outbox (`Outbox`, per owner id, the queued conditions with their callbacks) and a result table (`Replies` and `Heard`, keyed by owner and condition text) so a result can be matched back. Results are keyed by condition rather than by index, so they survive a `Rebuild`, and rules with the same condition share them.
+- [x] Add `ConditionModule.Ask(ownerId, condition, tripped, onResult)`: dedupes identical `(Condition, Tripped)` in the outbox (their callbacks are combined). The index is the position in the request, so `Ask` returns nothing.
+- [x] Flush the outbox at the end of the rule pass (`EvaluateRules`) with the public `Flush()`: one request per owner, split into groups of 10, built with `IMS.CreateRequest("cond", ...)` using the `C0`/`T0`, `C1`/`T1` keys. Sent with the new `IMS.SendAwaitedRequest`, see below.
+- [x] `IntergridMessageService`: register the `cond` route. It first checks the construct only rules: arrived on `CONSTRUCT_CHANNEL_TAG` only, and `OriginIsOnConstruct(OriginId)`. Otherwise it returns `null` and does nothing. It calls `ConditionModule.Answer` for each condition, and replies `R0`, `R1`, ... as `1`, `0`, `?` or `!reason`. `Answer` never runs a command, and a condition that does not parse gives `!reason`.
+- [x] `Check` returns the three state result so `?` is possible. A condition with `--band` and `Tripped = 1` applies the band as a local tripped rule would (the same `Probe(rule, tripped)`).
+- [x] The response callback writes each result into the result table. A request that is not answered is dropped at the second sync after it was sent. **`SendUnicastRequest` was not enough:** its callback is lost when any other message is handled before the response arrives (`activeRequests` is cleared after each handling), so `SendAwaitedRequest` keeps the callback until the response or the second sync.
+- [x] Tests: 8 remote rules for one owner send 1 request, for two owners send 2, 12 conditions split into 2 requests. Identical conditions are sent once. A request from another channel or an off construct origin gets no reply and nothing is evaluated. `cond` never runs a command. A reply is not lost when another message is handled first.
 
-**Done when:** a script can send a batch to an owner, get per-condition results back, and the route refuses anything that is not on the construct.
+**Done when:** a script can send a batch to an owner, get per-condition results back, and the route refuses anything that is not on the construct. **Met.**
 
 ### Phase 4 - Remote `when` rules
 
-- [ ] `Test` for a remote term: evaluate local rows first. If unanswered, queue a condition per advertised owner and use the **last answer received** (initially `false`).
-- [ ] Combine owners: the lowest script id whose reply is not `?` decides. All `?` is false.
-- [ ] Send `Tripped` with each request so the owner applies the band. Strip `--for`, `--cooldown` and `--every` from the text. Keep `--band` and `--at`.
-- [ ] Respect `--every` and the shared `ruleInterval` when queueing, so a rule that is not due sends nothing.
-- [ ] Treat an answer older than 3 ping intervals, or an owner no longer in `ConstructVocab`, as `false`, and log it once.
-- [ ] Tests: `when ship altitude < 100 --band=20 --for=2` in script B fires after A answers `1` and holds `--for`, then resets above the band using `Tripped`. An owner that leaves makes the rule false with one log line. Both owners answering `?` gives false. The lower id wins when both answer.
+- [x] `Test` for a remote term: evaluate local rows first. If unanswered, queue a condition per advertised owner and use the **last answer received** (initially `false`).
+- [x] Combine owners: the lowest script id whose reply is not `?` decides. All `?` is false. All owners are asked in the same pass, and while a lower owner has not answered yet its answer is waited for. An `!reason` reply counts as `?` and is logged once.
+- [x] Send `Tripped` with each request so the owner applies the band. Strip `--for`, `--cooldown` and `--every` from the text. Keep `--band` and `--at`.
+- [x] Respect `--every` and the shared `ruleInterval` when queueing, so a rule that is not due sends nothing.
+- [x] Treat an answer older than 3 ping intervals (plus the rule's own period, `--every` or `ruleInterval`), or an owner no longer in `ConstructVocab`, as `false`, and log it once. Nothing removes an owner from `ConstructVocab` when it leaves, so a gone owner is found by its answers aging out.
+- [x] Tests: `when ship altitude < 100 --band=20 --for=2` in script B fires after A answers `1` and holds `--for`, then resets above the band using `Tripped`. An owner that leaves makes the rule false with one log line. Both owners answering `?` gives false. The lower id wins when both answer.
 
-**Done when:** the Mother GUI `approach` rule works against a MAPS script in the harness, and no remote request is sent for a rule that is not due.
+**Done when:** the Mother GUI `approach` rule works against a MAPS script in the harness, and no remote request is sent for a rule that is not due. **Met** with `FakeConditionVocabulary` standing in for MAPS. The MAPS suite itself is Phase 6.
 
 ### Phase 5 - Remote `if` and `elseif`
 
-- [ ] `ConditionModule.Evaluate`: add a non-blocking form that returns a result, or `Pending` with a handle when a remote answer is needed. Keep the current signature for local-only callers.
-- [ ] `CommandBus`: split `RunIfStep` into "start evaluating" and "apply the result". In `ExecuteCommandGroupCoroutine`, `yield return 0` while the handle is pending, then apply the result with the same `ifs` stack rules (`3`, `0`, `2`, `4`, `5`, `6`).
-- [ ] Do not change the skip rules: a skipped `if`, and an `elseif` after a branch already ran, never evaluate and never queue a request.
-- [ ] Timeout: `[general] condTimeout` seconds (default 2). On timeout, or when no script owns the name, call `Fail(state, command, "no answer from <script> for <name>")`.
-- [ ] Add `condTimeout` to the Configuration reading in `Boot()` like `ruleInterval`.
-- [ ] Tests: the routine pauses at a remote `if`, then runs the right branch. Steps after it do not run before the reply. Two routines in one cycle share a request. A timeout fails the step and stops the routine. An unowned name fails at once. A local `if` returns in the same step with no request. All existing `CommandBusIfTests` still pass.
+- [x] `ConditionModule.Evaluate`: add a non-blocking form that returns a result, or `Pending` with a handle when a remote answer is needed. Keep the current signature for local-only callers. **Done as `Begin(command, out error, out poll)`:** it returns `1` or `0` at once, or `2` (pending) with `poll`, a `Func<string>` that returns `null` while waiting, then `"1"` or `"0"`, or the failure text. `Evaluate` is unchanged and stays local only. Conditions queued by an `if` go out on every `Tick` (not only on a rule pass), so a wait is one cycle, not one `ruleInterval`.
+- [x] `CommandBus`: split `RunIfStep` into "start evaluating" and "apply the result" (`ApplyIf`). In `ExecuteCommandGroupCoroutine`, `yield return 0` while the handle is pending, then apply the result with the same `ifs` stack rules (`3`, `0`, `2`, `4`, `5`, `6`).
+- [x] Do not change the skip rules: a skipped `if`, and an `elseif` after a branch already ran, never evaluate and never queue a request.
+- [x] Timeout: `[general] condTimeout` seconds (default 2). On timeout, the step fails with `no answer from script <id> for <name>` (the sync does not carry script names, so the id is used). A name no script owns fails at once with the usual `unknown property: x` / `unknown predicate: x`, without a request.
+- [x] Add `condTimeout` to the Configuration reading in `Boot()` like `ruleInterval`.
+- [x] Tests: the routine pauses at a remote `if`, then runs the right branch. Steps after it do not run before the reply. Two routines in one cycle share a request. A timeout fails the step and stops the routine. An unowned name fails at once. A local `if` returns in the same step with no request. All existing `CommandBusIfTests` still pass.
 
-**Done when:** a remote `if` and a local `if` behave the same from the routine's side, apart from the wait.
+**Done when:** a remote `if` and a local `if` behave the same from the routine's side, apart from the wait. **Met.**
 
 ### Phase 6 - Wire up, document, verify
 
-- [ ] Run the full MotherCore suite, then the MotherOS and MAPS suites against the new Core.
-- [ ] Add a MAPS test that a Mother GUI style script with no vocabulary resolves `ship altitude < 100` through MAPS.
-- [ ] Build Mother GUI, Mother OS and MAPS with the optimizer and record the minified size change against the 100,000 character limit.
-- [ ] Check the Mother GUI blueprint on the construct: `approach`, `cruiseLights`, `if ship inspace` and `if ship ingravity` work with MAPS and Mother OS present, and fail with one log line each when MAPS is removed.
-- [ ] Update [ConditionalLogicSpec.md](../src/Specs/ConditionalLogicSpec.md) (vocabulary is shared across the construct), [src/README.md](../src/README.md) and add a CHANGELOG entry.
-- [ ] Mark this spec's status as implemented.
+- [x] Run the full MotherCore suite, then the MotherOS and MAPS suites against the new Core. MotherCore 700, Mother OS 391, MAPS 46 (with the new test below) and Mother GUI 48 all pass.
+- [x] Add a MAPS test that a Mother GUI style script with no vocabulary resolves `ship altitude < 100` through MAPS. `SharedConditionTests` in the MAPS suite: the asker knows MAPS's names after a sync, and an inline `if` on `altitude` and on `inspace` and a `when` rule on `altitude` are answered by MAPS.
+- [x] Build Mother GUI, Mother OS and MAPS with the optimizer and record the minified size change against the 100,000 character limit (Release builds, characters of the packaged `script.cs`, Core at the branch start against now):
 
-**Done when:** all suites are green, size is within the limit, and the GUI blueprint rules and ifs work on a construct with the other scripts, with no per-script vocabulary added to the GUI.
+  | Script | Before | After | Change | Left under 100,000 |
+  |---|---|---|---|---|
+  | Mother OS | 94,017 | 98,156 | +4,139 | 1,844 |
+  | MAPS | 92,124 | 96,257 | +4,133 | 3,743 |
+  | Mother GUI | 95,054 | 99,175 | +4,121 | 825 |
+
+  All three fit. Mother GUI has the least room, so the next addition to Core needs a size pass first.
+- [x] Check the Mother GUI blueprint on the construct: `approach`, `cruiseLights`, `if ship inspace` and `if ship ingravity` work with MAPS and Mother OS present. Checked in game by the author. The harness covers the failure case (a name no script owns reports once and the rule or `if` does not run), but removing MAPS from a live construct was not checked.
+- [x] Update [ConditionalLogicSpec.md](../src/Specs/ConditionalLogicSpec.md) (vocabulary is shared across the construct), [src/README.md](../src/README.md) and add a CHANGELOG entry.
+- [x] Mark this spec's status as implemented.
+
+**Done when:** all suites are green, size is within the limit, and the GUI blueprint rules and ifs work on a construct with the other scripts, with no per-script vocabulary added to the GUI. **Met.**

@@ -72,6 +72,15 @@ namespace IngameScript
         public Dictionary<string, Action<IntergridMessageObject>> activeRequests = new Dictionary<string, Action<IntergridMessageObject>>();
 
         /// <summary>
+        /// Requests that keep waiting for their Response while other messages
+        /// arrive, with the sync they were sent in. A request that is not
+        /// answered is dropped at the second sync after it.
+        /// </summary>
+        readonly Dictionary<string, KeyValuePair<int, Action<IntergridMessageObject>>> AwaitedRequests = new Dictionary<string, KeyValuePair<int, Action<IntergridMessageObject>>>();
+
+        int Syncs;
+
+        /// <summary>
         /// The tag for this construct's channel.
         /// </summary>
         const string CONSTRUCT_CHANNEL_TAG = ".construct";
@@ -104,6 +113,12 @@ namespace IngameScript
         public readonly Dictionary<long, HashSet<string>> ConstructViews = new Dictionary<long, HashSet<string>>();
 
         /// <summary>
+        /// Condition property, predicate and state names owned by other scripts
+        /// on the construct. Maps script id to names.
+        /// </summary>
+        public readonly Dictionary<long, HashSet<string>> ConstructVocab = new Dictionary<long, HashSet<string>>();
+
+        /// <summary>
         /// The cached relay ID for this construct. Reset to 0 when re-election is needed.
         /// </summary>
         long _relayId = 0;
@@ -134,8 +149,10 @@ namespace IngameScript
             Almanac = Mother.GetModule<Almanac>();
             EventBus = Mother.GetModule<EventBus>();
 
-            // Clear remote views on boot
+            // Clear remote views and names on boot
             ConstructViews.Clear();
+            ConstructVocab.Clear();
+            AwaitedRequests.Clear();
 
             // Register commands
             Mother.RegisterCommand("ping", 0, c => { Ping(); return "Pinging all grids"; });
@@ -152,6 +169,7 @@ namespace IngameScript
             Router.RegisterRoute("sync", request => HandleSyncRequest(request));
             Router.RegisterRoute("almanac", request => HandleAlmanacSyncRequest(request));
             Router.RegisterRoute("view", request => HandleViewRequest(request));
+            Router.RegisterRoute("cond", request => HandleCondRequest(request));
 
             // Ping scripts on the construct to perform handshake after boot completes
             Clock.QueueForLater(() => ConstructPing(), 0.5);
@@ -173,18 +191,8 @@ namespace IngameScript
         {
             SyncConstructCommands(request);
 
-            // Return our commands
-            var selfCommands = Mother.GetModule<CommandBus>().GetSelfCommandNames();
-            
-            var response = CreateResponse(
-                request,
-                Response.ResponseStatusCodes.OK,
-                new Dictionary<string, object>
-                {
-                    { "Commands", string.Join(",", selfCommands) },
-                    { "Views", string.Join(",", Views.Keys) }
-                }
-            );
+            // Return our commands, views and condition names
+            var response = CreateResponse(request, Response.ResponseStatusCodes.OK, SyncBody());
             
             // Ensure response uses the construct channel
             response.Channels.Add(CONSTRUCT_CHANNEL_TAG);
@@ -446,8 +454,15 @@ namespace IngameScript
             if (response.Header.ContainsKey("RespondingToId"))
             {
                 string respondingToId = response.HString("RespondingToId");
+                KeyValuePair<int, Action<IntergridMessageObject>> awaited;
 
-                if (activeRequests.ContainsKey(respondingToId))
+                if (AwaitedRequests.TryGetValue(respondingToId, out awaited))
+                {
+                    AwaitedRequests.Remove(respondingToId);
+                    awaited.Value(response);
+                }
+
+                else if (activeRequests.ContainsKey(respondingToId))
                     activeRequests[respondingToId]?.Invoke(response);
             }
 
@@ -491,6 +506,21 @@ namespace IngameScript
                 EventBus.Emit<RequestSentEvent>();
             else
                 EventBus.Emit<RequestFailedEvent>();
+        }
+
+        /// <summary>
+        /// Send a unicast request and keep waiting for its Response. Unlike
+        /// <see cref="SendUnicastRequest"/>, the callback is not lost when other
+        /// messages arrive first, and it runs once. A request that is not
+        /// answered is dropped at the second sync after it was sent.
+        /// </summary>
+        /// <param name="TargetId"></param>
+        /// <param name="request"></param>
+        /// <param name="onResponse"></param>
+        public void SendAwaitedRequest(long TargetId, Request request, Action<IntergridMessageObject> onResponse)
+        {
+            AwaitedRequests[$"{request.Header["Id"]}"] = new KeyValuePair<int, Action<IntergridMessageObject>>(Syncs, onResponse);
+            SendUnicastRequest(TargetId, request, null);
         }
 
         /// <summary>
@@ -693,15 +723,14 @@ namespace IngameScript
         /// </summary>
         public void ConstructPing()
         {
-            var constructCommands = Mother.GetModule<CommandBus>().GetSelfCommandNames();
+            Syncs++;
 
+            foreach (var key in new List<string>(AwaitedRequests.Keys))
+                if (AwaitedRequests[key].Key < Syncs - 1)
+                    AwaitedRequests.Remove(key);
             Request request = CreateRequest(
                 "sync",
-                new Dictionary<string, object>
-                {
-                    { "Commands", string.Join(",", constructCommands) },
-                    { "Views", string.Join(",", Views.Keys) }
-                },
+                SyncBody(),
                 new Dictionary<string, object>
                 {
                     { "OriginName", Mother.Name }
@@ -709,6 +738,29 @@ namespace IngameScript
             );
 
             SendConstructBroadcastRequest(request, response => OnSyncResponse(response));
+        }
+
+        /// <summary>
+        /// The body of a sync request or response: this script's commands, views
+        /// and the condition names (Props and Preds) it defines.
+        /// </summary>
+        Dictionary<string, object> SyncBody()
+        {
+            var body = new Dictionary<string, object>
+            {
+                { "Commands", string.Join(",", Mother.GetModule<CommandBus>().GetSelfCommandNames()) },
+                { "Views", string.Join(",", Views.Keys) }
+            };
+
+            var condition = Mother.GetModule<ConditionModule>();
+
+            if (condition != null)
+            {
+                body["Props"] = condition.Names(false);
+                body["Preds"] = condition.Names(true);
+            }
+
+            return body;
         }
 
         /// <summary>
@@ -793,9 +845,26 @@ namespace IngameScript
                 Mother.GetModule<CommandBus>().RegisterRemoteCommands(originId, commands);
             }
 
-            if (originId != 0 && originId != Mother.Id)
-                ConstructViews[originId] = new HashSet<string>(
-                    message.BString("Views").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries));
+            if (originId == 0 || originId == Mother.Id)
+                return;
+
+            var split = new[] { ',' };
+
+            ConstructViews[originId] = new HashSet<string>(
+                message.BString("Views").Split(split, StringSplitOptions.RemoveEmptyEntries));
+
+            var names = new HashSet<string>(
+                $"{message.BString("Props")},{message.BString("Preds")}".Split(split, StringSplitOptions.RemoveEmptyEntries));
+            HashSet<string> old;
+
+            // A script that has not been heard from yet owns no names
+            if (!ConstructVocab.TryGetValue(originId, out old))
+                old = new HashSet<string>();
+
+            ConstructVocab[originId] = names;
+
+            if (!old.SetEquals(names))
+                EventBus.Emit<ConstructVocabChangedEvent>();
         }
 
         /// <summary>
@@ -859,6 +928,32 @@ namespace IngameScript
                 onActivate(request.BString("Display"), request.BString("Active") == "1");
 
             return null;
+        }
+
+        /// <summary>
+        /// Answers the conditions another script on the construct asks, up to
+        /// 10 a request. C0, C1 hold the conditions and T0, T1 whether the asker's
+        /// rule is tripped. The results come back as R0, R1 in the same order.
+        /// It only reads blocks, and it ignores anything that did not arrive on
+        /// the construct channel from a script on this construct.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        Response HandleCondRequest(Request request)
+        {
+            if (request.Channels.Count != 1 || !request.Channels.Contains(CONSTRUCT_CHANNEL_TAG) || !OriginIsOnConstruct(request.HLong("OriginId")))
+                return null;
+
+            var body = new Dictionary<string, object>();
+            var condition = Mother.GetModule<ConditionModule>();
+
+            for (int i = 0; i < 10 && request.Body.ContainsKey("C" + i); i++)
+                body["R" + i] = condition.Answer(request.BString("C" + i), request.BString("T" + i) == "1");
+
+            var response = CreateResponse(request, Response.ResponseStatusCodes.OK, body);
+            response.Channels.Add(CONSTRUCT_CHANNEL_TAG);
+
+            return response;
         }
 
         /// <summary>

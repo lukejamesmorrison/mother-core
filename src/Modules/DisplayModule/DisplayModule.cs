@@ -365,11 +365,6 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Register a custom display type. Extension modules should call this to 
-        /// register their display types so surfaces can be collected.
-        /// </summary>
-        /// <param name="displayType">The display type name (case-insensitive).</param>
-        /// <summary>
         /// Get all surfaces registered for a specific view name.
         /// Extension modules use this to retrieve surfaces claimed for them via
         /// a <c>[surfaces]</c> entry (e.g. <c>1=MapView</c>).
