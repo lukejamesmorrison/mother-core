@@ -1,4 +1,4 @@
-using Sandbox.ModAPI.Ingame;
+﻿using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 
@@ -19,7 +19,7 @@ namespace IngameScript
     {
         readonly BaseModule Module;
         readonly string Prefix;
-        readonly Dictionary<object, Action<T>> States = new Dictionary<object, Action<T>>();
+        readonly Dictionary<object, List<KeyValuePair<Func<object, bool>, Action<T>>>> States = new Dictionary<object, List<KeyValuePair<Func<object, bool>, Action<T>>>>();
 
         /// <summary>
         /// Constructor.
@@ -133,17 +133,26 @@ namespace IngameScript
         /// </summary>
         /// <typeparam name="E">The event to emit.</typeparam>
         /// <param name="state">The state value, ie. VentStatus.Pressurized, or true.</param>
-        /// <param name="hook">The hook to run. Defaults to "on" plus the state's name, ie. onPressurized.</param>
+        /// <param name="hook">The hook to run. Defaults to "on" plus the state's name, ie. onPressurized. Empty for none.</param>
         /// <param name="also">Optional extra action run with the block after the hook.</param>
+        /// <param name="when">Optional test of the previous state. The declaration only applies when it returns true.</param>
         /// <returns>This set, for chaining.</returns>
-        public BlockSet<T> On<E>(object state, string hook = null, Action<T> also = null) where E : IEvent, new()
+        public BlockSet<T> On<E>(object state, string hook = null, Action<T> also = null, Func<object, bool> when = null) where E : IEvent, new()
         {
-            States[state] = block =>
+            List<KeyValuePair<Func<object, bool>, Action<T>>> rules;
+
+            if (!States.TryGetValue(state, out rules))
+                States[state] = rules = new List<KeyValuePair<Func<object, bool>, Action<T>>>();
+
+            rules.Add(new KeyValuePair<Func<object, bool>, Action<T>>(when, block =>
             {
                 Module.Emit<E>(block);
-                Module.GetModule<BlockCatalogue>().RunHook(block, hook ?? "on" + state);
+
+                if (hook != "")
+                    Module.GetModule<BlockCatalogue>().RunHook(block, hook ?? "on" + state);
+
                 also?.Invoke(block);
-            };
+            }));
 
             return this;
         }
@@ -155,10 +164,22 @@ namespace IngameScript
         /// <param name="state"></param>
         void Dispatch(T block, object state)
         {
-            Action<T> run;
+            List<KeyValuePair<Func<object, bool>, Action<T>>> rules;
 
-            if (state != null && States.TryGetValue(state, out run))
-                run(block);
+            if (state == null || !States.TryGetValue(state, out rules))
+                return;
+
+            object previous;
+            Module.PreviousStates.TryGetValue(block.EntityId, out previous);
+
+            foreach (var rule in rules)
+            {
+                if (rule.Key == null || rule.Key(previous))
+                {
+                    rule.Value(block);
+                    return;
+                }
+            }
         }
     }
 }

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 // closing "}" of the last type, so the suffix supplies it, and also closes the namespace.
 sealed class ScriptCompilation
 {
-    const string Usings =
+    public const string Usings =
         "using System;using System.Collections;using System.Collections.Generic;using System.Linq;using System.Text;" +
         "using System.Collections.Immutable;using Sandbox.ModAPI.Ingame;using Sandbox.ModAPI.Interfaces;" +
         "using SpaceEngineers.Game.ModAPI.Ingame;using VRage;using VRage.Game;using VRage.Game.Components;" +

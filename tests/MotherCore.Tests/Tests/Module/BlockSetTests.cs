@@ -422,6 +422,60 @@ namespace MotherCore.Tests.Tests.Module
         }
 
         [Test]
+        public void On_Uses_The_First_Declaration_For_A_State_Whose_When_Accepts_The_Previous_State()
+        {
+            var airlock = Door("Airlock", DoorStatus.Opening);
+            var script = Boot(new RecordingCommand(),
+                m => m.Block<IMyDoor>()
+                    .Monitor(d => d.Status)
+                    .On<ClosedEvent>(DoorStatus.Open, null, null, previous => Equals(previous, DoorStatus.Opening))
+                    .On<OpenedEvent>(DoorStatus.Open),
+                airlock);
+
+            ((FakeDoor)airlock).Status = DoorStatus.Open;
+            Poll(script);
+
+            script.AssertEventEmitted<ClosedEvent>(1);
+            script.AssertEventEmitted<OpenedEvent>(0);
+        }
+
+        [Test]
+        public void On_Falls_Through_To_The_Next_Declaration_When_When_Rejects_The_Previous_State()
+        {
+            var airlock = Door("Airlock", DoorStatus.Closed);
+            var script = Boot(new RecordingCommand(),
+                m => m.Block<IMyDoor>()
+                    .Monitor(d => d.Status)
+                    .On<ClosedEvent>(DoorStatus.Open, null, null, previous => Equals(previous, DoorStatus.Opening))
+                    .On<OpenedEvent>(DoorStatus.Open),
+                airlock);
+
+            ((FakeDoor)airlock).Status = DoorStatus.Open;
+            Poll(script);
+
+            script.AssertEventEmitted<ClosedEvent>(0);
+            script.AssertEventEmitted<OpenedEvent>(1);
+        }
+
+        [Test]
+        public void On_With_An_Empty_Hook_Emits_The_Event_Without_Running_A_Hook()
+        {
+            var rec = new RecordingCommand();
+            var airlock = Door("Airlock", hooks: "onOpen=rec OPENED");
+            var script = Boot(rec,
+                m => m.Block<IMyDoor>()
+                    .Monitor(d => d.Status)
+                    .On<OpenedEvent>(DoorStatus.Open, ""),
+                airlock);
+
+            ((FakeDoor)airlock).Status = DoorStatus.Open;
+            Poll(script);
+
+            script.AssertEventEmitted<OpenedEvent>(1);
+            Assert.That(rec.Calls, Is.Empty);
+        }
+
+        [Test]
         public void On_Does_Not_Fire_Until_The_State_Changes()
         {
             var rec = new RecordingCommand();

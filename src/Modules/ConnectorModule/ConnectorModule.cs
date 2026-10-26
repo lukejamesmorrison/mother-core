@@ -55,49 +55,20 @@ namespace IngameScript
 
             Block<IMyShipConnector>()
                 .Status("status", connector => connector.Status)
-                .Monitor(connector => connector.Status, HandleConnectorStateChange);
+                .Monitor(connector => connector.Status)
+                .On<ConnectorLockedEvent>(MyShipConnectorStatus.Connected, "onLock")
+                .On<ConnectorUnlockedEvent>(MyShipConnectorStatus.Unconnected, "onUnlock")
+                .On<ConnectorUnlockedEvent>(MyShipConnectorStatus.Connectable, "onUnlock", null, WasConnected)
+                .On<ConnectorReadyToLockEvent>(MyShipConnectorStatus.Connectable, "onReady");
 
             // connected and connectable are state words of the status above
             Mother.GetModule<ConditionModule>().RegisterPredicate("disconnected", "status == unconnected");
         }
 
         /// <summary>
-        /// Handles the connector state change event. This is called when 
-        /// the connector's state changes.
+        /// Whether the previous status was Connected, which makes a move to 
+        /// Connectable an unlock rather than ready to lock.
         /// </summary>
-        /// <param name="connector"></param>
-        /// <param name="newState"></param>
-        protected void HandleConnectorStateChange(IMyShipConnector connector, object newState)
-        {
-            var status = newState as MyShipConnectorStatus?;
-
-            var previousStatus = PreviousStates.ContainsKey(connector.EntityId) 
-                ? PreviousStates[connector.EntityId] as MyShipConnectorStatus? 
-                : null;
-
-            // we are docked
-            if (status == MyShipConnectorStatus.Connected)
-            {
-                Emit<ConnectorLockedEvent>(connector);
-                BlockCatalogue.RunHook(connector, "onLock");
-            }
-
-            // We are undocked
-            else if (
-                (status == MyShipConnectorStatus.Connectable && previousStatus == MyShipConnectorStatus.Connected)
-                || status == MyShipConnectorStatus.Unconnected
-            )
-            {
-                Emit<ConnectorUnlockedEvent>(connector);
-                BlockCatalogue.RunHook(connector, "onUnlock");
-            }
-
-            // We are ready to lock
-            else if (status == MyShipConnectorStatus.Connectable)
-            {
-                Emit<ConnectorReadyToLockEvent>(connector);
-                BlockCatalogue.RunHook(connector, "onReady");
-            }
-        }
+        static bool WasConnected(object previous) => Equals(previous, MyShipConnectorStatus.Connected);
     }
 }

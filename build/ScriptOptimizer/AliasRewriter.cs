@@ -148,19 +148,21 @@ static class AliasRewriter
         return ordered.Where(c => c.Net > 0).ToList();
     }
 
-    // Single characters first (the packager uses the same kind of names), then pairs.
-    static IEnumerable<string> Names(HashSet<string> used)
+    // Single characters first (the packager uses the same kind of names, up to U+07A4), then pairs. Pairs draw on every
+    // letter, not only the unused ones, because a script that has used up the single characters would get no pairs.
+    public static IEnumerable<string> Names(HashSet<string> used)
     {
-        var singles = Enumerable.Range('A', 0x530 - 'A')
+        var letters = Enumerable.Range('A', 0x900 - 'A')
             .Select(i => (char)i)
-            .Where(c => char.IsLetter(c) && SyntaxFacts.IsIdentifierStartCharacter(c) && !used.Contains(c.ToString()))
+            .Where(c => char.IsLetter(c) && SyntaxFacts.IsIdentifierStartCharacter(c))
             .ToList();
 
-        foreach (var c in singles)
-            yield return c.ToString();
+        foreach (var c in letters)
+            if (!used.Contains(c.ToString()))
+                yield return c.ToString();
 
-        foreach (var a in singles)
-            foreach (var b in singles)
+        foreach (var a in letters)
+            foreach (var b in letters)
                 if (!used.Contains(a.ToString() + b))
                     yield return a.ToString() + b;
     }

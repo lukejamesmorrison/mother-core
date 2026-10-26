@@ -10,9 +10,7 @@
         /// Output dynamic number format from string.
         /// Supports: int, long, float, double, decimal.
         /// </summary>
-        public static T Parse<T>(string value)
-        {
-            return (T) System.Convert.ChangeType(value, typeof(T));
-        }
+        public static T Parse<T>(string value) 
+            => (T) System.Convert.ChangeType(value, typeof(T));
     }
 }

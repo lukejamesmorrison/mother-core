@@ -3,4 +3,6 @@
 /tests/MotherCore.Tests/obj
 /build/ScriptOptimizer/bin
 /build/ScriptOptimizer/obj
+/build/ScriptOptimizer.Tests/bin
+/build/ScriptOptimizer.Tests/obj
 .vscode/settings.json

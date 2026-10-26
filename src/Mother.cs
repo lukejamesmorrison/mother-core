@@ -412,21 +412,6 @@ namespace IngameScript
             GridTerminalSystem = Program.GridTerminalSystem;
             CubeGrid = ProgrammableBlock.CubeGrid;
 
-            //string state = "";
-
-            //switch (SystemState)
-            //{
-            //    case SystemStates.UNINITIALIZED:
-            //        state = "Uninitialized";
-            //        break;
-            //    case SystemStates.BOOT:
-            //        state = "Booting";
-            //        break;
-            //    case SystemStates.WORKING:
-            //        state = "Working";
-            //        break;
-            //}
-
             // If a reboot was requested (e.g. from a menu command coroutine), handle it
             // here at the top of the cycle before any state-dependent code runs.
             if (PendingBoot)
@@ -444,8 +429,6 @@ namespace IngameScript
             else if (SystemState == SystemStates.BOOT)
             {
                 GetModule<Clock>().Run();
-
-                //GetModule<Terminal>()?.Highlight($"State: {state}");
 
                 // update terminal during boot
                 GetModule<Terminal>()?.UpdateTerminal();
@@ -470,10 +453,7 @@ namespace IngameScript
 
                 // Otherwise we run all modules and assume a runtime update (Update10).
                 else
-                {
                     RunModules();
-                    OtherRuntimeItems();
-                }
 
                 // Update terminal and console surfaces (Log/Debug) on every cycle
                 GetModule<Terminal>().UpdateTerminal();
@@ -482,37 +462,16 @@ namespace IngameScript
 
             // Print debug stats
             if(DebugMode)
-            {
                 GetModule<Terminal>().Highlight("Complexity:  " + Program.Runtime.CurrentInstructionCount.ToString() + "/50000");
-            }
 
         }
 
         /// <summary>
         /// Run all modules. This is called on every program cycle.
         /// </summary>
-        void RunModules() => AllModules.Values.ToList().ForEach(module => module.Run());
-
-        /// <summary>
-        /// Placeholder for other runtime items. This is useful for producing system 
-        /// output during runtime.
-        /// </summary>
-        void OtherRuntimeItems()
-        {
-           //
-        }
-
-        /// <summary>
-        /// UNUSED
-        /// 
-        /// Set the update frequency of the program. This allows the player to determine 
-        /// the program speed. This is currently unused and is subject to ongoing 
-        /// experimentation.
-        /// </summary>
-        //public void SetUpdateFrequency()
-        //{
-        //    //Runtime.UpdateFrequency = Configuration.Get("general.update_frequency") == "10" ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
-        //}
+        void RunModules() => AllModules.Values
+            .ToList()
+            .ForEach(module => module.Run());
 
         /// <summary>
         /// Save the storage string to the Program's Storage property. We do this to 
@@ -657,9 +616,7 @@ namespace IngameScript
         /// </summary>
         /// <returns></returns>
         public MatrixD GetWorldMatrix()
-        {
-            return ShipController?.WorldMatrix ?? CubeGrid.WorldMatrix;
-        }
+            => ShipController?.WorldMatrix ?? CubeGrid.WorldMatrix;
 
         /// <summary>
         /// Get the current position of the ship. Uses the ShipController if available,
@@ -791,18 +748,22 @@ namespace IngameScript
                 }
 
                 string value;
+
                 if (options != null && options.ContainsKey(paramName))
                     value = options[paramName];
                 else
                     value = defaultValue;
 
                 result.Append(value);
+
                 i = closeIndex + 2;
             }
 
             // After parameter substitution, resolve any $VARIABLE references
             // (including those that came from default values like {{player:$PLAYER}})
-            return substituteVariables ? SubstituteVariables(result.ToString()) : result.ToString();
+            return substituteVariables 
+                ? SubstituteVariables(result.ToString()) 
+                : result.ToString();
         }
     }
 } 

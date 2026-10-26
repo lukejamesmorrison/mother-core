@@ -56,46 +56,14 @@ namespace IngameScript
         /// </param>
         void RegisterMechanicalBlocksForStateMonitoring(bool preserveState = false)
         {
-            Block<IMyMechanicalConnectionBlock>().Monitor(
-                mechanicalBlock => mechanicalBlock.IsAttached,
-                HandleMechanicalBlockStateChange,
-                preserveState
-            );
-        }
+            Block<IMyMechanicalConnectionBlock>()
+                .Monitor(mechanicalBlock => mechanicalBlock.IsAttached, preserveState)
 
-        /// <summary>
-        /// Handles the mechanical block state change event. This is called when
-        /// the attached/detached state changes.
-        /// </summary>
-        /// <param name="mechanicalBlock"></param>
-        /// <param name="newState"></param>
-        protected void HandleMechanicalBlockStateChange(IMyMechanicalConnectionBlock mechanicalBlock, object newState)
-        {
-            var isAttached = newState as bool?;
+                // A grid was added to the construct - crawl from the newly attached grid
+                .On<MechanicalBlockAttachedEvent>(true, "onAttach", block => BlockCatalogue.OnMechanicalBlockAttached(block.TopGrid), previous => !true.Equals(previous))
 
-            var previousState = PreviousStates.ContainsKey(mechanicalBlock.EntityId)
-                ? PreviousStates[mechanicalBlock.EntityId] as bool?
-                : null;
-
-            // Attached - a grid was added to the construct
-            if (isAttached == true && previousState != true)
-            {
-                Emit<MechanicalBlockAttachedEvent>(mechanicalBlock);
-                BlockCatalogue.RunHook(mechanicalBlock, "onAttach");
-
-                // Trigger optimized construct attach - crawl from the newly attached grid
-                BlockCatalogue.OnMechanicalBlockAttached(mechanicalBlock.TopGrid);
-            }
-
-            // Detached - a grid was removed from the construct
-            else if (isAttached == false && previousState == true)
-            {
-                Emit<MechanicalBlockDetachedEvent>(mechanicalBlock);
-                BlockCatalogue.RunHook(mechanicalBlock, "onDetach");
-
-                // Trigger optimized construct detach - prune disconnected grids
-                BlockCatalogue.OnMechanicalBlockDetached();
-            }
+                // A grid was removed from the construct - prune disconnected grids
+                .On<MechanicalBlockDetachedEvent>(false, "onDetach", block => BlockCatalogue.OnMechanicalBlockDetached(), previous => true.Equals(previous));
         }
     }
 }

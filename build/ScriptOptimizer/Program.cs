@@ -74,6 +74,14 @@ if (aliases != null)
     current = afterAliases;
 }
 
+var helpers = CallHelperRewriter.Rewrite(current, ScriptCompilation.Create(current, references));
+if (helpers != null)
+{
+    var afterHelpers = Accept("call helpers", current, helpers.Script);
+    summary.Add($"{(afterHelpers == current ? 0 : helpers.Helpers)} call helpers at {(afterHelpers == current ? 0 : helpers.Sites)} sites {current.Length} -> {afterHelpers.Length}");
+    current = afterHelpers;
+}
+
 var narrowEdits = AccessNarrower.FindEdits(current, ScriptCompilation.Create(current, references));
 var afterNarrow = Accept("public narrowing", current, ScriptEdits.Apply(current, narrowEdits));
 summary.Add($"{(afterNarrow == current ? 0 : narrowEdits.Count)} members narrowed from public {current.Length} -> {afterNarrow.Length}");
