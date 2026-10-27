@@ -241,6 +241,10 @@ namespace MotherCore.Tests.Tests.Module
                 .With("rules", "low", "when \"Bat\" low; if \"Gear\" locked; rec LOCKED; else; rec FLYING; end; rec TAIL; else; rec OK");
             var script = Boot(rec, data, battery, gear);
 
+            // The rule loads one cycle after boot
+            for (int i = 0; i < 20; i++)
+                script.Mother.GetModule<Clock>().Run();
+
             script.Mother.GetModule<ConditionModule>().EvaluateRules();
             script.RunToIdle();
 
@@ -362,7 +366,119 @@ namespace MotherCore.Tests.Tests.Module
             Assert.That(rec.Calls, Is.EqualTo(new[] { "rec AT" }));
         }
 
+        // --- Text compare ---
+
+        [Test]
+        [TestCase("parked", "parked", "rec T")]
+        [TestCase("parked", "takeoff", "rec F")]
+        [TestCase("Parked", "PARKED", "rec T")]
+        public void A_Text_Compare_With_Equals_Compares_Without_Case(string a, string b, string expected)
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer(), Battery("Bat", 0.5));
+
+            Run(script, $"if {a} == {b}; rec T; else; rec F; end");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { expected }));
+        }
+
+        [Test]
+        [TestCase("parked", "parked", "rec F")]
+        [TestCase("parked", "takeoff", "rec T")]
+        public void A_Text_Compare_With_Not_Equals_Is_The_Opposite(string a, string b, string expected)
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer(), Battery("Bat", 0.5));
+
+            Run(script, $"if {a} != {b}; rec T; else; rec F; end");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { expected }));
+        }
+
+        [Test]
+        public void A_Text_Compare_Reads_A_Variable_Set_Earlier_In_The_Routine()
+        {
+            var rec = new RecordingCommand();
+            var data = new CustomDataComposer().WithVariable("MODE", "off");
+            var script = Boot(rec, data, Battery("Bat", 0.5));
+
+            Run(script, "var/set MODE parked; if $MODE == parked; rec T; else; rec F; end");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { "rec T" }));
+        }
+
+        [Test]
+        public void A_Text_Compare_Works_In_An_Elseif_Chain()
+        {
+            var rec = new RecordingCommand();
+            var data = new CustomDataComposer().WithVariable("MODE", "landing");
+            var script = Boot(rec, data, Battery("Bat", 0.5));
+
+            Run(script, "if $MODE == parked; rec A; elseif $MODE == landing; rec B; elseif $MODE == off; rec C; else; rec D; end; rec AFTER");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { "rec B", "rec AFTER" }));
+        }
+
+        [Test]
+        public void A_Text_Compare_Of_Quoted_Values_With_Spaces_Compares_The_Text()
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer(), Battery("Bat", 0.5));
+
+            Run(script, "if \"cruise atmo\" == \"Cruise Atmo\"; rec T; else; rec F; end");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { "rec T" }));
+        }
+
+        [Test]
+        public void An_Undefined_Variable_In_A_Text_Compare_Stays_Literal_And_Does_Not_Match()
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer(), Battery("Bat", 0.5));
+
+            Run(script, "if $NOPE == parked; rec T; else; rec F; end");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { "rec F" }));
+        }
+
+        [Test]
+        public void A_Text_Compare_In_A_Skipped_Block_Is_Not_Evaluated()
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer(), Battery("Bat", 0.5));
+
+            Run(script, "if \"Bat\" low; if a == a; rec A; else; rec B; end; end; rec AFTER");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { "rec AFTER" }));
+        }
+
+        [Test]
+        public void A_Numeric_Compare_With_A_Block_Still_Uses_The_Property_Form()
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer(), Battery("Bat", 0.1));
+
+            Run(script, "if \"Bat\" charge < 20%; rec T; else; rec F; end");
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { "rec T" }));
+        }
+
         // --- Failures ---
+
+        [Test]
+        [TestCase("if a == b --for=3; rec X; end", "bad syntax")]
+        [TestCase("if a ~ b; rec X; end", "bad syntax")]
+        [TestCase("if a < b; rec X; end", "bad syntax")]
+        public void A_Three_Argument_If_That_Is_Not_A_Text_Compare_Still_Fails(string routine, string reason)
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer(), Battery("Bat", 0.1));
+
+            Run(script, routine + "; rec AFTER");
+
+            Assert.That(rec.Calls, Is.Empty);
+            Assert.That(Printed(script), Does.Contain("Command failed").And.Contain(reason));
+        }
 
         [Test]
         [TestCase("else; rec X", "else without if")]

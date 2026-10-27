@@ -233,6 +233,26 @@ How it runs (small change in `CommandBus`): `RoutineState` gains a skip stack. `
 
 Skipped steps are not variable-resolved or executed, so `if` also works as a guard (`if ... ; ... else; view/notify ... ; end;`).
 
+### Text compare
+
+`if <a> == <b>;` and `if <a> != <b>;` (and `elseif`) compare two values as text, ignoring case. `CommandBus.RunIfStep` handles them after variables are resolved and before `ConditionModule` is asked, so no new vocabulary is needed:
+
+```ini
+[commands]
+Gate=
+| if $FLIGHT_MODE == parked;
+|   view/notify "$MENU_SCREEN" "Parked." --level=success;
+| elseif $FLIGHT_MODE != off;
+|   view/notify "$MENU_SCREEN" "Flying or docked." --level=success;
+| end;
+```
+
+- **Shape:** exactly three arguments, the middle one `==` or `!=`, and no options. Quote a value with spaces (`"cruise atmo"`).
+- **Variables:** `$NAME` is resolved when the step runs, so a `var/set` earlier in the same routine is seen. An undefined variable stays as literal text (`$NAME`) and does not match a real value.
+- **Everything else is unchanged:** `<target> <predicate>` and `<target> <property> <operator> <value>` work as before. Any other three-argument form, or one with options such as `--for`, fails with `bad syntax`.
+- **Rules:** `when` does not support it. A rule keeps state on a block property, and a text compare has none. Put the compare inside the rule's branch.
+- **Remote scripts:** it is evaluated on the script that runs the routine and never sent to another script.
+
 ## Group semantics
 
 A condition on a group (or a name matching several blocks) is an **aggregate** and fires **once**:
@@ -660,7 +680,7 @@ Time source: accumulate `Runtime.TimeSinceLastRun` rather than `DateTime`.
 - **New**: `ConditionModule : BaseModule` (single core module): `Condition` parse/resolve/evaluate (shared), `[rules]` loader, rule watcher, property + predicate registries, rule state. Public `Evaluate(TerminalCommand)` is the single entry point used by both `when` (polled) and `if` (inline).
 - **Changed**: `Configuration.DefaultSections` gains `rules`. `CommandBus.RoutineState` gains an `if`/`else`/`end` skip stack handled in `ExecuteCommandGroupCoroutine`. `BlockCatalogue` and event hook loading are **not** changed.
 - **Reuse**: `TerminalCommand` (tokenising `when`, `--options`, quoting), `MyIni` parsing, `BlockCatalogue` (name/group resolution), `CommandBus` for the then/else routines, `ConfigVariables` (`$var`), `BaseModule` state/handler, `SystemConfigChangedEvent`/`BlockConfigChangedEvent`/`ConstructRefreshedEvent`, existing scheduler. No new tokenizer or option parser.
-- **Loader**: `ConditionModule` reads the PB's `[rules]` section and each block's own `[rules]` section (where `this` is that block). For each rule: step 1 must be `when`, steps up to `else` are the then routine, the rest the else routine.
+- **Loader**: `ConditionModule` reads the PB's `[rules]` section and each block's own `[rules]` section (where `this` is that block). Other scripts' programmable blocks are skipped: their rules run on their own script. The rules rebuild one rule per cycle (`Tick`), the old rules keep running meanwhile, and changes that arrive during a rebuild share one more pass. For each rule: step 1 must be `when`, steps up to `else` are the then routine, the rest the else routine.
 - **Size reduction tips**: one parse path (`when` -> `TerminalCommand`, predicate or 3-term expression); one `Compare(op, a, b)` switch; registries as collection initializers; no per-rule classes (tuple/array row); no LINQ in hot paths.
 - **Rejected**: a `[when]` section (superseded by `[rules]`), rules inside `[hooks]` (see "Where rules live"), and `if ... then ...` inside `[commands]` (commands run on demand, not continuously; a rule can still call a command).
 
@@ -704,7 +724,7 @@ A property, predicate or state word is defined by the one script that owns the b
 - Cooldown honored; re-arm after false; `else` fires on true->false only.
 - Unknown property/predicate/target disables only that rule.
 - Group aggregates (avg/min/max/sum) fire once; mixed-type groups skip unsupported blocks.
-- `[rules]` reload on Custom Data change and block removal rebuilds/removes rules; PB `[rules]` and block-local `[rules]` (`this`) both load.
+- `[rules]` reload on Custom Data change and block removal rebuilds/removes rules, one rule per cycle; PB `[rules]` and block-local `[rules]` (`this`) both load, and another script's PB `[rules]` does not. A script's own Custom Data write (`var/set --save`) does not reload anything.
 
 ## Decisions
 

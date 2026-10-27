@@ -41,17 +41,38 @@ namespace MotherCore.Tests.Tests.Module
 
         static Script<CoreTestProgram> Boot(RecordingCommand rec, CustomDataComposer data, params IMyTerminalBlock[] blocks)
         {
-            return ScriptFactory()
+            var script = ScriptFactory()
                 .WithMother()
                 .WithModules(m => new FakeConditionVocabulary(m))
                 .WithCustomData(data.Build())
                 .WithCommands(rec)
                 .WithBlocks(blocks)
                 .Boot();
+
+            Settle(script);
+
+            return script;
+        }
+
+        /// <summary>
+        /// Lets the rule rebuild finish. It loads one rule per cycle, and no
+        /// time passes for the rules while it does.
+        /// </summary>
+        static void Settle(Script<CoreTestProgram> script)
+        {
+            var runtime = (FakeGridProgramRuntimeInfo)script.Mother.Program.Runtime;
+            var last = runtime.TimeSinceLastRun;
+            runtime.TimeSinceLastRun = TimeSpan.Zero;
+
+            for (int i = 0; i < 50; i++)
+                script.Mother.GetModule<Clock>().Run();
+
+            runtime.TimeSinceLastRun = last;
         }
 
         static void Evaluate(Script<CoreTestProgram> script)
         {
+            Settle(script);
             script.Mother.GetModule<ConditionModule>().EvaluateRules();
             script.RunToIdle();
         }
@@ -544,6 +565,47 @@ namespace MotherCore.Tests.Tests.Module
             Evaluate(script);
 
             Assert.That(rec.Calls, Is.EqualTo(new[] { "rec FIRST", "rec SECOND" }));
+        }
+
+        [Test]
+        public void A_Rebuild_Loads_One_Rule_Per_Cycle_While_The_Old_Rules_Keep_Running()
+        {
+            var rec = new RecordingCommand();
+            var battery = Battery("Bat", 0.1);
+            var script = Boot(rec, Data()
+                .With("rules", "first", "when \"Bat\" low; rec FIRST")
+                .With("rules", "second", "when \"Bat\" low; rec SECOND"), battery);
+
+            Evaluate(script);
+            rec.Calls.Clear();
+
+            script.Mother.ProgrammableBlock.CustomData = Data()
+                .With("rules", "first", "when \"Bat\" low; rec FIRST; else; rec NEW")
+                .With("rules", "second", "when \"Bat\" low; rec SECOND")
+                .Build();
+            script.Mother.GetModule<Configuration>().Reload();
+
+            var condition = script.Mother.GetModule<ConditionModule>();
+
+            // Changes that arrive during a rebuild share it
+            condition.HandleEvent(new SystemConfigChangedEvent(), null);
+            condition.HandleEvent(new SystemConfigChangedEvent(), null);
+            Advance(script, 0);
+
+            Charge(battery, 0.5);
+            condition.EvaluateRules();
+            Assert.That(rec.Calls, Is.Empty, "One cycle in, the old rules still run, and they have no else");
+
+            Settle(script);
+            Charge(battery, 0.1);
+            condition.EvaluateRules();
+            script.RunToIdle();
+            Charge(battery, 0.5);
+            condition.EvaluateRules();
+            script.RunToIdle();
+
+            Assert.That(rec.Calls, Is.EquivalentTo(new[] { "rec FIRST", "rec SECOND", "rec NEW" }));
+            Assert.That(rec.Calls.Last(), Is.EqualTo("rec NEW"));
         }
 
         [Test]

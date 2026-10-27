@@ -186,6 +186,11 @@ namespace MotherCore.Tests.Tests.Module
                 script.Mother.GetModule<IntergridMessageService>().ConstructPing();
 
             c.World.DeliverMessages();
+
+            // The rules rebuild when the names change, one rule per cycle
+            foreach (var script in c.All)
+                for (int i = 0; i < 20; i++)
+                    Advance(script, 0);
         }
 
         /// <summary>
@@ -792,6 +797,50 @@ namespace MotherCore.Tests.Tests.Module
             Pass(c, 1);
 
             Assert.That(c.Rec.Calls.Count, Is.EqualTo(8));
+        }
+
+        [Test]
+        public void Another_Scripts_Rules_Do_Not_Run_Here()
+        {
+            var world = WorldFactory().Boot();
+            var grid = world.CreateGrid("Construct");
+            var battery = new FakeBatteryBlock(customName: "Bat") { CurrentStoredPower = 10, MaxStoredPower = 100 };
+            var ownRec = new RecordingCommand();
+            var otherRec = new RecordingCommand();
+
+            // Both scripts see the battery and the other's programmable block
+            var owner = world.CreateScript(grid, "Owner")
+                .WithMother()
+                .WithModules(m => new FakeConditionVocabulary(m))
+                .WithCustomData(Data().With("rules", "low", "when \"Bat\" low; rec A").Build())
+                .WithCommands(ownRec)
+                .WithBlocks(battery)
+                .OnNetwork()
+                .Boot();
+            var other = world.CreateScript(grid, "Other")
+                .WithMother()
+                .WithModules(m => new FakeConditionVocabulary(m))
+                .WithCustomData(Data().Build())
+                .WithCommands(otherRec)
+                .OnNetwork()
+                .Boot();
+
+            foreach (var script in new[] { owner, other })
+            {
+                script.Mother.GetModule<BlockCatalogue>().RefreshConstruct();
+
+                for (int i = 0; i < 20; i++)
+                    Advance(script, 0);
+            }
+
+            foreach (var script in new[] { owner, other })
+            {
+                script.Mother.GetModule<ConditionModule>().EvaluateRules();
+                script.RunToIdle();
+            }
+
+            Assert.That(ownRec.Calls, Is.EqualTo(new[] { "rec A" }));
+            Assert.That(otherRec.Calls, Is.Empty, "Its rules belong to the script that owns the programmable block");
         }
 
         [Test]

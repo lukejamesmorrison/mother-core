@@ -490,6 +490,15 @@ namespace IngameScript
             if (error != null)
                 return error;
 
+            // Text compare, ie. if $MODE == parked. Variables are already resolved.
+            var args = command.Arguments;
+
+            if (args.Count == 3 && command.Options.Count == 0 && (args[1] == "==" || args[1] == "!="))
+            {
+                ApplyIf(name, ifs, string.Equals(args[0], args[2], StringComparison.OrdinalIgnoreCase) == (args[1] == "=="));
+                return null;
+            }
+
             int result = Mother.GetModule<ConditionModule>().Begin(command, out error, out poll);
 
             if (error == null && poll == null)

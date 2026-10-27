@@ -169,6 +169,14 @@ namespace IngameScript
         bool Fast;
 
         /// <summary>
+        /// Dirty is set by every change that may alter the rules. Build is the
+        /// Rebuild in progress, advanced one rule per cycle by Tick. Changes that
+        /// arrive meanwhile only mark it dirty again, and it loads once more.
+        /// </summary>
+        bool Dirty;
+        IEnumerator<double> Build;
+
+        /// <summary>
         /// Seconds an inline if waits for the scripts that answer it, from
         /// [general] condTimeout (default 2).
         /// </summary>
@@ -203,6 +211,8 @@ namespace IngameScript
             Heard.Clear();
             Now = 0;
             Fast = false;
+            Dirty = false;
+            Build = null;
 
             // Extension modules boot after this one and register their own
             // vocabulary again, so a reboot starts from a clean slate.
@@ -237,6 +247,9 @@ namespace IngameScript
         /// </summary>
         void Tick()
         {
+            if (Build != null && !Build.MoveNext())
+                Build = null;
+
             Now += Mother.Runtime.TimeSinceLastRun.TotalSeconds;
             bool shared = Now >= Next;
 
@@ -255,8 +268,17 @@ namespace IngameScript
         /// </summary>
         public override void HandleEvent(IEvent e, object eventData)
         {
-            if (Mother.SystemState == Mother.SystemStates.WORKING)
-                Rebuild();
+            // A programmable block's rules are its own script's. This script's own
+            // change arrives as SystemConfigChangedEvent.
+            if (Mother.SystemState != Mother.SystemStates.WORKING || e is BlockConfigChangedEvent && eventData is IMyProgrammableBlock)
+                return;
+
+            // Predicates are a handful of keys, so they apply at once. Only the rules wait.
+            LoadPredicates();
+            Dirty = true;
+
+            if (Build == null)
+                Build = Rebuild().GetEnumerator();
         }
 
         /// <summary>
@@ -894,39 +916,50 @@ namespace IngameScript
 
         /// <summary>
         /// Rebuilds every rule from the Programmable Block's [rules] and each
-        /// block's own [rules]. A rule keeps its last result, so a rebuild
-        /// never fires a rule again.
+        /// block's own [rules], one rule per cycle so a long list never runs
+        /// a cycle out of instructions. The old rules keep running until the
+        /// new ones replace them. A rule keeps its last result, so a rebuild
+        /// never fires a rule again. Changes that arrive while it runs make it
+        /// load once more. Other scripts' programmable blocks are skipped, as
+        /// their rules run on their own script.
         /// </summary>
-        void Rebuild()
+        IEnumerable<double> Rebuild()
         {
-            var rules = new List<Rule>();
-            Fast = false;
-
-            LoadPredicates();
-            Load(rules, Configuration.Ini, null);
-
-            foreach (var config in BlockCatalogue.BlockConfigs)
-                if (config.Key.EntityId != Mother.ProgrammableBlock.EntityId)
-                    Load(rules, config.Value, config.Key);
-
-            foreach (var rule in rules)
+            while (Dirty)
             {
-                foreach (var old in Rules)
-                {
-                    if (old.Name != rule.Name)
-                        continue;
+                Dirty = false;
 
-                    rule.Active = old.Active;
-                    rule.Tripped = old.Tripped;
-                    rule.Since = old.Since;
-                    rule.LastFired = old.LastFired;
-                    rule.Due = old.Due;
+                var rules = new List<Rule>();
+
+                foreach (var wait in Load(rules, Configuration.Ini, null))
+                    yield return wait;
+
+                foreach (var config in new List<KeyValuePair<IMyTerminalBlock, MyIni>>(BlockCatalogue.BlockConfigs))
+                    if (config.Key.EntityId != Mother.ProgrammableBlock.EntityId && !(config.Key is IMyProgrammableBlock))
+                        foreach (var wait in Load(rules, config.Value, config.Key))
+                            yield return wait;
+
+                Fast = false;
+
+                foreach (var rule in rules)
+                {
+                    foreach (var old in Rules)
+                    {
+                        if (old.Name != rule.Name)
+                            continue;
+
+                        rule.Active = old.Active;
+                        rule.Tripped = old.Tripped;
+                        rule.Since = old.Since;
+                        rule.LastFired = old.LastFired;
+                        rule.Due = old.Due;
+                    }
+
+                    Fast |= rule.Every > 0;
                 }
 
-                Fast |= rule.Every > 0;
+                Rules = rules;
             }
-
-            Rules = rules;
         }
 
         /// <summary>
@@ -943,10 +976,10 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Loads the rules of one [rules] section. In a block's own section,
-        /// "this" is that block.
+        /// Loads the rules of one [rules] section, yielding after each one.
+        /// In a block's own section, "this" is that block.
         /// </summary>
-        void Load(List<Rule> rules, MyIni ini, IMyTerminalBlock owner)
+        IEnumerable<double> Load(List<Rule> rules, MyIni ini, IMyTerminalBlock owner)
         {
             var keys = new List<MyIniKey>();
             ini.GetKeys("rules", keys);
@@ -973,6 +1006,8 @@ namespace IngameScript
 
                 if (error != null)
                     Log($"Rule {rule.Name} disabled: {error}" + (rule.Pending && IMS.ConstructVocab.Count > 0 ? " (no script on the construct has it)" : ""));
+
+                yield return 0;
             }
         }
 

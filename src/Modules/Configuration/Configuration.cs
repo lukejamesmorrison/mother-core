@@ -76,6 +76,12 @@ namespace IngameScript
         Dictionary<char, string[]> VariableIndex;
 
         /// <summary>
+        /// The values the variables had in the Custom Data at the last load. A
+        /// reload keeps a variable's runtime value unless its entry changed.
+        /// </summary>
+        Dictionary<string, string> Declared = new Dictionary<string, string>();
+
+        /// <summary>
         /// The number of variables when VariableIndex was built. A differing count
         /// triggers a rebuild.
         /// </summary>
@@ -106,6 +112,9 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
+            // A reboot starts from the Custom Data, not from runtime values
+            Declared.Clear();
+
             // Load and process configuration
             LoadConfiguration();
 
@@ -238,6 +247,9 @@ namespace IngameScript
         /// </summary>
         void LoadVariables()
         {
+            var runtime = new Dictionary<string, string>(Mother.ConfigVariables);
+            var declared = new Dictionary<string, string>();
+
             Mother.ConfigVariables.Clear();
             var sectionName = Literals.Variables;
 
@@ -247,7 +259,8 @@ namespace IngameScript
             keys.ForEach(key =>
             {
                 string variableName = key.Name,
-                    variableValue = $"{Ini.Get(sectionName, variableName)}";
+                    variableValue = $"{Ini.Get(sectionName, variableName)}",
+                    current, before;
 
                 // Strip leading '$' from variable name if present
                 if (variableName.StartsWith("$"))
@@ -255,25 +268,16 @@ namespace IngameScript
 
                 // Strip surrounding double quotes from value
                 variableValue = Unquote(variableValue);
+                declared[variableName] = variableValue;
+
+                // A variable the player did not edit keeps the value set at runtime
+                if (Declared.TryGetValue(variableName, out before) && before == variableValue && runtime.TryGetValue(variableName, out current))
+                    variableValue = current;
 
                 Mother.ConfigVariables[variableName] = variableValue;
             });
 
-            //foreach (var key in keys)
-            //{
-            //    string variableName = key.Name,
-            //        variableValue = $"{Ini.Get(sectionName, variableName)}";
-
-            //    // Strip leading '$' from variable name if present
-            //    if (variableName.StartsWith("$"))
-            //        variableName = variableName.Substring(1);
-
-            //    // Strip surrounding double quotes from value
-            //    variableValue = Unquote(variableValue);
-                
-            //    Mother.ConfigVariables[variableName] = variableValue;
-            //}
-
+            Declared = declared;
             VariableIndex = null;
         }
 
@@ -470,6 +474,9 @@ namespace IngameScript
             {
                 Ini.Set(Literals.Variables, name, value);
                 Mother.ProgrammableBlock.CustomData = $"{Ini}";
+
+                // The write is this script's own, so it must not reload the configuration
+                Mother.GetModule<BlockCatalogue>()?.Accept(Mother.ProgrammableBlock, Ini);
             }
         }
 
@@ -500,6 +507,9 @@ namespace IngameScript
             }
 
             Mother.ProgrammableBlock.CustomData = $"{Ini}";
+
+            // Writing the defaults is this script's own change too
+            Mother.GetModule<BlockCatalogue>()?.Accept(Mother.ProgrammableBlock, Ini);
         }
     }
 }

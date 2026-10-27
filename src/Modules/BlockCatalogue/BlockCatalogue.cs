@@ -324,6 +324,22 @@ namespace IngameScript
                     && newConfiguration.ToString() != BlockConfigs[block].ToString();
         }
 
+        /// <summary>
+        /// Records a configuration this script wrote itself as the known one, so
+        /// the next refresh does not report it as an outside change.
+        /// </summary>
+        /// <param name="block">The block that was written.</param>
+        /// <param name="ini">The configuration written to its Custom Data.</param>
+        public void Accept(IMyTerminalBlock block, MyIni ini)
+        {
+            var accepted = new MyIni();
+            accepted.TryParse($"{ini}");
+
+            foreach (var known in new List<IMyTerminalBlock>(BlockConfigs.Keys))
+                if (known.EntityId == block.EntityId)
+                    BlockConfigs[known] = accepted;
+        }
+
         //bool BlockIsMother(IMyTerminalBlock block)
         //{
         //    return block is IMyProgrammableBlock && block.EntityId == Mother.Id;

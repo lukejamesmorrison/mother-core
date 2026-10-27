@@ -373,6 +373,83 @@ namespace MotherCore.Tests.Module
         }
 
         [Test]
+        public void VarSet_Save_Is_Not_Reported_As_A_Config_Change()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .OnNetwork()
+                .WithCustomData(new CustomDataComposer().WithVariable("PLAYER", "Luke").Build())
+                .Boot();
+
+            script.ClearEventEmissions();
+            RunVarSet(script.Mother.GetModule<Configuration>(), new TerminalCommand("var/set PLAYER Alex --save"));
+
+            // The catalogue checks the Custom Data on its next refresh
+            for (int i = 0; i < 12; i++)
+                script.Run();
+
+            script.AssertEventEmitted<SystemConfigChangedEvent>(0);
+        }
+
+        [Test]
+        public void An_Outside_Edit_Of_The_Custom_Data_Is_Reported_As_A_Config_Change()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .OnNetwork()
+                .WithCustomData(new CustomDataComposer().WithVariable("PLAYER", "Luke").Build())
+                .Boot();
+
+            script.ClearEventEmissions();
+            script.Mother.ProgrammableBlock.CustomData = new CustomDataComposer().WithVariable("PLAYER", "Alex").Build();
+
+            for (int i = 0; i < 12; i++)
+                script.Run();
+
+            script.AssertEventEmitted<SystemConfigChangedEvent>(1);
+        }
+
+        [Test]
+        public void A_Reload_Keeps_The_Runtime_Value_Of_A_Variable_The_Player_Did_Not_Edit()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .WithCustomData(new CustomDataComposer()
+                    .WithVariable("PLAYER", "Luke")
+                    .WithVariable("SHIP", "Nova")
+                    .Build())
+                .Boot();
+            var config = script.Mother.GetModule<Configuration>();
+
+            RunVarSet(config, new TerminalCommand("var/set PLAYER Alex"));
+            RunVarSet(config, new TerminalCommand("var/set SHIP Blade"));
+
+            script.Mother.ProgrammableBlock.CustomData = new CustomDataComposer()
+                .WithVariable("PLAYER", "Luke")
+                .WithVariable("SHIP", "Lancer")
+                .Build();
+            config.Reload();
+
+            Assert.That(script.Mother.ConfigVariables["PLAYER"], Is.EqualTo("Alex"), "Unedited, so the runtime value stays");
+            Assert.That(script.Mother.ConfigVariables["SHIP"], Is.EqualTo("Lancer"), "Edited, so the Custom Data wins");
+        }
+
+        [Test]
+        public void A_Reboot_Starts_Again_From_The_Custom_Data()
+        {
+            var script = ScriptFactory()
+                .WithMother()
+                .WithCustomData(new CustomDataComposer().WithVariable("PLAYER", "Luke").Build())
+                .Boot();
+
+            RunVarSet(script.Mother.GetModule<Configuration>(), new TerminalCommand("var/set PLAYER Alex"));
+            script.Mother.Boot();
+            script.RunToIdle();
+
+            Assert.That(script.Mother.ConfigVariables["PLAYER"], Is.EqualTo("Luke"));
+        }
+
+        [Test]
         public void VarSet_Returns_Error_When_No_Arguments_Provided()
         {
             var script = ScriptFactory()
