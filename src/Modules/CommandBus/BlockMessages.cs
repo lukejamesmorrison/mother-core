@@ -26,27 +26,28 @@ namespace IngameScript
     /// </summary>
     public static class BlockMessages
     {
-        public const string BlockNotFound = "Block not found: {0}";
-        public const string InvalidArgument = "Invalid argument for block: {0}";
-        public const string InvalidOption = "Invalid command option: {0}";
-        public const string BlockUpdated = "Block updated: {0} -> {1}";
-        public const string BlockResetting = "Block resetting: {0}";
-        public const string BlockMoving = "Block moving: {0}";
-        public const string BlockStarted = "Block started: {0}";
-        public const string BlockStopped = "Block stopped: {0}";
-        public const string BlockLocked = "Block locked: {0}";
-        public const string BlockUnlocked = "Block unlocked: {0}";
-        public const string BlockOpen = "Block open: {0}";
-        public const string BlockCharging = "Block charging: {0}";
-        public const string BlockDischarging = "Block discharging: {0}";
-        public const string BlockAuto = "Block auto: {0}";
-        public const string BlockOn = "Block on: {0}";
-        public const string BlockOff = "Block off: {0}";
-        public const string BlockClosed = "Block closed: {0}";
-        public const string BlockToggled = "Block toggled: {0}";
-        public const string BlockStockpiling = "Block stockpiling: {0}";
-        public const string BlockSharing = "Block sharing: {0}";
-        public const string BlockActionRun = "Block action: {0} -> {1}";
-        public const string BlockRun = "Block: {0} -> {1}";
+        public const string 
+            BlockNotFound = "Block not found: {0}",
+            InvalidArgument = "Invalid argument for block: {0}",
+            InvalidOption = "Invalid command option: {0}",
+            BlockUpdated = "Block updated: {0} -> {1}",
+            BlockResetting = "Block resetting: {0}",
+            BlockMoving = "Block moving: {0}",
+            BlockStarted = "Block started: {0}",
+            BlockStopped = "Block stopped: {0}",
+            BlockLocked = "Block locked: {0}",
+            BlockUnlocked = "Block unlocked: {0}",
+            BlockOpen = "Block open: {0}",
+            BlockCharging = "Block charging: {0}",
+            BlockDischarging = "Block discharging: {0}",
+            BlockAuto = "Block auto: {0}",
+            BlockOn = "Block on: {0}",
+            BlockOff = "Block off: {0}",
+            BlockClosed = "Block closed: {0}",
+            BlockToggled = "Block toggled: {0}",
+            BlockStockpiling = "Block stockpiling: {0}",
+            BlockSharing = "Block sharing: {0}",
+            BlockActionRun = "Block action: {0} -> {1}",
+            BlockRun = "Block: {0} -> {1}";
     }
 }

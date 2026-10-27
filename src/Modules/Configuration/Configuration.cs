@@ -1,5 +1,6 @@
 ﻿using Sandbox.Game.EntityComponents;
 using Sandbox.Game.GameSystems;
+using Sandbox.Game.Localization;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -33,31 +34,23 @@ namespace IngameScript
         /// Default configuration values for Mother. We will insert these into the custom 
         /// data for the programmable block if it is completely empty on boot.
         /// </summary>
-        readonly Dictionary<string, string> MotherConfigDefaults = new Dictionary<string, string>()
-        {
-            //{ "general.debug", "false" },
-            //{ "channels.*", "" },
-        };
+        public readonly Dictionary<string, string> MotherConfigDefaults = new Dictionary<string, string>(),
 
         /// <summary>
         /// Default configuration values for blocks. We will insert these into blocks on 
         /// boot if custom data is complete empty. It would be nice to scope this by 
         /// block type in the future.
         /// </summary>
-        public readonly Dictionary<string, string> BlockConfigDefaults = new Dictionary<string, string>()
-        {
-            // { "hooks.onOn", "" },
-            // { "hooks.onOff", "" },
-        };
+        BlockConfigDefaults = new Dictionary<string, string>();
 
         readonly string[] DefaultSections = new string[]
         {
-            "general",
-            "channels",
-            "variables",
-            "commands",
-            "hooks",
-            "rules",
+            Literals.General,
+            Literals.Channels,
+            Literals.Variables,
+            Literals.CommandsSection,
+            Literals.Hooks,
+            Literals.Rules,
         };
 
         /// <summary>
@@ -125,8 +118,8 @@ namespace IngameScript
             // Commands
             RegisterCommand("var/set", 2, c =>
             {
-                string name = c.Arguments[0];
-                string value = c.Arguments[1];
+                string name = c.Arguments[0],
+                    value = c.Arguments[1];
                 bool save = c.Options.ContainsKey("save");
 
                 SetVariable(name, value, save);
@@ -142,10 +135,7 @@ namespace IngameScript
         /// This is called when the system config changes during runtime, allowing
         /// modules to pick up new values without a full system reboot.
         /// </summary>
-        public void Reload()
-        {
-            LoadConfiguration();
-        }
+        public void Reload() => LoadConfiguration();
 
         /// <summary>
         /// Load and process configuration from the programmable block's custom data.
@@ -166,10 +156,10 @@ namespace IngameScript
             RegisterCommands();
 
             // Update Mother debug mode
-            Mother.DebugMode = Get("general.debug").ToLower() == "true";
+            Mother.DebugMode = Get($"{Literals.General}.debug").ToLower() == "true";
 
             // Update Mother name from config if set, otherwise use grid name
-            var configName = Get("general.name");
+            var configName = Get($"{Literals.General}.name");
             Mother.Name = !string.IsNullOrEmpty(configName)
                 ? Unquote(configName)
                 : Mother.CubeGrid.CustomName;
@@ -200,7 +190,7 @@ namespace IngameScript
             // split token string by delimiter '.'
             List<string> tokenParts = new List<string>(token.Split('.'));
 
-            if (tokenParts.Count != 2) return $"";
+            if (tokenParts.Count != 2) return "";
 
             else
             {
@@ -249,15 +239,15 @@ namespace IngameScript
         void LoadVariables()
         {
             Mother.ConfigVariables.Clear();
-            var sectionName = "variables";
+            var sectionName = Literals.Variables;
 
             List<MyIniKey> keys = new List<MyIniKey>();
             Ini.GetKeys(sectionName, keys);
 
-            foreach (var key in keys)
+            keys.ForEach(key =>
             {
-                string variableName = key.Name;
-                string variableValue = $"{Ini.Get(sectionName, variableName)}";
+                string variableName = key.Name,
+                    variableValue = $"{Ini.Get(sectionName, variableName)}";
 
                 // Strip leading '$' from variable name if present
                 if (variableName.StartsWith("$"))
@@ -265,9 +255,24 @@ namespace IngameScript
 
                 // Strip surrounding double quotes from value
                 variableValue = Unquote(variableValue);
-                
+
                 Mother.ConfigVariables[variableName] = variableValue;
-            }
+            });
+
+            //foreach (var key in keys)
+            //{
+            //    string variableName = key.Name,
+            //        variableValue = $"{Ini.Get(sectionName, variableName)}";
+
+            //    // Strip leading '$' from variable name if present
+            //    if (variableName.StartsWith("$"))
+            //        variableName = variableName.Substring(1);
+
+            //    // Strip surrounding double quotes from value
+            //    variableValue = Unquote(variableValue);
+                
+            //    Mother.ConfigVariables[variableName] = variableValue;
+            //}
 
             VariableIndex = null;
         }
@@ -284,12 +289,12 @@ namespace IngameScript
             Mother.ConfigCommands.Clear();
             
             List<MyIniKey> keys = new List<MyIniKey>();
-            Ini.GetKeys("Commands", keys);
+            Ini.GetKeys(Literals.Commands, keys);
 
-            foreach (var key in keys)
+            keys.ForEach(key =>
             {
-                string commandName = key.Name;
-                string commandValue = $"{Ini.Get("Commands", commandName)}"
+                string commandName = key.Name,
+                commandValue = $"{Ini.Get(Literals.Commands, commandName)}"
                     .Replace("\r", "")
                     .Replace("\n", " ")
                     .Trim();
@@ -305,7 +310,28 @@ namespace IngameScript
                 // command parameters have been applied.
 
                 Mother.ConfigCommands[commandName] = commandValue;
-            }
+            });
+
+            //foreach (var key in keys)
+            //{
+            //    string commandName = key.Name,
+            //    commandValue = $"{Ini.Get(Literals.Commands, commandName)}"
+            //        .Replace("\r", "")
+            //        .Replace("\n", " ")
+            //        .Trim();
+
+            //    // Collapse multiple spaces into a single space, but only outside quoted strings.
+            //    commandValue = CollapseWhitespaceOutsideQuotes(commandValue);
+
+            //    // Strip surrounding double quotes from command value
+            //    commandValue = Unquote(commandValue);
+
+            //    // Do NOT substitute variables here — defer to runtime so that
+            //    // {{param:$VAR}} defaults and $VAR references are resolved after
+            //    // command parameters have been applied.
+
+            //    Mother.ConfigCommands[commandName] = commandValue;
+            //}
         }
 
         /// <summary>
@@ -317,6 +343,7 @@ namespace IngameScript
         string MatchVariableName(string text, int position)
         {
             string[] candidates;
+
             if (position >= text.Length || !VariableIndex.TryGetValue(text[position], out candidates))
                 return null;
 
@@ -408,7 +435,11 @@ namespace IngameScript
                 VariableIndex = variables.Keys
                     .Where(k => k.Length > 0)
                     .GroupBy(k => k[0])
-                    .ToDictionary(g => g.Key, g => g.OrderByDescending(k => k.Length).ToArray());
+                    .ToDictionary(
+                        g => g.Key, 
+                        g => g.OrderByDescending(k => k.Length).ToArray()
+                    );
+
                 VariableIndexCount = variables.Count;
             }
 
@@ -416,7 +447,7 @@ namespace IngameScript
             var chain = new string[MaxVariableDepth + 1];
 
             AppendWithVariables(input, output, 0, chain, ref error);
-            result = output.ToString();
+            result = $"{output}";   
 
             return error == null;
         }
@@ -437,7 +468,7 @@ namespace IngameScript
 
             if (save)
             {
-                Ini.Set("variables", name, value);
+                Ini.Set(Literals.Variables, name, value);
                 Mother.ProgrammableBlock.CustomData = $"{Ini}";
             }
         }
@@ -459,9 +490,9 @@ namespace IngameScript
             foreach (KeyValuePair<string, string> defaultPair in MotherConfigDefaults)
             {
                 string[] keyParts = defaultPair.Key.Split('.');
-                string section = keyParts[0];
-                string key = keyParts[1];
-                string value = defaultPair.Value;
+                string section = keyParts[0], 
+                    key = keyParts[1],
+                    value = defaultPair.Value;
 
                 // if key has value, don't change, otherwise create.
                 if (Ini.Get(section, key).IsEmpty) 

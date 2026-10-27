@@ -30,7 +30,7 @@ namespace IngameScript
         /// <summary>
         /// The storage string.
         /// </summary>
-        public string StorageString { get; private set; } = "";
+        public string StorageString = "";
 
         /// <summary>
         /// The storage dictionary.
@@ -61,8 +61,9 @@ namespace IngameScript
                 if (c.Arguments.Count < 2)
                     return CommandBus.Messages.InvalidCommandFormat;
 
-                string key = c.Arguments[0];
-                string value = c.Arguments[1];
+                string key = c.Arguments[0],
+                    value = c.Arguments[1];
+
                 Set(key, value);
 
                 return $"{key}={value}";

@@ -27,6 +27,9 @@ namespace IngameScript
     /// </summary>
     public class EventBus : BaseCoreModule
     {
+        /// <summary>
+        /// The maximum number of event emissions to keep in history for debugging and inspection.
+        /// </summary>
         const int MaxEmissionHistory = 128;
 
         /// <summary>
@@ -116,10 +119,10 @@ namespace IngameScript
             if (Emissions.Count > MaxEmissionHistory)
                 Emissions.RemoveAt(0);
 
-            if (recipients.Count > 0)
-                recipients
-                    .ToList()
-                    .ForEach(module => module.HandleEvent(e, eventData));
+            //if (recipients.Count > 0)
+            recipients
+                .ToList()
+                .ForEach(module => module.HandleEvent(e, eventData));
         }
     }
 

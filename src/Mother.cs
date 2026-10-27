@@ -39,22 +39,37 @@ namespace IngameScript
         public MyGridProgram Program;
 
         /// <summary>
+        /// The Id of the system. This is equal to IGC.Me to ensure 
+        /// uniqueness when communications with other grids.
+        /// </summary>
+        public long Id,
+
+        /// <summary>
+        /// The EntityId of the grid connected to the programmable block.
+        /// </summary>
+        GridId;
+
+        /// <summary>
         /// The Name of the system.
         /// </summary>
-        public string SystemName = "Mother Program";
+        public string SystemName = "Mother Program",
+
+        /// <summary>
+        /// The name of the grid. This can be used by 
+        /// other players or grids to run commands on this grid.
+        /// </summary>
+        Name,
+
+        /// <summary>
+        /// The short Id of the system. We use the last 5 digits of the Id.
+        /// </summary>
+        ShortId;
 
         /// <summary>
         /// The command line tool used to parse Arguments and 
         /// options from the Space Engineers terminal.
         /// </summary>
         public MyCommandLine commandLine;
-
-        /// <summary>
-        /// Is Autopilot engaged?
-        /// 
-        /// We should move this to the FCS module.
-        /// </summary>
-        public bool AutopilotEngaged = false;
 
         /// <summary>
         /// The CubeGrid that this program is running on.
@@ -89,27 +104,9 @@ namespace IngameScript
         /// </summary>
         public IMyGridProgramRuntimeInfo Runtime;
 
-        /// <summary>
-        /// The Id of the system. This is equal to IGC.Me to ensure 
-        /// uniqueness when communications with other grids.
-        /// </summary>
-        public long Id;
+     
 
-        /// <summary>
-        /// The short Id of the system. We use the last 5 digits of the Id.
-        /// </summary>
-        public string ShortId;
-
-        /// <summary>
-        /// The EntityId of the grid connected to the programmable block.
-        /// </summary>
-        public long GridId;
-
-        /// <summary>
-        /// The name of the grid. This can be used by 
-        /// other players or grids to run commands on this grid.
-        /// </summary>
-        public string Name;
+  
 
         /// <summary>
         /// The SafeZone is a bounding sphere around the grid. This is used for 
@@ -158,7 +155,21 @@ namespace IngameScript
         /// <summary>
         /// Is debug mode enabled?
         /// </summary>
-        public bool DebugMode = false;
+        public bool DebugMode = false,
+
+        /// <summary>
+        /// When true, Boot() will be called at the start of the next Run() cycle.
+        /// Use this instead of calling Boot() directly from within a coroutine to
+        /// avoid BootSequence being picked up by the still-executing Clock.Run() loop.
+        /// </summary>
+        PendingBoot = false,
+
+        /// <summary>
+        /// Is Autopilot engaged?
+        /// 
+        /// We should move this to the FCS module.
+        /// </summary>
+        AutopilotEngaged = false;
 
         /// <summary>
         /// The list of all modules registered with Mother. This includes both core 
@@ -192,20 +203,15 @@ namespace IngameScript
         /// <summary>
         /// The list commands defined within the programmable block's Custom Data.
         /// </summary>
-        public Dictionary<string, string> ConfigCommands = new Dictionary<string, string>();
+        public Dictionary<string, string> ConfigCommands = new Dictionary<string, string>(),
 
         /// <summary>
         /// The list of variables defined within the programmable block's Custom Data.
         /// These are used for substitution in config commands.
         /// </summary>
-        public Dictionary<string, string> ConfigVariables = new Dictionary<string, string>();
+        ConfigVariables = new Dictionary<string, string>();
 
-        /// <summary>
-        /// When true, Boot() will be called at the start of the next Run() cycle.
-        /// Use this instead of calling Boot() directly from within a coroutine to
-        /// avoid BootSequence being picked up by the still-executing Clock.Run() loop.
-        /// </summary>
-        public bool PendingBoot = false;
+
 
         /// <summary>
         /// Constructor. We initialize our system with the Program class 
@@ -282,10 +288,7 @@ namespace IngameScript
         /// Set the system state.
         /// </summary>
         /// <param name="state"></param>
-        void SetState(SystemStates state)
-        {
-            SystemState = state;
-        }
+        void SetState(SystemStates state) => SystemState = state;
 
         /// <summary>
         /// Boot the system. This is called after all core and extension modules have been registered. 
@@ -349,13 +352,12 @@ namespace IngameScript
         IEnumerable<double> BootModulesCoroutine()
         {
             int total = ModulesInOrderOfRegistration.Count;
+
             for (int i = 0; i < total; i++)
             {
                 var module = ModulesInOrderOfRegistration[i];
 
                 Print($"Booting modules: ({i + 1} / {total})");
-
-                //module.Boot();
 
                 var boot = module.BootCoroutine();
 
@@ -383,7 +385,37 @@ namespace IngameScript
         /// </summary>
         void RegisterCoreCommands()
         {
-            RegisterCommand(new PurgeCommand(this));
+            RegisterCommand("purge", 0, c =>
+            {
+                var force = c.GetOption("force");
+
+                if (force != "true" && force != "1")
+                    return "Run command with --force to purge";
+
+                if (c.Arguments.Count == 0)
+                    return CommandBus.Messages.NoArgumentsProvided;
+
+                var names = c.Arguments[0].Split(',');
+                var purged = new List<string>();
+
+                foreach (var name in new[] { Literals.Almanac, Literals.Storage })
+                {
+                    if (!names.Contains("*") && !names.Contains(name))
+                        continue;
+
+                    if (name == Literals.Almanac)
+                        GetModule<Almanac>().Clear();
+                    else
+                        GetModule<LocalStorage>().Clear();
+
+                    purged.Add(name);
+                }
+
+                return purged.Count == 0
+                    ? "No modules purged"
+                    : $"Purged {purged.Count} modules: {string.Join(", ", purged)}";
+            });
+
             RegisterCommand("boot", 0, c =>
             {
                 // Set a pending boot flag rather than calling Boot() directly.
@@ -394,7 +426,29 @@ namespace IngameScript
 
                 return "Rebooting...";
             });
-            RegisterCommand(new RenameCommand(this));
+
+            RegisterCommand("rename", 1, c =>
+            {
+                var newName = c.Arguments[0];
+
+                if (TerminalCommand.GetBoolFromString(c.GetOption("unique")))
+                    newName = $"{newName}-{new Random().Next(10000, 99999)}";
+
+                CubeGrid.CustomName = newName;
+                Name = newName;
+
+                // Store the name in the programmable block's custom data
+                var config = GetModule<Configuration>();
+                config.Raw.Set(Literals.General, "name", newName);
+                ProgrammableBlock.CustomData = $"{config.Raw}";
+
+                // Broadcast the name change to this construct and to remote grids
+                var igms = GetModule<IntergridMessageService>();
+                igms.ConstructPing();
+                igms.Ping();
+
+                return $"Grid name set to: {newName}";
+            });
         }
 
         /// <summary>
@@ -731,10 +785,9 @@ namespace IngameScript
                 }
 
                 // Extract content between {{ and }}
-                string placeholder = template.Substring(openIndex + 2, closeIndex - openIndex - 2);
-
-                string paramName;
-                string defaultValue = "";
+                string placeholder = template.Substring(openIndex + 2, closeIndex - openIndex - 2),
+                    paramName,
+                    defaultValue = "";
 
                 int colonIndex = placeholder.IndexOf(':');
                 if (colonIndex >= 0)
@@ -762,8 +815,8 @@ namespace IngameScript
             // After parameter substitution, resolve any $VARIABLE references
             // (including those that came from default values like {{player:$PLAYER}})
             return substituteVariables 
-                ? SubstituteVariables(result.ToString()) 
-                : result.ToString();
+                ? SubstituteVariables($"{result}") 
+                : $"{result}";
         }
     }
 } 

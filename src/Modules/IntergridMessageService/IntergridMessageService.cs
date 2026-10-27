@@ -36,8 +36,9 @@ namespace IngameScript
         /// </summary>
         class Messages
         {
-            public const string MessageDeserializationFailed = "Cannot de-serialize message.";
-            public const string NoActiveRequest = "No active request found for RespondingToId: {0}";
+            public const string 
+                MessageDeserializationFailed = "Cannot de-serialize message.",
+                NoActiveRequest = "No active request found for RespondingToId: {0}";
         }
 
         /// <summary>
@@ -110,13 +111,13 @@ namespace IngameScript
         /// <summary>
         /// Views owned by other scripts on the construct. Maps script id to view names.
         /// </summary>
-        public readonly Dictionary<long, HashSet<string>> ConstructViews = new Dictionary<long, HashSet<string>>();
+        public readonly Dictionary<long, HashSet<string>> ConstructViews = new Dictionary<long, HashSet<string>>(),
 
         /// <summary>
         /// Condition property, predicate and state names owned by other scripts
         /// on the construct. Maps script id to names.
         /// </summary>
-        public readonly Dictionary<long, HashSet<string>> ConstructVocab = new Dictionary<long, HashSet<string>>();
+        ConstructVocab = new Dictionary<long, HashSet<string>>();
 
         /// <summary>
         /// The cached relay ID for this construct. Reset to 0 when re-election is needed.
@@ -167,7 +168,7 @@ namespace IngameScript
             // ROUTES
             Router.RegisterRoute("ping", request => CreateResponse(request, Response.ResponseStatusCodes.OK));
             Router.RegisterRoute("sync", request => HandleSyncRequest(request));
-            Router.RegisterRoute("almanac", request => HandleAlmanacSyncRequest(request));
+            Router.RegisterRoute(Literals.Almanac, request => HandleAlmanacSyncRequest(request));
             Router.RegisterRoute("view", request => HandleViewRequest(request));
             Router.RegisterRoute("cond", request => HandleCondRequest(request));
 
@@ -214,7 +215,7 @@ namespace IngameScript
             // channels are keys
             var keys = new List<MyIniKey>();
 
-            config.Raw.GetKeys("channels", keys);
+            config.Raw.GetKeys(Literals.Channels, keys);
 
             keys.ForEach(key =>
             {
@@ -301,10 +302,9 @@ namespace IngameScript
         /// <returns></returns>
         string DecryptIncomingMessage(MyIGCMessage message)
         {
-            string messageData = $"{message.Data}";
-            string channel = message.Tag;
-
-            string passcode = GetChannelPasscode(channel);
+            string messageData = $"{message.Data}",
+                channel = message.Tag,
+                passcode = GetChannelPasscode(channel);
 
             // Decrypt message if it is encrypted
             if(passcode == "") 
@@ -329,7 +329,7 @@ namespace IngameScript
                 : messageData;
 
             // Handle an incoming Request
-            if (messageData.StartsWith("REQUEST::"))
+            if (messageData.StartsWith(Literals.Request))
             {
                 ProcessIncomingMessage(
                     Request.Deserialize(messageData),
@@ -339,7 +339,7 @@ namespace IngameScript
             }
 
             // Or handle an incoming Response
-            else if (messageData.StartsWith("RESPONSE::"))
+            else if (messageData.StartsWith(Literals.Response))
             {
                 ProcessIncomingMessage(
                     Response.Deserialize(messageData),
@@ -389,37 +389,72 @@ namespace IngameScript
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
+        //AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(IntergridMessageObject message)
+        //{
+        //    long originId = message.HLong(Literals.OriginId);
+        //    string gridIdStr = message.HString(Literals.GridId),
+        //        recordId = !string.IsNullOrEmpty(gridIdStr) ? gridIdStr : $"{originId}";
+
+        //    // Extract orientation if present
+        //    Vector3D? forward = null,
+        //        up = null;
+
+        //    double fx, fy, fz, ux, uy, uz;
+
+        //    if (double.TryParse(message.HString("Fx"), out fx) &&
+        //        double.TryParse(message.HString("Fy"), out fy) &&
+        //        double.TryParse(message.HString("Fz"), out fz))
+        //    {
+        //        forward = new Vector3D(fx, fy, fz);
+        //    }
+        //    if (double.TryParse(message.HString("Ux"), out ux) &&
+        //        double.TryParse(message.HString("Uy"), out uy) &&
+        //        double.TryParse(message.HString("Uz"), out uz))
+        //    {
+        //        up = new Vector3D(ux, uy, uz);
+        //    }
+
+        //    return Almanac.UpdateOrCreateFromMessage(
+        //        recordId, originId,
+        //        message.HString(Literals.OriginName),
+        //        new Vector3D(message.HFloat("X"), message.HFloat("Y"), message.HFloat("Z")),
+        //        message.HFloat("Speed"),
+        //        message.Channels, OriginIsOnConstruct(originId),
+        //        forward, up
+        //    );
+        //}
+
+        /// <summary>
+        /// Update or create an AlmanacRecord from an incoming message.
+        /// Uses GridId for remote grids to ensure one record per construct.
+        /// Stores OriginId as UnicastId for IGC targeting.
+        /// </summary>
         AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(IntergridMessageObject message)
         {
-            long originId = message.HLong("OriginId");
-            string gridIdStr = message.HString("GridId");
-            string recordId = !string.IsNullOrEmpty(gridIdStr) ? gridIdStr : $"{originId}";
-
-            // Extract orientation if present
-            Vector3D? forward = null;
-            Vector3D? up = null;
-            double fx, fy, fz, ux, uy, uz;
-            if (double.TryParse(message.HString("Fx"), out fx) &&
-                double.TryParse(message.HString("Fy"), out fy) &&
-                double.TryParse(message.HString("Fz"), out fz))
-            {
-                forward = new Vector3D(fx, fy, fz);
-            }
-            if (double.TryParse(message.HString("Ux"), out ux) &&
-                double.TryParse(message.HString("Uy"), out uy) &&
-                double.TryParse(message.HString("Uz"), out uz))
-            {
-                up = new Vector3D(ux, uy, uz);
-            }
+            long originId = message.HLong(Literals.OriginId);
+            string gridIdStr = message.HString(Literals.GridId);
+            string recordId = !string.IsNullOrEmpty(gridIdStr) ? gridIdStr : originId.ToString();
 
             return Almanac.UpdateOrCreateFromMessage(
                 recordId, originId,
-                message.HString("OriginName"),
+                message.HString(Literals.OriginName),
                 new Vector3D(message.HFloat("X"), message.HFloat("Y"), message.HFloat("Z")),
                 message.HFloat("Speed"),
                 message.Channels, OriginIsOnConstruct(originId),
-                forward, up
+                TryReadVector(message, "Fx", "Fy", "Fz"),
+                TryReadVector(message, "Ux", "Uy", "Uz")
             );
+        }
+
+        static Vector3D? TryReadVector(IntergridMessageObject message, string xKey, string yKey, string zKey)
+        {
+            double x, y, z;
+            if (double.TryParse(message.HString(xKey), out x) &&
+                double.TryParse(message.HString(yKey), out y) &&
+                double.TryParse(message.HString(zKey), out z))
+                return new Vector3D(x, y, z);
+
+            return null;
         }
 
         /// <summary>
@@ -439,7 +474,7 @@ namespace IngameScript
             );
             
             if(response != null)
-                SendUnicastRequest(response.HLong("TargetId"), response, null);
+                SendUnicastRequest(response.HLong(Literals.TargetId), response, null);
         }
 
         /// <summary>
@@ -451,9 +486,9 @@ namespace IngameScript
         {
             if (response == null) return;
 
-            if (response.Header.ContainsKey("RespondingToId"))
+            if (response.Header.ContainsKey(Literals.RespondingToId))
             {
-                string respondingToId = response.HString("RespondingToId");
+                string respondingToId = response.HString(Literals.RespondingToId);
                 KeyValuePair<int, Action<IntergridMessageObject>> awaited;
 
                 if (AwaitedRequests.TryGetValue(respondingToId, out awaited))
@@ -467,7 +502,7 @@ namespace IngameScript
             }
 
             else
-                Log.Error($"Response missing 'RespondingToId' header: {Serializer.SerializeDictionary(response.Header)}");
+                Log.Error($"Response missing '{Literals.RespondingToId}' header: {Serializer.SerializeDictionary(response.Header)}");
         }
 
         /// <summary>
@@ -479,7 +514,7 @@ namespace IngameScript
         public void SendUnicastRequest(long TargetId, IntergridMessageObject message, Action<IntergridMessageObject> onResponse)
         {
             // Register the message callback
-            activeRequests[$"{message.Header["Id"]}"] = onResponse;
+            activeRequests[$"{message.Header[Literals.Id]}"] = onResponse;
 
             bool success = false;
 
@@ -519,7 +554,7 @@ namespace IngameScript
         /// <param name="onResponse"></param>
         public void SendAwaitedRequest(long TargetId, Request request, Action<IntergridMessageObject> onResponse)
         {
-            AwaitedRequests[$"{request.Header["Id"]}"] = new KeyValuePair<int, Action<IntergridMessageObject>>(Syncs, onResponse);
+            AwaitedRequests[$"{request.Header[Literals.Id]}"] = new KeyValuePair<int, Action<IntergridMessageObject>>(Syncs, onResponse);
             SendUnicastRequest(TargetId, request, null);
         }
 
@@ -566,7 +601,7 @@ namespace IngameScript
 
             if (record.EntityType != AlmanacRecord.EntityTypes["grid"])
             {
-                Log.Error($"Target '{target}' is not a grid (type: {record.EntityType}).");
+                Log.Error($"Target '{target}' is not a {Literals.Grid} (type: {record.EntityType}).");
                 return;
             }
 
@@ -585,7 +620,7 @@ namespace IngameScript
         /// <param name="routine"></param>
         public void SendRequestToAllFromRoutine(TerminalRoutine routine)
         {
-            Almanac.GetRecordsByType("grid")
+            Almanac.GetRecordsByType(Literals.Grid)
                 .ForEach(grid => SendRequestFromRoutine(grid.Id, routine));
         }
 
@@ -599,7 +634,7 @@ namespace IngameScript
             return CreateRequest("command", 
                 new Dictionary<string, object>
                 {
-                    { "Command", command }
+                    { Literals.Command, command }
                 }
             );
         }
@@ -617,9 +652,9 @@ namespace IngameScript
             return new Dictionary<string, object>
             {
                 // Identifiers
-                { "OriginId", $"{Mother.Id}" },
-                { "GridId", $"{Mother.GridId}" },
-                { "OriginName", Mother.Name },
+                { Literals.OriginId, $"{Mother.Id}" },
+                { Literals.GridId, $"{Mother.GridId}" },
+                { Literals.OriginName, Mother.Name },
 
                 // Position
                 { "X", $"{currentPosition.X}" },
@@ -627,7 +662,7 @@ namespace IngameScript
                 { "Z", $"{currentPosition.Z}" },
 
                 // Environment
-                { "SafeRadius", $"{Mother.SafeZone.Radius}" },
+                { Literals.SafeRadius, $"{Mother.SafeZone.Radius}" },
                 { "Gravity", $"{Mother?.GetGravity()}"   },
                 { "Speed", $"{Mother?.GetShipSpeed()}" },
 
@@ -687,9 +722,9 @@ namespace IngameScript
             Dictionary<string, object> responseHeader = new Dictionary<string, object>()
             {
                 { "Status", $"{Response.GetResponseCodeValue(code)}" },
-                { "TargetId", request.Header["OriginId"] },
-                { "TargetName", request.Header["OriginName"] },
-                { "RespondingToId", request.Header["Id"] },
+                { Literals.TargetId, request.Header[Literals.OriginId] },
+                { "TargetName", request.Header[Literals.OriginName] },
+                { Literals.RespondingToId, request.Header["Id"] },
             };
             Dictionary<string, object> responseBody = new Dictionary<string, object>();
 
@@ -733,7 +768,7 @@ namespace IngameScript
                 SyncBody(),
                 new Dictionary<string, object>
                 {
-                    { "OriginName", Mother.Name }
+                    { Literals.OriginName, Mother.Name }
                 }
             );
 
@@ -748,7 +783,7 @@ namespace IngameScript
         {
             var body = new Dictionary<string, object>
             {
-                { "Commands", string.Join(",", Mother.GetModule<CommandBus>().GetSelfCommandNames()) },
+                { Literals.Commands, string.Join(",", Mother.GetModule<CommandBus>().GetSelfCommandNames()) },
                 { "Views", string.Join(",", Views.Keys) }
             };
 
@@ -836,8 +871,8 @@ namespace IngameScript
         /// <param name="message"></param>
         void SyncConstructCommands(IntergridMessageObject message)
         {
-            long originId = message.HLong("OriginId");
-            string commandsStr = message.BString("Commands");
+            long originId = message.HLong(Literals.OriginId);
+            string commandsStr = message.BString(Literals.Commands);
             
             if (!string.IsNullOrEmpty(commandsStr) && originId != Mother.Id)
             {
@@ -941,7 +976,7 @@ namespace IngameScript
         /// <returns></returns>
         Response HandleCondRequest(Request request)
         {
-            if (request.Channels.Count != 1 || !request.Channels.Contains(CONSTRUCT_CHANNEL_TAG) || !OriginIsOnConstruct(request.HLong("OriginId")))
+            if (request.Channels.Count != 1 || !request.Channels.Contains(CONSTRUCT_CHANNEL_TAG) || !OriginIsOnConstruct(request.HLong(Literals.OriginId)))
                 return null;
 
             var body = new Dictionary<string, object>();
@@ -1002,7 +1037,7 @@ namespace IngameScript
         /// <summary>
         /// Header keys forwarded when relaying almanac data to construct instances.
         /// </summary>
-        static readonly string[] AlmanacRelayHeaders = { "OriginId", "GridId", "OriginName", "X", "Y", "Z", "Speed", "SafeRadius" };
+        static readonly string[] AlmanacRelayHeaders = { Literals.OriginId, Literals.GridId, Literals.OriginName, "X", "Y", "Z", "Speed", Literals.SafeRadius };
 
         /// <summary>
         /// Broadcast almanac data to all construct instances so they can 
@@ -1019,7 +1054,7 @@ namespace IngameScript
             foreach (string key in AlmanacRelayHeaders)
                 header[key] = message.HString(key);
 
-            Request request = CreateRequest("almanac", null, header);
+            Request request = CreateRequest(Literals.Almanac, null, header);
             Mother.IGC.SendBroadcastMessage(CONSTRUCT_CHANNEL_TAG, request.Serialize(), TransmissionDistance.CurrentConstruct);
         }
 

@@ -81,14 +81,14 @@ namespace IngameScript
             {
                 record = new AlmanacRecord(
                     $"{Mother.Id}",
-                    "grid",
+                    Literals.Grid,
                     position,
                     Mother.CubeGrid.Speed
                 );
             }
 
-            Vector3D? forward = (Vector3D?)worldMatrix.Forward;
-            Vector3D? up = (Vector3D?)worldMatrix.Up;
+            Vector3D? forward = (Vector3D?)worldMatrix.Forward,
+                up = (Vector3D?)worldMatrix.Up;
 
             record.Update(position, Mother.CubeGrid.Speed, Mother.Name, Mother.SafeZone.Radius, forward, up);
             AddRecord(record);
@@ -101,7 +101,7 @@ namespace IngameScript
         /// </summary>
         void LoadFromLocalStorage()
         {
-            string serializedAlmanac = Mother.GetModule<LocalStorage>().Get("almanac") ?? "";
+            string serializedAlmanac = Mother.GetModule<LocalStorage>().Get(Literals.Almanac) ?? "";
 
             if (serializedAlmanac == "")
                 return;
@@ -147,11 +147,11 @@ namespace IngameScript
                 return false;
                 
             // Waypoints are always valid (they don't expire)
-            if (record.EntityType == "waypoint")
+            if (record.EntityType == Literals.Waypoint)
                 return true;
                 
             // Grid records need UnicastId for communication
-            if (record.EntityType == "grid" && record.UnicastId == 0)
+            if (record.EntityType == Literals.Grid && record.UnicastId == 0)
                 return false;
                 
             // Check if record is too old
@@ -169,11 +169,12 @@ namespace IngameScript
         bool IsRecordStale(AlmanacRecord record)
         {
             // Waypoints don't expire
-            if (record.EntityType == "waypoint")
+            if (record.EntityType == Literals.Waypoint)
                 return false;
                 
             // Check age for grid records
             double ageSeconds = (DateTime.Now - record.UpdatedAt).TotalSeconds;
+
             return ageSeconds > GRID_RECORD_MAX_AGE_SECONDS;
         }
 
@@ -202,7 +203,7 @@ namespace IngameScript
             foreach (var record in Records)
                 recordDict[record.Id] = record;
 
-            Mother.GetModule<LocalStorage>().Set("almanac", Serializer.SerializeDictionary(recordDict));
+            Mother.GetModule<LocalStorage>().Set(Literals.Almanac, Serializer.SerializeDictionary(recordDict));
         }
 
         /// <summary>
@@ -244,7 +245,7 @@ namespace IngameScript
             }
             else
             {
-                record = new AlmanacRecord(recordId, "grid", position, speed)
+                record = new AlmanacRecord(recordId, Literals.Grid, position, speed)
                 {
                     UnicastId = originId,
                     DisplayName = name,
@@ -291,9 +292,7 @@ namespace IngameScript
         /// <param name="type"></param>
         /// <returns></returns>
         public List<AlmanacRecord> GetRecordsByType(string type)
-        {
-            return Records.FindAll(record => record.EntityType == type);
-        }
+            => Records.FindAll(record => record.EntityType == type);
 
         /// <summary>
         /// Add a record to the Almanac. If the record already exists, we 

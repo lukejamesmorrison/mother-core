@@ -40,20 +40,20 @@ namespace IngameScript
             /// <summary>
             /// Message indicating that a command was not found.
             /// </summary>
-            public const string CommandNotFound = "Command not found: {0}";
+            public const string CommandNotFound = "Command not found: {0}",
             /// <summary>
             /// Message indicating that no arguments were provided for a command.
             /// </summary>
-            public const string NoArgumentsProvided = "No arguments provided";
+            NoArgumentsProvided = "No arguments provided",
             /// <summary>
             /// Message indicating that a command was executed successfully.
             /// </summary>
-            public const string InvalidCommandFormat = "Invalid command format.";
+            InvalidCommandFormat = "Invalid command format.",
             /// <summary>
             /// Printed when a step fails and its routine stops. {0} is the step
             /// as written, {1} is why it failed.
             /// </summary>
-            public const string CommandFailed = "Command failed: {0} ({1})";
+            CommandFailed = "Command failed: {0} ({1})";
         }
 
         /// <summary>
@@ -116,13 +116,13 @@ namespace IngameScript
         /// Registry of commands available on other Mother Core instances on the construct.
         /// Maps script EntityId to set of command names.
         /// </summary>
-        public readonly Dictionary<long, HashSet<string>> ConstructCommands = new Dictionary<long, HashSet<string>>();
+        public readonly Dictionary<long, HashSet<string>> ConstructCommands = new Dictionary<long, HashSet<string>>(),
 
         /// <summary>
         /// Registry of important commands (prefixed with !) from other Mother Core instances.
         /// Maps script EntityId to set of important command names (without the ! prefix).
         /// </summary>
-        public readonly Dictionary<long, HashSet<string>> ImportantConstructCommands = new Dictionary<long, HashSet<string>>();
+        ImportantConstructCommands = new Dictionary<long, HashSet<string>>();
 
         /// <summary>
         /// Execution counts for each command.
@@ -192,12 +192,12 @@ namespace IngameScript
             if (!IMS.IsRelay)
                 return null;
             
-            string commandStr = request.BString("Command").Trim();
+            string commandStr = request.BString(Literals.Command).Trim();
             
             if (string.IsNullOrEmpty(commandStr))
                 return IMS.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
             
-            LogCommand("REQ", request.HString("OriginName"), commandStr);
+            LogCommand("REQ", request.HString(Literals.OriginName), commandStr);
             
             // Check if another construct instance owns this command (important commands first)
             var terminalCommand = new TerminalCommand(commandStr);
@@ -224,12 +224,12 @@ namespace IngameScript
         /// <returns></returns>
         Response HandleIncomingCommandRequest(Request request)
         {
-            string command = request.BString("Command").Trim();
+            string command = request.BString(Literals.Command).Trim();
 
             if (string.IsNullOrEmpty(command))
                 return IMS.CreateResponse(request, Response.ResponseStatusCodes.ERROR);
 
-            LogCommand("CREQ", request.HString("OriginName"), command);
+            LogCommand("CREQ", request.HString(Literals.OriginName), command);
 
             return ExecuteAndRespond(request, command);
         }
@@ -243,9 +243,10 @@ namespace IngameScript
         Response ExecuteAndRespond(Request request, string command)
         {
             bool success = RunTerminalCommand(command);
-            var status = success 
-                ? Response.ResponseStatusCodes.COMMAND_EXECUTED 
+            var status = success
+                ? Response.ResponseStatusCodes.COMMAND_EXECUTED
                 : Response.ResponseStatusCodes.ERROR;
+
             return IMS.CreateResponse(request, status);
         }
 
@@ -254,8 +255,10 @@ namespace IngameScript
         /// </summary>
         void LogCommand(string prefix, string originName, string command)
         {
-            Log.Info($"{prefix}: {originName}> {command}");
-            Mother.Print($"{prefix}: {originName}> {command}", false);
+            var line = $"{prefix}: {originName}> {command}";
+
+            Log.Info(line);
+            Mother.Print(line, false);
         }
 
         /// <summary>
@@ -296,7 +299,7 @@ namespace IngameScript
                 // Variables in a local routine are resolved as each step runs.
                 // A remote routine never runs here, so the typed text is resolved
                 // now. Config command bodies stay raw for the remote to resolve.
-                if (routine.Target != "self")
+                if (routine.Target != Literals.Self)
                     routine = new TerminalRoutine(Mother.SubstituteVariables(commandString));
 
                 HandleRoutine(routine);
@@ -323,10 +326,8 @@ namespace IngameScript
             if (Clock == null)
                 Clock = Mother.GetModule<Clock>();
 
-            if (target == "self" || string.IsNullOrEmpty(target))
-            {
+            if (target == Literals.Self || string.IsNullOrEmpty(target))
                 LaunchRoutineCoroutines(terminalRoutine);
-            }
             else
             {
                 // Remote routine handling
@@ -562,13 +563,13 @@ namespace IngameScript
             }
 
             // Handle the "wait" command
-            if (command.Name.ToLower() == "wait" && command.Arguments.Count > 0)
+            if (command.Name.ToLower() == Literals.Wait && command.Arguments.Count > 0)
             {
                 double waitTime;
 
                 if (double.TryParse(command.Arguments[0], out waitTime))
                 {
-                    Mother.Print($"> wait {waitTime}");
+                    Mother.Print($"> {Literals.Wait} {waitTime}");
                     CountExecution(CommandExecutionOutcome.WaitScheduled, command.Name);
                     yield return waitTime;
                 }
@@ -638,7 +639,7 @@ namespace IngameScript
             {
                 var parsed = new TerminalRoutine(resolved);
 
-                if (parsed.Target != "self")
+                if (parsed.Target != Literals.Self)
                     return "a variable cannot send a step to another grid (@" + parsed.Target + ")";
 
                 if (parsed.HasParallelGroups || parsed.Commands.Count != 1)

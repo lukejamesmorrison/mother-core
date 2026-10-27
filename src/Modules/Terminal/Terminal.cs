@@ -37,13 +37,13 @@ namespace IngameScript
         /// <summary>
         /// Full print strings collection.
         /// </summary>
-        readonly List<string> FullPrintStrings = new List<string>();
+        readonly List<string> FullPrintStrings = new List<string>(),
 
         /// <summary>
         /// Trimmed print strings collection. These are limited in length to print 
         /// nicely with the console window width of approx. 40 characters.
         /// </summary>
-        readonly List<string> TrimmedPrintStrings = new List<string>();
+        TrimmedPrintStrings = new List<string>();
 
         /// <summary>
         /// Constructor.
@@ -94,19 +94,19 @@ namespace IngameScript
         /// <returns></returns>
         public virtual string GetConsoleHeader()
         {
-            string output = "";
-            string systemName = (Mother.SystemName ?? "").PadRight(15).Substring(0, 15);
+            string output = "",
+            systemName = (Mother.SystemName ?? "").PadRight(15).Substring(0, 15);
 
             output +=
-                $" {systemName}{GetIndicators()}   ({Mother.GetModule<Clock>().GetLoader()})\n" +
+                $" {systemName}{GetIndicators()}    ({Mother.GetModule<Clock>().GetLoader()})\n" +
                 $" {Mother.Name} *{Mother.ShortId}\n" +
-                $"------------------------------------------------------\n" +
+                $"{Literals.Rule}\n" +
                 "";
 
             if (Highlights != "")
                 output +=
                     $"{GetHighlights()}" +
-                    $"------------------------------------------------------\n" +
+                    $"{Literals.Rule}\n" +
                     $"";
 
             return output;
@@ -134,20 +134,20 @@ namespace IngameScript
         /// <returns></returns>
         public virtual string GetIndicators()
         {
-            string activityMonitorIndicator = Mother.GetModule<ActivityMonitor>().ActiveBlocks.Count() > 0 ? "M" : "   ";
-            string activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ";
-            string almanacCount = $"{Mother.GetModule<Almanac>().Records.Count()}";
-            string autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ";
-            string waitQueueIndicator = Mother.GetModule<Clock>().QueuedTaskCount > 0 ? "W" : "   ";
-
             int remoteScriptCount = Mother.GetModule<CommandBus>().ConstructCommands.Count;
-            string remoteIndicator = remoteScriptCount > 0 ? $"R{remoteScriptCount}" : "   ";
+
+            string activityMonitorIndicator = Mother.GetModule<ActivityMonitor>().ActiveBlocks.Count() > 0 ? "M" : "   ",
+                //activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ",
+                almanacCount = $"{Mother.GetModule<Almanac>().Records.Count()}",
+                autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ",
+                waitQueueIndicator = Mother.GetModule<Clock>().QueuedTaskCount > 0 ? "W" : "   ",
+                remoteIndicator = remoteScriptCount > 0 ? $"R{remoteScriptCount}" : "   ";
 
             return String.Join(
                 "  ",
                 waitQueueIndicator,
                 autopilotIndication,
-                activeRequests,
+                //activeRequests,
                 activityMonitorIndicator,
                 almanacCount,
                 remoteIndicator
@@ -181,10 +181,8 @@ namespace IngameScript
         /// Accessor for Program.Echo()
         /// </summary>
         /// <param name="message"></param>
-        public virtual void Echo(string message)
-        {
-            Mother.Program.Echo(message);
-        }
+        public virtual void Echo(string message) => Mother.Program.Echo(message);
+      
 
         /// <summary>
         /// Clear the print string collections to refresh the console display.

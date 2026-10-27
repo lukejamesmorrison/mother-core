@@ -47,37 +47,38 @@ namespace IngameScript
         /// <summary>
         /// The padding around the display.
         /// </summary>
-        protected float LCDDisplayPadding = 4f;
+        protected float LCDDisplayPadding = 4f,
 
         /// <summary>
         /// The padding around the display.
         /// </summary>
-        protected float CockpitDisplayPadding = 0;
+        CockpitDisplayPadding = 0;
 
         /// <summary>
         /// The default font size for the display.
         /// </summary>
-        protected const float BASE_FONT_SIZE = 16f;
+        protected const float BASE_FONT_SIZE = 16f,
 
         /// <summary>
         /// The default scale for the display.
         /// </summary>
-        protected const float DEFAULT_SCALE = 1f;
-
-        /// <summary>
-        /// The scale of the display.
-        /// </summary>
-        public float Scale = DEFAULT_SCALE;
+        DEFAULT_SCALE = 1f,
 
         /// <summary>
         /// The default text scale for the display.
         /// </summary>
-        protected const float DEFAULT_TEXT_SCALE = 1f;
+        DEFAULT_TEXT_SCALE = 1f;
+
+        /// <summary>
+        /// The scale of the display.
+        /// </summary>
+        public float Scale = DEFAULT_SCALE,
+
 
         /// <summary>
         /// The font size of the display.
         /// </summary>
-        public float FontSize;
+        FontSize;
 
         /// <summary>
         /// The frame for drawing sprites.
@@ -121,8 +122,6 @@ namespace IngameScript
             Configuration = blockConfiguration;
             IsCockpitDisplay = isCockpitDisplay;
 
-            SetBaseConfiguration();
-
             SetRenderingDetails();
         }
 
@@ -143,8 +142,8 @@ namespace IngameScript
         {
             Viewport = CalculateViewport(Surface, LCDDisplayPadding);
 
-            float widthOffset = IsCockpitDisplay ? CockpitDisplayPadding : LCDDisplayPadding;
-            float heightOffset = IsCockpitDisplay ? CockpitDisplayPadding : LCDDisplayPadding;
+            float widthOffset = IsCockpitDisplay ? CockpitDisplayPadding : LCDDisplayPadding,
+                heightOffset = IsCockpitDisplay ? CockpitDisplayPadding : LCDDisplayPadding;
 
             // Adjusting for dynamic padding and scaling
             TopLeft = Viewport.Position + new Vector2(widthOffset, heightOffset);
@@ -160,19 +159,6 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Set the configuration for the display. This uses the configuration 
-        /// defined in the block's custom data.
-        /// </summary>
-        protected virtual void SetBaseConfiguration()
-        {
-            //if (Configuration.ContainsSection("general"))
-            //{
-            //    //DEFAULT_SCALE = float.Parse(Configuration.Get("general", "scale").ToString());
-            //    //DEFAULT_TEXT_SCALE = float.Parse(Configuration.Get("general", "textScale").ToString());  // Load text scale
-            //}
-        }
-
-        /// <summary>
         /// Draw the frame for the display. This is where we can draw sprites and text.
         /// </summary>
         public virtual void DrawFrame() {
@@ -183,7 +169,7 @@ namespace IngameScript
             Vector2 vector = new Vector2((float)random.NextDouble(), (float)random.NextDouble());
 
             // add a random empty sprite to force the frame to render (workaround for SE bug where frame doesn't render without any sprites)
-            Frame.Add(SpriteFactory.CreateShape("SquareSimple", vector, vector, Color.Transparent));
+            Frame.Add(SpriteFactory.CreateShape(Literals.Square, vector, vector, Color.Transparent));
         }
 
         /// <summary>
@@ -201,8 +187,6 @@ namespace IngameScript
             return new RectangleF(
                 surface.TextureSize.X / 2f - surfaceSize.X / 2f + padding, // X 
                 surface.TextureSize.Y / 2f - surfaceSize.Y / 2f + padding, // Y 
-                //surfaceSize.X - 2 * padding,  // Width 
-                //surfaceSize.Y - 2 * padding   // Height
                 surfaceSize.X - (4 * padding),  // Width 
                 surfaceSize.Y - (4 * padding)   // Height
             );
@@ -217,8 +201,8 @@ namespace IngameScript
         public void SetScale(Vector3D min, Vector3D max)
         {
             var range = max - min;
-            var scaleX = Viewport.Width / range.X;
-            var scaleY = Viewport.Height / range.Y;
+            double scaleX = Viewport.Width / range.X,
+                scaleY = Viewport.Height / range.Y;
 
             Scale = DEFAULT_SCALE * (float) Math.Min(scaleX, scaleY);
         }
@@ -232,16 +216,12 @@ namespace IngameScript
         public virtual float CalculateFontSize()
         {
             // 1024px is a reference base for normal scaling
-            float displayFactor = Viewport.Width / 1024f; 
-
+            float displayFactor = Viewport.Width / 1024f,
             // Adjust font size based on display width and DEFAULT_TEXT_SCALE (for fine-tuning)
-            float fontSize = BASE_FONT_SIZE * displayFactor * DEFAULT_TEXT_SCALE;
+            fontSize = BASE_FONT_SIZE * displayFactor * DEFAULT_TEXT_SCALE;
 
             // Bound font size
-            fontSize = Math.Max(fontSize, 8f);
-            fontSize = Math.Min(fontSize, 32f);
-
-            return fontSize;
+            return MathHelper.Clamp(fontSize, 8f, 32f);
         }
 
         /// <summary>
@@ -278,7 +258,7 @@ namespace IngameScript
         public void DrawSquareSprite(Vector2 center, float size, Color color, float angleDegrees = 0)
         {
             float rotation = MathHelper.ToRadians(angleDegrees);
-            Frame.Add(SpriteFactory.CreateShape("SquareSimple", center, new Vector2(size, size), color, rotation));
+            Frame.Add(SpriteFactory.CreateShape(Literals.Square, center, new Vector2(size, size), color, rotation));
         }
 
         /// <summary>
@@ -291,10 +271,10 @@ namespace IngameScript
         public void DrawLineSprite(Vector2 start, Vector2 end, Color color, float thickness)
         {
             var midpoint = (start + end) / 2;
-            var length = Vector2.Distance(start, end);
-            var angle = (float)Math.Atan2(end.Y - start.Y, end.X - start.X);
+            float length = Vector2.Distance(start, end),
+                angle = (float)Math.Atan2(end.Y - start.Y, end.X - start.X);
 
-            Frame.Add(SpriteFactory.CreateShape("SquareSimple", midpoint, new Vector2(length, thickness), color, angle));
+            Frame.Add(SpriteFactory.CreateShape(Literals.Square, midpoint, new Vector2(length, thickness), color, angle));
         }
 
         /// <summary>
@@ -306,10 +286,11 @@ namespace IngameScript
         /// <param name="fillColor"></param>
         public void DrawOctagonSprite(Vector2 center, float size, Color outlineColor, Color fillColor)
         {
-            float radius = size / 2f;
             Vector2[] points = new Vector2[8];
-            float angleStep = MathHelper.PiOver4; // 45-degree increments
-            float rotationOffset = MathHelper.Pi / 8; // 22.5-degree rotation
+
+            float radius = size / 2f,
+                angleStep = MathHelper.PiOver4, // 45-degree increments
+                rotationOffset = MathHelper.Pi / 8; // 22.5-degree rotation
 
             for (int i = 0; i < 8; i++)
             {
@@ -336,7 +317,7 @@ namespace IngameScript
         /// <param name="color"></param>
         public void DrawCircleSprite(Vector2 center, float diameter, Color color)
         {
-            Frame.Add(SpriteFactory.CreateShape("Circle", center, new Vector2(diameter, diameter), color));
+            Frame.Add(SpriteFactory.CreateShape(Literals.Circle, center, new Vector2(diameter, diameter), color));
         }
 
         /// <summary>
@@ -349,7 +330,7 @@ namespace IngameScript
         public void DrawTriangleSprite(Vector2 center, float size, Color color, float angleDegrees = 0)
         {
             float rotation = MathHelper.ToRadians(angleDegrees);
-            Frame.Add(SpriteFactory.CreateShape("Triangle", center, new Vector2(size, size), color, rotation));
+            Frame.Add(SpriteFactory.CreateShape(Literals.Triangle, center, new Vector2(size, size), color, rotation));
         }
 
         /// <summary>
@@ -357,7 +338,7 @@ namespace IngameScript
         /// </summary>
         public void DrawBackground()
         {
-            Frame.Add(SpriteFactory.CreateShape("SquareSimple", Surface.TextureSize / 2f, Surface.TextureSize, Color.Black));
+            Frame.Add(SpriteFactory.CreateShape(Literals.Square, Surface.TextureSize / 2f, Surface.TextureSize, Color.Black));
         }
 
         /// <summary>
@@ -382,14 +363,14 @@ namespace IngameScript
         /// (Monospace — matches <c>MotherTheme.Fonts.Mono</c>).
         /// </summary>
         public void DrawText(string text, Vector2 position, Color color, float scale = 1f)
-            => DrawText(text, position, color, "Monospace", scale);
+            => DrawText(text, position, color, Literals.Mono, scale);
 
         /// <summary>
         /// Draw text on the display using the default theme colour (white — matches
         /// <c>MotherTheme.Colors.ValueText</c>) and font (<c>MotherTheme.Fonts.Mono</c>).
         /// </summary>
         public void DrawText(string text, Vector2 position, float scale = 1f)
-            => DrawText(text, position, Color.White, "Monospace", scale);
+            => DrawText(text, position, Color.White, Literals.Mono, scale);
 
         /// <summary>
         /// Draw horizontally-centred text at <paramref name="position"/>.
@@ -406,7 +387,7 @@ namespace IngameScript
                 RotationOrScale  = GetScalingFactor() * scale,
                 Color            = color,
                 Alignment        = TextAlignment.CENTER,
-                FontId           = "Monospace"
+                FontId           = Literals.Mono
             });
         }
 

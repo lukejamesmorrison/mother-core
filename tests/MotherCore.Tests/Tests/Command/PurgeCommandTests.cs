@@ -89,6 +89,23 @@ namespace MotherCore.Tests.Command
         }
 
         [Test]
+        public void Execute_With_Force_Purges_Several_Named_Modules()
+        {
+            var script = ScriptFactory().WithMother().Boot();
+            var almanac = script.Mother.GetModule<Almanac>();
+            var storage = script.Mother.GetModule<LocalStorage>();
+
+            almanac.AddRecord(new AlmanacRecord("wp-1", "waypoint", new Vector3D(1, 2, 3)));
+            storage.Set("ship", "Frigate");
+
+            script.RunTerminal("purge almanac,storage --force");
+
+            Assert.That(almanac.Records, Is.Empty);
+            Assert.That(storage.Get("ship"), Is.EqualTo(string.Empty));
+            script.ShouldHavePrinted("Purged 2 modules");
+        }
+
+        [Test]
         public void Execute_Does_Not_Keep_Force_State_Between_Invocations()
         {
             var script = ScriptFactory().WithMother().Boot();

@@ -220,7 +220,7 @@ namespace MotherCore.Tests.Tests.Unit
             {
                 { "Id", "67890" },
                 { "pos", "X:10 Y:20 Z:30" },
-                { "EntityType", "grid" },
+                { "EntityType", Literals.Grid },
                 { "LastKnownSpeed", "0" }
             };
 

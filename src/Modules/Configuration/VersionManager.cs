@@ -61,21 +61,21 @@ namespace IngameScript
         void Version0_2_14()
         {
             // convert commands section name
-            if (Config.ContainsSection("Commands"))
+            if (            Config.ContainsSection(Literals.Commands))
             {
                 string iniString = Config.ToString();
-                iniString = iniString.Replace("[Commands]", "[commands]");
+                            iniString = iniString.Replace("[Commands]", "[commands]");
 
                 Config.TryParse(iniString);
             }
 
             // update comms channels
-            if (!Config.ContainsSection("channels"))
+            if (!Config.ContainsSection(Literals.Channels))
             {
                 // get current passcodes
-                string passcodes = Config.Get("security", "passcodes").ToString();
+                string passcodes = $"{Config.Get("security", "passcodes")}";
 
-                Config.Set("channels", "default", passcodes);
+                Config.Set(Literals.Channels, "default", passcodes);
 
                 // delete security section as it is now redundant
                 if (Config.ContainsSection("security"))

@@ -130,8 +130,8 @@ namespace IngameScript
         {
             return
                 $" {Mother.SystemName} - {screenName}     ({Clock.GetLoader()})\n" +
-                $" {Mother.Name} *{Mother.ShortId}                                  {GetIndicators()}\n" +
-                "------------------------------------------------------"
+                $" {Mother.Name} *{Mother.ShortId}                                    {GetIndicators()}\n" +
+                Literals.Rule
                 ;
         }
 
@@ -144,17 +144,17 @@ namespace IngameScript
         /// <returns></returns>
         public string GetIndicators()
         {
-            string activityMonitorIndicator = Mother.GetModule<ActivityMonitor>().ActiveBlocks.Count() > 0 ? "M" : "   ";
-            string activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ";
-            string almanacCount = $"{Mother.GetModule<Almanac>()?.Records.Count() ?? 0}";
-            string autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ";
-            string waitQueueIndicator = Clock.QueuedTaskCount > 0 ? "W" : "   ";
+            string activityMonitorIndicator = Mother.GetModule<ActivityMonitor>().ActiveBlocks.Count() > 0 ? "M" : "   ",
+                //activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ",
+                almanacCount = $"{Mother.GetModule<Almanac>()?.Records.Count() ?? 0}",
+                autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ",
+                waitQueueIndicator = Clock.QueuedTaskCount > 0 ? "W" : "   ";
 
             return String.Join(
                 "  ",
                 waitQueueIndicator,
                 autopilotIndication,
-                activeRequests,
+                //activeRequests,
                 activityMonitorIndicator,
                 almanacCount
             );
@@ -183,6 +183,7 @@ namespace IngameScript
                 for (int i = 0; i < blocks.Count; i++)
                 {
                     var provider = blocks[i] as IMyTextSurfaceProvider;
+
                     if (provider == null)
                         continue;
 
@@ -247,7 +248,7 @@ namespace IngameScript
 
                 TextSurfaces.Add(panel);
 
-                if (string.Equals(entry.ViewName, VIEW_NAME_LOG, StringComparison.OrdinalIgnoreCase)
+                if (entry.ViewName == VIEW_NAME_LOG
                     && DisplayTypeResolver.CanWriteToDisplay(entry.Parameter, Mother))
                 {
                     panel.ContentType = ContentType.TEXT_AND_IMAGE;

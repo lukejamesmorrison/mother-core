@@ -13,8 +13,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Commands\BlockCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\IModuleCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Commands\LambdaCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Commands\PurgeCommand.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Commands\RenameCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ActivityMonitor\ActivityMonitor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\Almanac.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\Almanac\AlmanacRecord.cs" />
@@ -76,6 +74,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Mother.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\ColorHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\Geometry.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utilities\Literals.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\Serializer\ISerializable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\MessageFormatter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utilities\PID.cs" />

@@ -32,10 +32,6 @@ namespace IngameScript
     /// </summary>
     public class ConnectorModule : BaseCoreModule
     {
-        /// <summary>
-        /// The BlockCatalogue core module.
-        /// </summary>
-        BlockCatalogue BlockCatalogue;
 
         /// <summary>
         /// Constructor.
@@ -50,9 +46,6 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
-            // Modules
-            BlockCatalogue = Mother.GetModule<BlockCatalogue>();
-
             Block<IMyShipConnector>()
                 .Status("status", connector => connector.Status)
                 .Monitor(connector => connector.Status)
