@@ -55,7 +55,7 @@ when <target> <property> <operator> <value>  [--options]
 ```
 
 - It is parsed by the existing `TerminalCommand`, so quoting, `$VAR` substitution and `--key=value` / bare `--flag` options are identical to every other command. Operators must be separated by spaces (`speed > 30`, not `speed>30`) so they tokenise as arguments.
-- `<target>` is a quoted block or group name, `"$VAR"`, or `this` (inside a block's own Custom Data). Same resolution as `block/on`.
+- `<target>` is a quoted block or group name, `$VAR` or `"$VAR"`, or `this` (inside a block's own Custom Data). A `$VAR` whose value has spaces is quoted for you. Same resolution as `block/on`.
 - Operators: `<  >  <=  >=  ==  !=`. The value is a number, a `%` ratio (0-1), or a state word (`locked`, `connected`). `$VAR` works in values and options (`--at=$MIN_POWER`).
 - Options (all optional, all `--key=value`):
 

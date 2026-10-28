@@ -1025,7 +1025,7 @@ namespace IngameScript
             if (steps.Count == 0 || steps[0].Name != "when")
                 return "needs when";
 
-            if (!Mother.TrySubstituteVariables(steps[0].CommandString, out cond, out error))
+            if (!Mother.TrySubstituteVariables(steps[0].CommandString,                                     out cond, out error, true))
                 return error;
 
             error = Parse(new TerminalCommand(cond), rule, true, true);

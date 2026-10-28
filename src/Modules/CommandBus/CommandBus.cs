@@ -641,7 +641,7 @@ namespace IngameScript
             if (command.CommandString.IndexOf('$') < 0)
                 return null;
 
-            if (!Mother.TrySubstituteVariables(command.CommandString, out resolved, out error))
+            if (!Mother.TrySubstituteVariables(command.CommandString, out resolved, out error, true))
                 return error;
 
             try

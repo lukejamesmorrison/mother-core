@@ -178,6 +178,21 @@ namespace MotherCore.Tests.Tests.Module
         }
 
         [Test]
+        public void An_Unquoted_Variable_With_Spaces_Works_In_The_Target()
+        {
+            var rec = new RecordingCommand();
+            var battery = Battery("Main Battery", 0.3);
+            var data = Data()
+                .WithVariable("BAT", "Main Battery")
+                .With("rules", "low", "when $BAT charge < 40%; rec A");
+            var script = Boot(rec, data, battery);
+
+            Evaluate(script);
+
+            Assert.That(rec.Calls, Is.EqualTo(new[] { "rec A" }));
+        }
+
+        [Test]
         public void This_In_A_Block_Rule_Means_That_Block()
         {
             var rec = new RecordingCommand();

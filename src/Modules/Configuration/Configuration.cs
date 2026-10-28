@@ -362,7 +362,7 @@ namespace IngameScript
         /// Scans text and appends it to the builder with variables resolved. Values that
         /// reference other variables are scanned in turn, down to MaxVariableDepth.
         /// </summary>
-        void AppendWithVariables(string text, StringBuilder output, int depth, string[] chain, ref string error)
+        void AppendWithVariables(string text, StringBuilder output, int depth, string[] chain, bool quoteValues, ref bool inQuotes, ref string error)
         {
             int i = 0;
 
@@ -372,11 +372,11 @@ namespace IngameScript
 
                 if (dollar < 0)
                 {
-                    output.Append(text, i, text.Length - i);
+                    AppendLiteral(text, i, text.Length - i, output, ref inQuotes);
                     return;
                 }
 
-                output.Append(text, i, dollar - i);
+                AppendLiteral(text, i, dollar - i, output, ref inQuotes);
 
                 // $$ is an escaped literal $
                 if (dollar + 1 < text.Length && text[dollar + 1] == '$')
@@ -405,9 +405,52 @@ namespace IngameScript
                     continue;
                 }
 
+                // When resolving a step, a value with whitespace used as an argument is
+                // quoted so it stays a single token. Values holding steps or quotes are
+                // left alone.
+                if (quoteValues && !inQuotes && IsArgumentPosition(output)
+                    && value.IndexOfAny(new[] { '$', ';', '"', '{', '}' }) < 0
+                    && value.IndexOfAny(new[] { ' ', '\t' }) >= 0)
+                {
+                    output.Append('"').Append(value).Append('"');
+                    continue;
+                }
+
                 chain[depth] = name;
-                AppendWithVariables(value, output, depth + 1, chain, ref error);
+                AppendWithVariables(value, output, depth + 1, chain, quoteValues, ref inQuotes, ref error);
             }
+        }
+
+        /// <summary>
+        /// Whether the text so far holds a command name in the current step, so the next
+        /// token is an argument.
+        /// </summary>
+        static bool IsArgumentPosition(StringBuilder output)
+        {
+            for (int k = output.Length - 1; k >= 0; k--)
+            {
+                char c = output[k];
+
+                if (c == ';' || c == '{' || c == '}')
+                    return false;
+
+                if (!char.IsWhiteSpace(c))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Appends a slice of literal text and tracks whether it ends inside double quotes.
+        /// </summary>
+        static void AppendLiteral(string text, int start, int length, StringBuilder output, ref bool inQuotes)
+        {
+            output.Append(text, start, length);
+
+            for (int k = start; k < start + length; k++)
+                if (text[k] == '"')
+                    inQuotes = !inQuotes;
         }
 
         /// <summary>
@@ -423,7 +466,7 @@ namespace IngameScript
         /// <param name="result">The resolved text. The same reference as input if it contains no $.</param>
         /// <param name="error">A description of the failure, or null.</param>
         /// <returns>True if no error occurred.</returns>
-        public bool TrySubstituteVariables(string input, out string result, out string error)
+        public bool TrySubstituteVariables(string input, out string result, out string error, bool quoteValues = false)
         {
             result = input;
             error = null;
@@ -450,7 +493,9 @@ namespace IngameScript
             var output = new StringBuilder(input.Length + 16);
             var chain = new string[MaxVariableDepth + 1];
 
-            AppendWithVariables(input, output, 0, chain, ref error);
+            bool inQuotes = false;
+
+            AppendWithVariables(input, output, 0, chain, quoteValues, ref inQuotes, ref error);
             result = $"{output}";   
 
             return error == null;

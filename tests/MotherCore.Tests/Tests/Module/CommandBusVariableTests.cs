@@ -21,6 +21,7 @@ namespace MotherCore.Tests.Tests.Module
         {
             public readonly List<string> Calls = new List<string>();
             public readonly List<List<string>> Arguments = new List<List<string>>();
+            public readonly List<Dictionary<string, string>> Options = new List<Dictionary<string, string>>();
 
             public override string Name => "rec";
 
@@ -28,6 +29,7 @@ namespace MotherCore.Tests.Tests.Module
             {
                 Calls.Add(command.CommandString);
                 Arguments.Add(command.Arguments.ToList());
+                Options.Add(new Dictionary<string, string>(command.Options));
                 return string.Empty;
             }
         }
@@ -121,6 +123,41 @@ namespace MotherCore.Tests.Tests.Module
             Run(script, "rec \"$LCD\" next");
 
             Assert.That(rec.Arguments.Single(), Is.EqualTo(new[] { "Cockpit [LCD]", "next" }));
+        }
+
+        [Test]
+        public void An_Unquoted_Value_With_Spaces_Stays_One_Argument()
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer().WithVariable("LCD", "\"Cockpit [LCD]\""));
+
+            Run(script, "rec $LCD next");
+
+            Assert.That(rec.Arguments.Single(), Is.EqualTo(new[] { "Cockpit [LCD]", "next" }));
+        }
+
+        [Test]
+        public void An_Unquoted_Value_With_Spaces_Stays_One_Option_Value()
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer().WithVariable("BACKUP", "\"Backup Battery\""));
+
+            Run(script, "rec Batteries --backup=$BACKUP --force");
+
+            Assert.That(rec.Arguments.Single(), Is.EqualTo(new[] { "Batteries" }));
+            Assert.That(rec.Options.Single()["backup"], Is.EqualTo("Backup Battery"));
+            Assert.That(rec.Options.Single()["force"], Is.EqualTo("true"));
+        }
+
+        [Test]
+        public void A_Quoted_Option_Value_Is_Not_Quoted_Twice()
+        {
+            var rec = new RecordingCommand();
+            var script = Boot(rec, new CustomDataComposer().WithVariable("BACKUP", "\"Backup Battery\""));
+
+            Run(script, "rec Batteries --backup=\"$BACKUP\"");
+
+            Assert.That(rec.Options.Single()["backup"], Is.EqualTo("Backup Battery"));
         }
 
         [Test]

@@ -751,14 +751,14 @@ namespace IngameScript
         /// <param name="result">The resolved text.</param>
         /// <param name="error">A description of the failure, or null.</param>
         /// <returns>True if no error occurred.</returns>
-        public bool TrySubstituteVariables(string input, out string result, out string error)
+        public bool TrySubstituteVariables(string input, out string result, out string error, bool quoteValues = false)
         {
             var configuration = GetModule<Configuration>();
 
             result = input;
             error = null;
 
-            return configuration == null || configuration.TrySubstituteVariables(input, out result, out error);
+            return configuration == null || configuration.TrySubstituteVariables(input, out result, out error, quoteValues);
         }
 
         /// <summary>
