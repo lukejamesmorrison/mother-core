@@ -367,6 +367,60 @@ namespace MotherCore.Tests.Module
         }
 
         [Test]
+        public void Refresh_Detects_A_Config_Change_On_A_Block_Beyond_The_First_Batch()
+        {
+            var doors = Enumerable.Range(0, 250)
+                .Select(i => TerminalBlockFactory.Create<IMyDoor>(customName: $"Door {i}"))
+                .ToList();
+
+            var script = ScriptFactory().WithBlocks(doors.ToArray()).Boot();
+
+            doors.Last().CustomData = new CustomDataComposer()
+                .With("general", "tags", "late")
+                .Build();
+
+            int runs = RunUntilBlockConfigChanged(script, 60);
+
+            Assert.That(runs, Is.LessThan(60));
+        }
+
+        [Test]
+        public void Refresh_Spreads_A_Pass_Over_Several_Cycles_When_The_Cycle_Is_Over_Budget()
+        {
+            var doors = Enumerable.Range(0, 30)
+                .Select(i => TerminalBlockFactory.Create<IMyDoor>(customName: $"Door {i}"))
+                .ToList();
+
+            var script = ScriptFactory().WithBlocks(doors.ToArray()).Boot();
+            var runtime = (FakeGridProgramRuntimeInfo)script.Program.Runtime;
+
+            // Over budget, the refresh reads one block per cycle.
+            runtime.CurrentInstructionCount = runtime.MaxInstructionCount;
+
+            doors.Last().CustomData = new CustomDataComposer()
+                .With("general", "tags", "late")
+                .Build();
+
+            int runs = RunUntilBlockConfigChanged(script, 200);
+
+            Assert.That(runs, Is.InRange(25, 199));
+        }
+
+        static int RunUntilBlockConfigChanged(Script<CoreTestProgram> script, int maxRuns)
+        {
+            var bus = script.Mother.GetModule<EventBus>();
+            int runs = 0;
+
+            while (runs < maxRuns && !bus.Emissions.Any(e => e.Event is BlockConfigChangedEvent))
+            {
+                script.Run();
+                runs++;
+            }
+
+            return runs;
+        }
+
+        [Test]
         public void HandleEvent_For_SystemConfigChanged_Reloads_Programmable_Block_Hooks()
         {
             var door = TerminalBlockFactory.Create<IMyDoor>(customName: "Hangar Door");

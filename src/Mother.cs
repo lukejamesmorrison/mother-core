@@ -523,9 +523,34 @@ namespace IngameScript
         /// <summary>
         /// Run all modules. This is called on every program cycle.
         /// </summary>
-        void RunModules() => AllModules.Values
-            .ToList()
-            .ForEach(module => module.Run());
+        void RunModules()
+        {
+            // Rebuilt only after a module is registered, so the per-cycle run does not allocate.
+            // Registration swaps the list rather than changing it, so a module registered
+            // during a run cannot disturb the loop below.
+            var order = _runOrder ?? (_runOrder = new List<IModule>(AllModules.Values));
+
+            for (int i = 0; i < order.Count; i++)
+                order[i].Run();
+        }
+
+        /// <summary>
+        /// Modules in the order <see cref="RunModules"/> runs them. Null until needed.
+        /// </summary>
+        List<IModule> _runOrder;
+
+        /// <summary>
+        /// Registered module names by requested module type. Cleared when a module is registered.
+        /// </summary>
+        readonly Dictionary<Type, string> _moduleNames = new Dictionary<Type, string>();
+
+        /// <summary>
+        /// Whether the current cycle has used more than the given share of the
+        /// instruction limit. Batched work checks this to decide when to yield.
+        /// </summary>
+        /// <param name="share">The share of the instruction limit, from 0 to 1.</param>
+        public bool IsOverBudget(double share = 0.4)
+            => Runtime.CurrentInstructionCount > Runtime.MaxInstructionCount * share;
 
         /// <summary>
         /// Save the storage string to the Program's Storage property. We do this to 
@@ -542,6 +567,8 @@ namespace IngameScript
             ExtensionModules[module.GetModuleName()] = module;
 
             AllModules[module.GetModuleName()] = module;
+            _moduleNames.Clear();
+            _runOrder = null;
 
             ModulesInOrderOfRegistration.Add(module);
         }
@@ -562,9 +589,17 @@ namespace IngameScript
         /// <returns></returns>
         public string GetModuleName<T>() where T : IModule
         {
+            string name;
+
+            if (_moduleNames.TryGetValue(typeof(T), out name))
+                return name;
+
             foreach (var entry in AllModules)
                 if (entry.Value is T)
+                {
+                    _moduleNames[typeof(T)] = entry.Key;
                     return entry.Key;
+                }
 
             return typeof(T).Name; // fallback
         }
@@ -596,6 +631,8 @@ namespace IngameScript
             CoreModules[module.GetModuleName()] = module;
             AllModules[module.GetModuleName()] = module;
             ModulesInOrderOfRegistration.Add(module);
+            _moduleNames.Clear();
+            _runOrder = null;
 
             return module;
         }

@@ -40,7 +40,8 @@
 - Fixed "script too complex" error at boot resulting from long commands strings such as ASCII-art splash screens. Whitespace collapsing, command splitting and term parsing now jump between quotes and delimiters instead of visiting every character.
 - Fixed infinite loop when unpacking a remote (`@grid`) routine if a command shares its name with a variable it references (ie. `Foo=| $Foo;`). `$name` variable references are no longer expanded as commands, whole-word matching is exact, and expansion is capped at 3 passes.
 - Remote routines now expand the command library once per routine instead of once per command.
-
+- Fixed "script too complex" on grids with thousands of blocks (found on Lotus Station, Mother GUI). `BlockCatalogue` re-read the Custom Data of every terminal block in one cycle, once a second, and again as the last step of boot. The refresh now reads at most 100 blocks per cycle, stops early once 40% of the instruction limit is used (`Mother.IsOverBudget`), and waits a second after each full pass. Blocks are still checked for changes once a second on a small grid, and take proportionally longer on a large one.
+- `BlockCatalogue` no longer copies the monitored blocks every cycle, `Mother` no longer copies its module list every cycle, and `GetModule<T>()` remembers which module answers to each type.
 ## [1.1.4] - 2026-10-19
 
 ### Added

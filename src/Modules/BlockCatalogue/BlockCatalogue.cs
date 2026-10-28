@@ -100,6 +100,12 @@ namespace IngameScript
         const int BLOCKS_PER_CYCLE = 50;
 
         /// <summary>
+            /// The most blocks whose Custom Data is re-read in one program cycle by the
+        /// periodic refresh. The refresh also stops early when the cycle is over budget.
+        /// </summary>
+        const int BLOCKS_PER_TICK_REFRESH = 100;
+
+        /// <summary>
         /// The name of the general configuration section.
         /// </summary>
         const string SECTION_GENERAL = "general";
@@ -171,16 +177,32 @@ namespace IngameScript
         }
 
         /// <summary>
-        /// Coroutine to refresh block configurations. This will run every second by queueing itself.
+        /// Coroutine to refresh block configurations. It walks the terminal blocks in
+        /// batches that stop at <see cref="BLOCKS_PER_TICK_REFRESH"/> blocks or when the
+        /// cycle's instruction budget is used up, then waits a second before the next pass.
         /// </summary>
         /// <returns></returns>
         IEnumerable<double> GetRefreshBlockConfigurationRoutine()
         {
-            LoadBlockConfigurations();
+            while (true)
+            {
+                int index = 0;
+                int batch = 0;
 
-            Clock.AddCoroutine(GetRefreshBlockConfigurationRoutine(), 1);
+                // TerminalBlocks can change between batches, so the bound is read each time.
+                while (index < TerminalBlocks.Count)
+                {
+                    LoadBlockConfiguration(TerminalBlocks[index++]);
 
-            yield return 0;
+                    if (++batch >= BLOCKS_PER_TICK_REFRESH || Mother.IsOverBudget())
+                    {
+                        batch = 0;
+                        yield return 0;
+                    }
+                }
+
+                yield return 1;
+            }
         }
 
         /// <summary>
@@ -193,6 +215,13 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Blocks registered for state monitoring, in a stable order so they can be
+        /// checked in batches without copying the dictionary keys each cycle.
+        /// Null when it has to be rebuilt.
+        /// </summary>
+        List<IMyTerminalBlock> _monitoredBlocks;
+
+        /// <summary>
         /// Check the state of blocks that are registered for monitoring. We use a custom 
         /// handler as each block type has a different implementation of state.
         /// </summary>
@@ -201,20 +230,19 @@ namespace IngameScript
         /// <see href="https://github.com/malware-dev/MDK-SE/wiki/Sandbox.ModAPI.Ingame.MyShipConnectorStatus"/>
         void CheckBlocksForStateChange()
         {
-            var blockKeys = BlocksToMonitor.Keys.ToList();
-            int totalBlocks = blockKeys.Count;
+            if (_monitoredBlocks == null)
+                _monitoredBlocks = new List<IMyTerminalBlock>(BlocksToMonitor.Keys);
 
-            var blocksToProcess = blockKeys
-                .Skip(CurrentIndex)
-                .Take(BLOCKS_PER_CYCLE)
-                .ToList();
+            int totalBlocks = _monitoredBlocks.Count;
+            int end = Math.Min(CurrentIndex + BLOCKS_PER_CYCLE, totalBlocks);
 
-            foreach (var block in blocksToProcess)
+            for (int i = CurrentIndex; i < end; i++)
             {
-                // Skip if block is not registered
-                if (!BlocksToMonitor.ContainsKey(block)) continue; 
+                var block = _monitoredBlocks[i];
+                IBlockStateHandler handler;
 
-                IBlockStateHandler handler = BlocksToMonitor[block];
+                // Skip if block is not registered
+                if (!BlocksToMonitor.TryGetValue(block, out handler)) continue;
 
                 object previousState = BlockStates.ContainsKey(block.EntityId) ? BlockStates[block.EntityId] : null;
                 object currentState = handler.GetBlockCurrentState(block);
@@ -297,6 +325,9 @@ namespace IngameScript
         /// <param name="handler"></param>
         public void RegisterBlockForStateMonitoring(IMyTerminalBlock block, IBlockStateHandler handler)
         {
+            if (!BlocksToMonitor.ContainsKey(block))
+                _monitoredBlocks = null;
+
             BlocksToMonitor[block] = handler;
 
             // Store initial state
@@ -346,56 +377,54 @@ namespace IngameScript
         //}
 
         /// <summary>
-        /// Load block configurations from the custom data of each block. We do 
+        /// Load block configurations from the custom data of one block. We do 
         /// this to access hooks and other block specific configurations.
         /// </summary>
-        void LoadBlockConfigurations()
+        /// <param name="block"></param>
+        void LoadBlockConfiguration(IMyTerminalBlock block)
         {
-            foreach (var block in TerminalBlocks)
+            MyIni blockConfiguration = new MyIni();
+            MyIniParseResult result;
+
+            if (!blockConfiguration.TryParse(block.CustomData, out result))
+                return;
+
+            if(Mother.SystemState == Mother.SystemStates.BOOT)
+                BlockConfigs[block] = blockConfiguration;
+
+            // check for change here    
+            else if
+            (
+                Mother.SystemState == Mother.SystemStates.WORKING
+                && HasBlockConfigurationChanged(block, blockConfiguration)
+            )
             {
-                MyIni blockConfiguration = new MyIni();
-                MyIniParseResult result;
+                // update the block config
+                BlockConfigs[block] = blockConfiguration;
 
-                if (!blockConfiguration.TryParse(block.CustomData, out result))
-                    continue;
+                // Emit event for other modules to use
+                Emit<BlockConfigChangedEvent>(block);
 
-                if(Mother.SystemState == Mother.SystemStates.BOOT)
-                    BlockConfigs[block] = blockConfiguration;
+                // if this is the programmable block, emit a system config changed event
+                // so that dependent modules can reload their configuration values.
+                if (block.EntityId == Mother.Id)
+                    Emit<SystemConfigChangedEvent>(block);
 
-                // check for change here    
-                else if
-                (
-                    Mother.SystemState == Mother.SystemStates.WORKING
-                    && HasBlockConfigurationChanged(block, blockConfiguration)
-                )
-                {
-                    // update the block config
-                    BlockConfigs[block] = blockConfiguration;
-
-                    // Emit event for other modules to use
-                    Emit<BlockConfigChangedEvent>(block);
-
-                    // if this is the programmable block, emit a system config changed event
-                    // so that dependent modules can reload their configuration values.
-                    if (block.EntityId == Mother.Id)
-                        Emit<SystemConfigChangedEvent>(block);
-
-                    // Notify player of update
-                    Mother.Print($"Config changed: {block.CustomName}", false);
-                }
-
-                // if result is empty, set default configuration values
-                if (blockConfiguration.ToString() == "")
-                    SetDefaultConfiguration(block, blockConfiguration);
-
-                // Load block tags
-                if (blockConfiguration.ContainsSection(SECTION_GENERAL))
-                    LoadBlockTags(block, blockConfiguration);
-
-                // Load block hooks
-                if (blockConfiguration.ContainsSection(SECTION_HOOKS))
-                    LoadBlockHooks(block, blockConfiguration);
+                // Notify player of update
+                Mother.Print($"Config changed: {block.CustomName}", false);
             }
+
+            // if result is empty, set default configuration values
+            if (blockConfiguration.ToString() == "")
+                SetDefaultConfiguration(block, blockConfiguration);
+
+            // Load block tags
+            if (blockConfiguration.ContainsSection(SECTION_GENERAL))
+                LoadBlockTags(block, blockConfiguration);
+
+            // Load block hooks
+            if (blockConfiguration.ContainsSection(SECTION_HOOKS))
+                LoadBlockHooks(block, blockConfiguration);
         }
 
         /// <summary>
@@ -875,6 +904,7 @@ namespace IngameScript
 
                 BlockConfigs.Remove(b);
                 BlocksToMonitor.Remove(b);
+                _monitoredBlocks = null;
                 BlockStates.Remove(b.EntityId);
                 BlockHooks.Remove(b);
 
