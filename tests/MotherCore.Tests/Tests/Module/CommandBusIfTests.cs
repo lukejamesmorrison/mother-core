@@ -489,7 +489,7 @@ namespace MotherCore.Tests.Tests.Module
         [TestCase("if \"Nope\" low; rec X; end", "no target: Nope")]
         [TestCase("if \"Bat\" charge ~ 1; rec X; end", "unknown operator: ~")]
         [TestCase("if \"Bat\" low --for=3; rec X; end", "--for only works on a when rule")]
-        [TestCase("if \"Bat\" low --band=3; rec X; end", "--band only works on a when rule")]
+        [TestCase("if \"Bat\" low --buffer=3; rec X; end", "--buffer only works on a when rule")]
         [TestCase("if \"Bat\" low --cooldown=3; rec X; end", "--cooldown only works on a when rule")]
         [TestCase("if \"Bat\" low --every=3; rec X; end", "--every only works on a when rule")]
         [TestCase("if \"Bat\" low --bogus=3; rec X; end", "bad syntax")]

@@ -301,7 +301,7 @@ namespace MotherCore.Tests.Tests.Module
                 .With("rules", "badValue", "when \"Bat\" charge < lots; rec BAD")
                 .With("rules", "badTarget", "when \"Nope\" low; rec BAD")
                 .With("rules", "badOption", "when \"Bat\" low --for=abc; rec BAD")
-                .With("rules", "badBand", "when \"Bat\" low --band=wide; rec BAD")
+                .With("rules", "badBand", "when \"Bat\" low --buffer=wide; rec BAD")
                 .With("rules", "badEvery", "when \"Bat\" low --every=-1; rec BAD")
                 .With("rules", "badCooldown", "when \"Bat\" low --cooldown; rec BAD")
                 .With("rules", "badAt", "when \"Bat\" charge < 20% --at=25%; rec BAD")
@@ -324,7 +324,7 @@ namespace MotherCore.Tests.Tests.Module
             Assert.That(printed, Does.Contain("Rule badValue disabled: bad value: lots"));
             Assert.That(printed, Does.Contain("Rule badTarget disabled: no target: Nope"));
             Assert.That(printed, Does.Contain("Rule badOption disabled: bad option: --for"));
-            Assert.That(printed, Does.Contain("Rule badBand disabled: bad option: --band"));
+            Assert.That(printed, Does.Contain("Rule badBand disabled: bad option: --buffer"));
             Assert.That(printed, Does.Contain("Rule badEvery disabled: bad option: --every"));
             Assert.That(printed, Does.Contain("Rule badCooldown disabled: bad option: --cooldown"));
             Assert.That(printed, Does.Contain("Rule badAt disabled: --at needs a predicate"));
@@ -739,7 +739,7 @@ namespace MotherCore.Tests.Tests.Module
         {
             var rec = new RecordingCommand();
             var battery = Battery("Bat", 0.5);
-            var script = Boot(rec, Data().With("rules", "gen", "when \"Bat\" charge < 20% --band=10; rec ON; else; rec OFF"), battery);
+            var script = Boot(rec, Data().With("rules", "gen", "when \"Bat\" charge < 20% --buffer=10; rec ON; else; rec OFF"), battery);
 
             Charge(battery, 0.19);
             Step(script, 1);
@@ -765,7 +765,7 @@ namespace MotherCore.Tests.Tests.Module
         {
             var rec = new RecordingCommand();
             var battery = Battery("Bat", 0.5);
-            var script = Boot(rec, Data().With("rules", "gen", "when \"Bat\" charge < 20% --band=60; rec ON; else; rec OFF"), battery);
+            var script = Boot(rec, Data().With("rules", "gen", "when \"Bat\" charge < 20% --buffer=60; rec ON; else; rec OFF"), battery);
 
             foreach (var charge in new[] { 0.5, 0.15, 0.4, 0.7, 0.79, 0.85, 0.5, 0.3, 0.1 })
             {
@@ -778,10 +778,10 @@ namespace MotherCore.Tests.Tests.Module
 
         [Test]
         [TestCase("charge < 20%", 0.21, false, Description = "The implicit 2% band")]
-        [TestCase("charge < 20% --band=0", 0.21, true, Description = "A band of 0 turns it off")]
+        [TestCase("charge < 20% --buffer=0", 0.21, true, Description = "A band of 0 turns it off")]
         [TestCase("low", 0.24, false, Description = "low has a 5% band")]
-        [TestCase("low --band=1%", 0.24, true, Description = "--band overrides the predicate band")]
-        [TestCase("charge < 20% --band=5%", 0.24, false, Description = "A percent band")]
+        [TestCase("low --buffer=1%", 0.24, true, Description = "--buffer overrides the predicate band")]
+        [TestCase("charge < 20% --buffer=5%", 0.24, false, Description = "A percent band")]
         public void The_Band_Defaults_And_Overrides_Apply_After_The_Rule_Trips(string condition, double reset, bool resets)
         {
             var rec = new RecordingCommand();
@@ -859,7 +859,7 @@ namespace MotherCore.Tests.Tests.Module
         {
             var rec = new RecordingCommand();
             var battery = Battery("Bat", 0.1);
-            var script = Boot(rec, Data().With("rules", "r", "when \"Bat\" charge < 20% --band=5% --for=3; rec A; else; rec B"), battery);
+            var script = Boot(rec, Data().With("rules", "r", "when \"Bat\" charge < 20% --buffer=5% --for=3; rec A; else; rec B"), battery);
 
             Step(script, 0);
 
@@ -877,7 +877,7 @@ namespace MotherCore.Tests.Tests.Module
         {
             var rec = new RecordingCommand();
             var battery = Battery("Bat", 0.1);
-            var script = Boot(rec, Data().With("rules", "r", "when \"Bat\" charge < 20% --band=0 --for=3; rec A; else; rec B"), battery);
+            var script = Boot(rec, Data().With("rules", "r", "when \"Bat\" charge < 20% --buffer=0 --for=3; rec A; else; rec B"), battery);
 
             for (int i = 0; i < 12; i++)
             {

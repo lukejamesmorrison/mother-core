@@ -18,7 +18,7 @@ There is **one condition**: `<target> <predicate | property op value> [--options
 | Question | "tell me when this *becomes* true" | "is this true *right now*?" |
 | Where | `[rules]` section (`when` is the first step) | any routine step (`[commands]`, `[menu:...]`, `[rules]`, `[hooks]`) |
 | Evaluated | polled by `ConditionModule`, on a schedule | once, when the step runs |
-| State | edge, `--band`, `--for`, `--cooldown`, `--every` | none (stateless) |
+| State | edge, `--buffer`, `--for`, `--cooldown`, `--every` | none (stateless) |
 | Branches | then = false->true edge, `else` = true->false edge | then = true now, `else` = false now, closed by `end` |
 
 Predicates (`low`, `critical`, `ready`, `locked`, ...) are named conditions with defaults, so common cases read like plain English, and the expression form covers anything custom. Event hooks (`"Block".onLock`) are unchanged.
@@ -61,7 +61,7 @@ when <target> <property> <operator> <value>  [--options]
 
 | Option | Meaning |
 |---|---|
-| `--band=n` | Hysteresis: trip at `< 20`, reset only above `20+n` |
+| `--buffer=n` | Hysteresis: trip at `< 20`, reset only above `20+n` |
 | `--for=s` | Debounce: condition must hold continuously `s` seconds before firing |
 | `--cooldown=s` | Minimum seconds between firings |
 | `--every=s` | Evaluate this rule every `s` seconds instead of the shared interval |
@@ -115,7 +115,7 @@ end;
 
 - `else;` is optional. `end;` closes the block, because unlike a rule a routine keeps running after the condition. A block still open at the end of a routine (or `{}` parallel group) is closed implicitly.
 - Blocks nest: `if` inside `if`, or `if` inside a `when` rule's then/else branch.
-- `if` is stateless, so `--band`, `--for`, `--cooldown` and `--every` are errors on `if`. `--at` is allowed.
+- `if` is stateless, so `--buffer`, `--for`, `--cooldown` and `--every` are errors on `if`. `--at` is allowed.
 - It is a normal step: waits, `view/notify`, `@Grid ...` and named commands work inside branches, and a command can itself contain `if` blocks.
 
 ### Where `if` works
@@ -655,7 +655,7 @@ All optional per rule, with sane defaults:
 | Mechanism | Option | Behavior |
 |---|---|---|
 | Edge trigger | (always on) | Fire once on transition; re-arm only after the condition becomes false |
-| Hysteresis / deadband | `--band=n` | Trip at `< 20`, reset only when value `> 20+n`. Stored as separate trip/reset thresholds |
+| Hysteresis / deadband | `--buffer=n` | Trip at `< 20`, reset only when value `> 20+n`. Stored as separate trip/reset thresholds |
 | Debounce | `--for=s` | Condition must hold continuously for `s` seconds before firing (timer started on first true, cleared on false) |
 | Cooldown | `--cooldown=s` | Minimum time between firings, regardless of state |
 
@@ -663,7 +663,7 @@ Default: edge trigger + implicit 2% (ratio) / 1-unit band for `<`/`>` + one eval
 
 State per rule (small struct/array): `bool Active; double Since; double LastFired`.
 
-The `else` routine fires on true->false after the same hysteresis, giving clean on/off pairs (e.g. generators on at 20%, off at 80% with `--band=60`).
+The `else` routine fires on true->false after the same hysteresis, giving clean on/off pairs (e.g. generators on at 20%, off at 80% with `--buffer=60`).
 
 Time source: accumulate `Runtime.TimeSinceLastRun` rather than `DateTime`.
 
@@ -707,7 +707,7 @@ A property, predicate or state word is defined by the one script that owns the b
 ## Phases
 
 1. **MVP**: shared `Condition` with a handful of predicates and `< > == !=`; `when` rules (edge trigger, `else`, shared interval) and inline `if`/`else`/`end`; registry of ~10 properties, aggregates (`avg` default).
-2. **Stability**: `--band`, `--for`, `--cooldown`, `--every`, `--at`, `<=`/`>=`, inline `elseif`.
+2. **Stability**: `--buffer`, `--for`, `--cooldown`, `--every`, `--at`, `<=`/`>=`, inline `elseif`.
 3. **Scale**: staggered evaluation, per-pass read cache, `min/max/sum`.
 4. **Extras**: `and`/`or` composition (`when` with several clauses, quoted targets only), variable thresholds, extension modules registering properties and predicates via `RegisterProperty(key, selector)` / `RegisterPredicate(...)`.
 
@@ -720,7 +720,7 @@ A property, predicate or state word is defined by the one script that owns the b
 - `elseif` (phase 2): first true branch wins, later conditions not evaluated, `else` only when nothing matched, one `end;` closes the chain, `elseif` inside a skipped parent is never evaluated, `elseif` after `else` or without `if` fails.
 - Rule budget: with a tiny budget, all rules still evaluate over successive ticks (cursor resumes), and a rule is never evaluated twice in one cycle.
 - `if` and `when` evaluate the same condition text to the same result (shared `Evaluate`).
-- Flapping input around a threshold: with `--band` and `--for` fires at most once.
+- Flapping input around a threshold: with `--buffer` and `--for` fires at most once.
 - Cooldown honored; re-arm after false; `else` fires on true->false only.
 - Unknown property/predicate/target disables only that rule.
 - Group aggregates (avg/min/max/sum) fire once; mixed-type groups skip unsupported blocks.

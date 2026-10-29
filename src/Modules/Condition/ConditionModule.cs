@@ -1,4 +1,4 @@
-﻿using Sandbox.ModAPI.Ingame;
+using Sandbox.ModAPI.Ingame;
 using SpaceEngineers.Game.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
@@ -463,7 +463,7 @@ namespace IngameScript
         /// of other scripts.
         /// </summary>
         /// <param name="command">ie. "Batteries" low.</param>
-        /// <param name="stateful">True to allow the --band option, as the script that holds a rule sends it.</param>
+        /// <param name="stateful">True to allow the --buffer option, as the script that holds a rule sends it.</param>
         /// <param name="tripped">True when the rule is already tripped, so its band applies.</param>
         /// <param name="error">Why the condition is invalid, or null.</param>
         /// <returns>1 when true, 0 when false and -1 when no block answers.</returns>
@@ -715,7 +715,7 @@ namespace IngameScript
 
         /// <summary>
         /// Parses a condition into a rule and resolves its target. The options
-        /// that keep state (--band, --for, --cooldown, --every) are only valid
+        /// that keep state (--buffer, --for, --cooldown, --every) are only valid
         /// for a "when" rule.
         /// </summary>
         /// <param name="ask">True to let scripts on the construct answer for names this script does not define.</param>
@@ -732,7 +732,7 @@ namespace IngameScript
 
             foreach (var key in command.Options.Keys)
             {
-                if (key != "at" && key != "band" && !Timers.Contains(key))
+                if (key != "at" && key != "buffer" && !Timers.Contains(key))
                     return "bad syntax";
 
                 if (!stateful && key != "at")
@@ -740,13 +740,13 @@ namespace IngameScript
             }
 
             command.Options.TryGetValue("at", out at);
-            command.Options.TryGetValue("band", out band);
+            command.Options.TryGetValue("buffer", out band);
 
             if (at != null && (args.Count == 4 || !Val(at, out atVal)))
                 return args.Count == 4 ? "--at needs a predicate" : "bad option: --at";
 
             if (band != null && !(Pct(band, out n) && n >= 0))
-                return "bad option: --band";
+                return "bad option: --buffer";
 
             if (stateful)
             {
@@ -791,8 +791,8 @@ namespace IngameScript
             rule.Pending = ask && !known && rule.Owners == null;
             if (rule.Owners != null)
             {
-                rule.Cond = (grid ? "grid" : "\"" + args[0] + "\"") + " " + string.Join(" ", args.GetRange(1, args.Count - 1))
-                    + (at == null ? "" : " --at=" + at) + (band == null ? "" : " --band=" + band);
+                rule.Cond = (grid ? Literals.Grid : "\"" + args[0] + "\"") + " " + string.Join(" ", args.GetRange(1, args.Count - 1))
+                    + (at == null ? "" : " --at=" + at) + (band == null ? "" : " --buffer=" + band);
 
                 if (!known)
                     return rule.Cond.IndexOf('$') >= 0 ? "unknown variable in: " + rule.Cond : null;

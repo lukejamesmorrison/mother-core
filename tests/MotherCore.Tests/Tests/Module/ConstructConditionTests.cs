@@ -604,8 +604,8 @@ namespace MotherCore.Tests.Tests.Module
             string free = null, tripped = null;
 
             Sync(c);
-            c.AskerCondition.Ask(c.OwnerId, "grid altitude < 100 --band=20", false, r => free = r);
-            c.AskerCondition.Ask(c.OwnerId, "grid altitude < 100 --band=20", true, r => tripped = r);
+            c.AskerCondition.Ask(c.OwnerId, "grid altitude < 100 --buffer=20", false, r => free = r);
+            c.AskerCondition.Ask(c.OwnerId, "grid altitude < 100 --buffer=20", true, r => tripped = r);
             c.AskerCondition.Flush();
             Deliver(c);
 
@@ -684,7 +684,7 @@ namespace MotherCore.Tests.Tests.Module
 
         // --- Phase 4: remote when rules ---
 
-        const string Approach = "when grid altitude < 100 --band=20 --for=2; rec ON; else; rec OFF";
+        const string Approach = "when grid altitude < 100 --buffer=20 --for=2; rec ON; else; rec OFF";
 
         static Construct Approaching(double elevation, out FakeCockpit cockpit, string rule = Approach)
         {
@@ -747,12 +747,12 @@ namespace MotherCore.Tests.Tests.Module
         public void A_Remote_Request_Leaves_Out_The_Timer_Options_And_Keeps_Band_And_At()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when grid altitude < 100 --band=20 --for=2 --cooldown=1; rec ON");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100 --buffer=20 --for=2 --cooldown=1; rec ON");
 
             Sync(c);
             Pass(c, 1);
 
-            Assert.That(CondRequests(c, c.Asker).Single().BString("C0"), Is.EqualTo("grid altitude < 100 --band=20"));
+            Assert.That(CondRequests(c, c.Asker).Single().BString("C0"), Is.EqualTo("grid altitude < 100 --buffer=20"));
         }
 
         [Test]

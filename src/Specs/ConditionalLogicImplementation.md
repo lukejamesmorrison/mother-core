@@ -68,7 +68,7 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 ### 1.2 Property and predicate registries
 
 - [x] `RegisterProperty(key, selector, any = false)` public API (`Dictionary<string, Func<IMyTerminalBlock, double>>`, `NaN` for unsupported). `any` picks the group aggregate.
-- [x] `RegisterPredicate(name, rows)` public API; a predicate is a string of `property operator value` rows joined by `|`, parsed by the same path as expressions (`"charge < 20%|fill < 15%"`). The first row some block in the target answers decides. Any state word (`locked`, `open`, ...) is also a predicate for free (`status == word`). The per-predicate `band` arrives with Phase 2 `--band`.
+- [x] `RegisterPredicate(name, rows)` public API; a predicate is a string of `property operator value` rows joined by `|`, parsed by the same path as expressions (`"charge < 20%|fill < 15%"`). The first row some block in the target answers decides. Any state word (`locked`, `open`, ...) is also a predicate for free (`status == word`). The per-predicate `band` arrives with Phase 2 `--buffer`.
 - [x] Seed ~10 Tier 1 properties using typed API reads only (no terminal properties):
   - [x] `enabled`, `working`
   - [x] `charge` (battery, jump drive)
@@ -99,7 +99,7 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 - [x] `if` calls `ConditionModule.Evaluate`; skipped steps must not run or resolve variables.
 - [x] Support nesting to any depth; each `if` consumes one `end;`.
 - [x] Implicitly close open blocks at the end of a routine or `{}` parallel group.
-- [x] Failure cases (`state.Failed`, print reason, stop routine): unknown predicate/property/target, stray `else`/`end`, `else` after `else`, any option (including `--band`, `--for`, `--cooldown`, `--every`) on `if` or `when` ("bad syntax"). Phase 2 makes the stateful options valid on `when` and keeps them an error on `if`, with a clearer message.
+- [x] Failure cases (`state.Failed`, print reason, stop routine): unknown predicate/property/target, stray `else`/`end`, `else` after `else`, any option (including `--buffer`, `--for`, `--cooldown`, `--every`) on `if` or `when` ("bad syntax"). Phase 2 makes the stateful options valid on `when` and keeps them an error on `if`, with a clearer message.
 - [x] Confirm `wait` and named commands work inside branches. `view/notify` is not a Core command, so the tests use a recording command. `@Grid ...` is only valid as the first term of a routine, so it does not appear inside a branch.
 - [x] Confirm `if` works inside a `when` rule's then/else branch.
 
@@ -122,25 +122,25 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 ## Phase 2 - Stability
 
 - [x] Add `<=` and `>=` to `Compare`.
-- [x] `--band=n` hysteresis: separate trip/reset thresholds; predicates carry default bands (`low` 5%, `critical` 3%, `RegisterPredicate(name, rows, band)`); implicit 2% ratio / 1-unit band for `<`/`>`/`<=`/`>=`. A bare `--band=60` on a ratio threshold means 60%. `--band=0` turns it off. `==`/`!=` have no band.
+- [x] `--buffer=n` hysteresis: separate trip/reset thresholds; predicates carry default bands (`low` 5%, `critical` 3%, `RegisterPredicate(name, rows, band)`); implicit 2% ratio / 1-unit band for `<`/`>`/`<=`/`>=`. A bare `--buffer=60` on a ratio threshold means 60%. `--buffer=0` turns it off. `==`/`!=` have no band.
 - [x] `--for=s` debounce: start timer on first trip, clear on drop; accumulate `Runtime.TimeSinceLastRun` on a module clock (a task scheduled every cycle), not `DateTime`. It delays the then routine only; the else routine runs as soon as the band releases.
 - [x] `--cooldown=s` minimum time between firings. The default is no extra hold: a rule is evaluated once per pass, so it already fires at most once per evaluation interval.
 - [x] `--every=s` per-rule evaluation interval override. A rule with `--every` is checked each cycle against its own due time; other rules still run on the shared pass.
 - [x] `--at=value` threshold override for predicates (allowed on both `when` and `if`; an error on an expression).
 - [x] Inline `elseif`: first true branch wins, later conditions not evaluated, `else` only when nothing matched, one `end;` closes the chain.
 - [x] `elseif` failures: after `else`, without `if`; never evaluated inside a skipped parent.
-- [x] `--band`/`--for`/`--cooldown`/`--every` on `if` fail the step with "--x only works on a when rule"; an unknown option is "bad syntax"; a bad value is "bad option: --x".
+- [x] `--buffer`/`--for`/`--cooldown`/`--every` on `if` fail the step with "--x only works on a when rule"; an unknown option is "bad syntax"; a bad value is "bad option: --x".
 - [x] Remaining Tier 1 properties and predicates: `mode`, `stockpile`, `oxygen`, `position`, `angle`, `locked`, `attached`, `detected`, `occupied`, `dampeners`, `handbrake`, `effectiveness`, `gravity`, `moving`; `status` for jump drives, air vents and pistons; predicates `stockpiling disconnected pressurized depressurized extended retracted extending retracting attached detached detected clear occupied weak moving stopped inspace ingravity` (`connectable`, `pressurized` and the other enum words work as `status == word`). `on`/`off` stay on `enabled`, so use `dampeners == 1` and `handbrake == 1` for the controller toggles. `stopped` means the ship, so a piston uses `status == stopped`.
 
 ### Tests
 
-- [x] Flapping input around a threshold with `--band` and `--for` fires at most once.
+- [x] Flapping input around a threshold with `--buffer` and `--for` fires at most once.
 - [x] Cooldown honored; `--every` overrides the shared interval; `--at` overrides a predicate threshold.
-- [x] `--band`/`--for`/`--cooldown`/`--every` on `if` fail the step.
+- [x] `--buffer`/`--for`/`--cooldown`/`--every` on `if` fail the step.
 - [x] All `elseif` cases listed above.
-- [x] Generators on at 20%, off at 80% with `--band=60` pair behaves correctly.
+- [x] Generators on at 20%, off at 80% with `--buffer=60` pair behaves correctly.
 
-**Done when:** Phase 2 tests pass; no regression in Phase 1 tests. **Met:** 588 passed (547 + 41 new). Two Phase 1 expectations changed on purpose: `--for`/`--band`/`--cooldown`/`--every` on `if` now give the clearer message, and `--for` on `when` is valid.
+**Done when:** Phase 2 tests pass; no regression in Phase 1 tests. **Met:** 588 passed (547 + 41 new). Two Phase 1 expectations changed on purpose: `--for`/`--buffer`/`--cooldown`/`--every` on `if` now give the clearer message, and `--for` on `when` is valid.
 
 ---
 
