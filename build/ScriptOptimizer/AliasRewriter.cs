@@ -152,9 +152,12 @@ static class AliasRewriter
     // letter, not only the unused ones, because a script that has used up the single characters would get no pairs.
     public static IEnumerable<string> Names(HashSet<string> used)
     {
-        var letters = Enumerable.Range('A', 0x900 - 'A')
+        // The game compiles with Roslyn 2.9 on .NET Framework 4.8 (Unicode 8.0), so letters added later are not
+        // identifiers there: U+0560, U+0588, U+05EF and U+0860 onward are left out.
+        var letters = Enumerable.Range('A', 0x860 - 'A')
             .Select(i => (char)i)
-            .Where(c => char.IsLetter(c) && SyntaxFacts.IsIdentifierStartCharacter(c))
+            .Where(c => char.IsLetter(c) && SyntaxFacts.IsIdentifierStartCharacter(c)
+                && c != '\u0560' && c != '\u0588' && c != '\u05EF')
             .ToList();
 
         foreach (var c in letters)
