@@ -346,7 +346,7 @@ namespace MotherCore.Tests.Tests.Module
         [Test]
         public void A_Rule_On_A_Name_Only_Another_Script_Defines_Is_Reported_Once_And_Works_After_The_Sync()
         {
-            var data = Data().With("rules", "approach", "when ship altitude < 100; rec A");
+            var data = Data().With("rules", "approach", "when grid altitude < 100; rec A");
             var c = Build(data, null, Node(Fake, Cockpit(50)));
 
             Assert.That(Logged(c.Asker, "Rule approach disabled: unknown property: altitude"), Is.EqualTo(1));
@@ -362,7 +362,7 @@ namespace MotherCore.Tests.Tests.Module
         [Test]
         public void A_Name_No_Script_Defines_Is_Reported_Once_With_Why_And_Nothing_Is_Sent()
         {
-            var data = Data().With("rules", "bad", "when ship bogus < 100; rec A");
+            var data = Data().With("rules", "bad", "when grid bogus < 100; rec A");
             var c = Build(data, null, Node(Fake, Cockpit(50)));
 
             Sync(c);
@@ -392,7 +392,7 @@ namespace MotherCore.Tests.Tests.Module
         {
             var data = Data()
                 .With("rules", "weak", "when \"$GONE\" low; rec A")
-                .With("rules", "limit", "when ship altitude < $LIMIT; rec B");
+                .With("rules", "limit", "when grid altitude < $LIMIT; rec B");
             var c = Build(data, null, Node(Fake, Cockpit(50), Battery("Bat", 0.1)));
 
             Sync(c);
@@ -400,7 +400,7 @@ namespace MotherCore.Tests.Tests.Module
             Pass(c);
 
             Assert.That(Logged(c.Asker, "Rule weak disabled: no target: $GONE"), Is.EqualTo(1));
-            Assert.That(Logged(c.Asker, "Rule limit disabled: unknown variable in: ship altitude < $LIMIT"), Is.EqualTo(1));
+            Assert.That(Logged(c.Asker, "Rule limit disabled: unknown variable in: grid altitude < $LIMIT"), Is.EqualTo(1));
             Assert.That(c.Rec.Calls, Is.Empty);
             Assert.That(Asked(c), Is.EqualTo(0));
         }
@@ -531,7 +531,7 @@ namespace MotherCore.Tests.Tests.Module
 
             Sync(c);
 
-            foreach (var text in new[] { "\"Bat\" a < 10", "\"Bat\" a > 10", "\"Nope\" a < 10", "\"Bat\" bogus < 1", "ship a < 1" })
+            foreach (var text in new[] { "\"Bat\" a < 10", "\"Bat\" a > 10", "\"Nope\" a < 10", "\"Bat\" bogus < 1", "grid a < 1" })
             {
                 var condition = text;
                 c.AskerCondition.Ask(c.OwnerId, condition, false, r => results[condition] = r);
@@ -544,7 +544,7 @@ namespace MotherCore.Tests.Tests.Module
             Assert.That(results["\"Bat\" a > 10"], Is.EqualTo("0"));
             Assert.That(results["\"Nope\" a < 10"], Is.EqualTo("!no target: Nope"));
             Assert.That(results["\"Bat\" bogus < 1"], Is.EqualTo("!unknown property: bogus"));
-            Assert.That(results["ship a < 1"], Is.EqualTo("!no target: ship"));
+            Assert.That(results["grid a < 1"], Is.EqualTo("!no target: grid"));
         }
 
         [Test]
@@ -590,7 +590,7 @@ namespace MotherCore.Tests.Tests.Module
             string result = null;
 
             Sync(c);
-            c.AskerCondition.Ask(c.OwnerId, "ship altitude < 100", false, r => result = r);
+            c.AskerCondition.Ask(c.OwnerId, "grid altitude < 100", false, r => result = r);
             c.AskerCondition.Flush();
             Deliver(c);
 
@@ -604,8 +604,8 @@ namespace MotherCore.Tests.Tests.Module
             string free = null, tripped = null;
 
             Sync(c);
-            c.AskerCondition.Ask(c.OwnerId, "ship altitude < 100 --band=20", false, r => free = r);
-            c.AskerCondition.Ask(c.OwnerId, "ship altitude < 100 --band=20", true, r => tripped = r);
+            c.AskerCondition.Ask(c.OwnerId, "grid altitude < 100 --band=20", false, r => free = r);
+            c.AskerCondition.Ask(c.OwnerId, "grid altitude < 100 --band=20", true, r => tripped = r);
             c.AskerCondition.Flush();
             Deliver(c);
 
@@ -684,7 +684,7 @@ namespace MotherCore.Tests.Tests.Module
 
         // --- Phase 4: remote when rules ---
 
-        const string Approach = "when ship altitude < 100 --band=20 --for=2; rec ON; else; rec OFF";
+        const string Approach = "when grid altitude < 100 --band=20 --for=2; rec ON; else; rec OFF";
 
         static Construct Approaching(double elevation, out FakeCockpit cockpit, string rule = Approach)
         {
@@ -747,19 +747,19 @@ namespace MotherCore.Tests.Tests.Module
         public void A_Remote_Request_Leaves_Out_The_Timer_Options_And_Keeps_Band_And_At()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when ship altitude < 100 --band=20 --for=2 --cooldown=1; rec ON");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100 --band=20 --for=2 --cooldown=1; rec ON");
 
             Sync(c);
             Pass(c, 1);
 
-            Assert.That(CondRequests(c, c.Asker).Single().BString("C0"), Is.EqualTo("ship altitude < 100 --band=20"));
+            Assert.That(CondRequests(c, c.Asker).Single().BString("C0"), Is.EqualTo("grid altitude < 100 --band=20"));
         }
 
         [Test]
         public void A_Rule_That_Is_Not_Due_Sends_Nothing()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when ship altitude < 100 --every=60; rec ON");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100 --every=60; rec ON");
 
             Sync(c);
             c.World.Network.ClearSentMessages();
@@ -847,7 +847,7 @@ namespace MotherCore.Tests.Tests.Module
         public void An_Owner_That_Leaves_Makes_The_Rule_False_With_One_Log_Line()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when ship altitude < 100; rec ON; else; rec OFF");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100; rec ON; else; rec OFF");
 
             Sync(c);
             Pass(c, 1);
@@ -867,7 +867,7 @@ namespace MotherCore.Tests.Tests.Module
         public void An_Answer_Older_Than_Three_Syncs_Is_False_With_One_Log_Line()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when ship altitude < 100 --every=1; rec ON; else; rec OFF");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100 --every=1; rec ON; else; rec OFF");
 
             Sync(c);
             Pass(c, 1.1);
@@ -962,7 +962,7 @@ namespace MotherCore.Tests.Tests.Module
         public void A_Remote_Rule_Acts_On_The_Answer_As_It_Arrives_Not_A_Pass_Later()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when ship altitude < 100; rec ON; else; rec OFF");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100; rec ON; else; rec OFF");
 
             Sync(c);
             Pass(c, 1);
@@ -975,7 +975,7 @@ namespace MotherCore.Tests.Tests.Module
         public void A_Remote_Rule_Counts_For_From_When_The_Answer_Arrives()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when ship altitude < 100 --for=1.5; rec ON; else; rec OFF");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100 --for=1.5; rec ON; else; rec OFF");
 
             Sync(c);
             var seen = new List<int>();
@@ -993,7 +993,7 @@ namespace MotherCore.Tests.Tests.Module
         public void A_Remote_Rule_Keeps_Its_State_When_Rules_Are_Rebuilt()
         {
             FakeCockpit cockpit;
-            var c = Approaching(50, out cockpit, "when ship altitude < 100; rec ON; else; rec OFF");
+            var c = Approaching(50, out cockpit, "when grid altitude < 100; rec ON; else; rec OFF");
 
             Sync(c);
             Pass(c, 1);
@@ -1046,7 +1046,7 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50);
 
             Sync(c);
-            c.Asker.RunTerminal("rec BEFORE; if ship altitude < 100; rec T; else; rec F; end; rec AFTER");
+            c.Asker.RunTerminal("rec BEFORE; if grid altitude < 100; rec T; else; rec F; end; rec AFTER");
 
             Cycle(c);
             Assert.That(c.Rec.Calls, Is.EqualTo(new[] { "rec BEFORE" }), "Waiting for the owner");
@@ -1062,7 +1062,7 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(500);
 
             Sync(c);
-            c.Asker.RunTerminal("if ship altitude < 100; rec T; else; rec F; end; rec AFTER");
+            c.Asker.RunTerminal("if grid altitude < 100; rec T; else; rec F; end; rec AFTER");
             Cycles(c, 6);
 
             Assert.That(c.Rec.Calls, Is.EqualTo(new[] { "rec F", "rec AFTER" }));
@@ -1074,7 +1074,7 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50);
 
             Sync(c);
-            c.Asker.RunTerminal("if ship altitude < 100; rec T; end; rec AFTER");
+            c.Asker.RunTerminal("if grid altitude < 100; rec T; end; rec AFTER");
 
             // Time passes but the request never reaches the owner
             for (int i = 0; i < 5; i++)
@@ -1092,7 +1092,7 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50);
 
             Sync(c);
-            c.Asker.RunTerminal("if ship altitude > 100; rec A; elseif ship altitude < 100; rec B; else; rec C; end");
+            c.Asker.RunTerminal("if grid altitude > 100; rec A; elseif grid altitude < 100; rec B; else; rec C; end");
             Cycles(c, 10);
 
             Assert.That(c.Rec.Calls, Is.EqualTo(new[] { "rec B" }));
@@ -1105,7 +1105,7 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50);
 
             Sync(c);
-            c.Asker.RunTerminal("if ship altitude < 100; rec A; elseif ship altitude > 100; rec B; end");
+            c.Asker.RunTerminal("if grid altitude < 100; rec A; elseif grid altitude > 100; rec B; end");
             Cycles(c, 10);
 
             Assert.That(c.Rec.Calls, Is.EqualTo(new[] { "rec A" }));
@@ -1118,7 +1118,7 @@ namespace MotherCore.Tests.Tests.Module
             var c = Build(null, Node(Numbers("p"), Battery("Bat", 0.5)), Node(Fake, Cockpit(50)));
 
             Sync(c);
-            c.Asker.RunTerminal("if \"Bat\" p < 1; if ship altitude < 100; rec A; end; end; rec AFTER");
+            c.Asker.RunTerminal("if \"Bat\" p < 1; if grid altitude < 100; rec A; end; end; rec AFTER");
             Cycles(c, 6);
 
             Assert.That(c.Rec.Calls, Is.EqualTo(new[] { "rec AFTER" }));
@@ -1131,8 +1131,8 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50);
 
             Sync(c);
-            Start(c, "if ship altitude < 100; rec LOW; end");
-            Start(c, "if ship altitude > 100; rec HIGH; else; rec NOTHIGH; end");
+            Start(c, "if grid altitude < 100; rec LOW; end");
+            Start(c, "if grid altitude > 100; rec HIGH; else; rec NOTHIGH; end");
             Cycles(c, 6);
 
             Assert.That(c.Rec.Calls, Is.EquivalentTo(new[] { "rec LOW", "rec NOTHIGH" }));
@@ -1146,8 +1146,8 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50);
 
             Sync(c);
-            Start(c, "if ship altitude < 100; rec A; end");
-            Start(c, "if ship altitude < 100; rec B; end");
+            Start(c, "if grid altitude < 100; rec A; end");
+            Start(c, "if grid altitude < 100; rec B; end");
             Cycles(c, 6);
 
             Assert.That(c.Rec.Calls, Is.EquivalentTo(new[] { "rec A", "rec B" }));
@@ -1160,14 +1160,14 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50);
 
             Sync(c);
-            c.Asker.RunTerminal("if ship altitude < 100; rec T; end; rec AFTER");
+            c.Asker.RunTerminal("if grid altitude < 100; rec T; end; rec AFTER");
 
             // The owner never sees the request
             for (int i = 0; i < 25; i++)
                 Advance(c.Asker, 0.1);
 
             Assert.That(c.Rec.Calls, Is.Empty);
-            Assert.That(Logged(c.Asker, "Command failed: if ship altitude < 100 (no answer from script " + c.OwnerId + " for altitude)"), Is.EqualTo(1));
+            Assert.That(Logged(c.Asker, "Command failed: if grid altitude < 100 (no answer from script " + c.OwnerId + " for altitude)"), Is.EqualTo(1));
         }
 
         [Test]
@@ -1176,7 +1176,7 @@ namespace MotherCore.Tests.Tests.Module
             var c = Altitude(50, Data().With("general", "condTimeout", "10"));
 
             Sync(c);
-            c.Asker.RunTerminal("if ship altitude < 100; rec T; end");
+            c.Asker.RunTerminal("if grid altitude < 100; rec T; end");
 
             for (int i = 0; i < 40; i++)
                 Advance(c.Asker, 0.1);

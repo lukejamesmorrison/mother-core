@@ -601,7 +601,7 @@ namespace MotherCore.Tests.Tests.Module
             var data = new CustomDataComposer().WithCommand(
                 "Land",
                 "if \"Gear\" unlocked;" +
-                "  if ship altitude < 100;" +
+                "  if grid altitude < 100;" +
                 "    rec LIGHTS;" +
                 "    if \"Tank\" low; rec H2_LOW; end;" +
                 "  else;" +

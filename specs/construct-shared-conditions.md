@@ -8,7 +8,7 @@ Last updated: 2026-10-25 (-04:00). The MotherCore suite has 700 tests, Mother OS
 
 Since the vocabulary moved out of Core (see `src/CHANGELOG.md`), each script registers only the properties and predicates of the blocks it owns (Mother OS: `charge`, `fill`, `locked`, ...; MAPS: `speed`, `altitude`, `gravity`, `moving`). A rule that names something the local script did not register is disabled at boot (`Rule <name> disabled: unknown property: altitude`).
 
-This breaks scripts that use the vocabulary but own none of it. The Mother GUI blueprint has rules and inline `if`s on `ship altitude`, `ship speed`, `charge`, `detected`, `inspace`, `low`, `locked`, `connected`, and the GUI script registers none of them. The `approach` rule (`when ship altitude < 100`) is one of those that stopped working.
+This breaks scripts that use the vocabulary but own none of it. The Mother GUI blueprint has rules and inline `if`s on `grid altitude`, `grid speed`, `charge`, `detected`, `inspace`, `low`, `locked`, `connected`, and the GUI script registers none of them. The `approach` rule (`when grid altitude < 100`) is one of those that stopped working.
 
 Putting the vocabulary into every script costs characters (100,000 limit) and defines the same thing in several places.
 
@@ -216,7 +216,7 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 - [x] Send `Tripped` with each request so the owner applies the band. Strip `--for`, `--cooldown` and `--every` from the text. Keep `--band` and `--at`.
 - [x] Respect `--every` and the shared `ruleInterval` when queueing, so a rule that is not due sends nothing.
 - [x] Treat an answer older than 3 ping intervals (plus the rule's own period, `--every` or `ruleInterval`), or an owner no longer in `ConstructVocab`, as `false`, and log it once. Nothing removes an owner from `ConstructVocab` when it leaves, so a gone owner is found by its answers aging out.
-- [x] Tests: `when ship altitude < 100 --band=20 --for=2` in script B fires after A answers `1` and holds `--for`, then resets above the band using `Tripped`. An owner that leaves makes the rule false with one log line. Both owners answering `?` gives false. The lower id wins when both answer.
+- [x] Tests: `when grid altitude < 100 --band=20 --for=2` in script B fires after A answers `1` and holds `--for`, then resets above the band using `Tripped`. An owner that leaves makes the rule false with one log line. Both owners answering `?` gives false. The lower id wins when both answer.
 
 **Done when:** the Mother GUI `approach` rule works against a MAPS script in the harness, and no remote request is sent for a rule that is not due. **Met** with `FakeConditionVocabulary` standing in for MAPS. The MAPS suite itself is Phase 6.
 
@@ -234,7 +234,7 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
 ### Phase 6 - Wire up, document, verify
 
 - [x] Run the full MotherCore suite, then the MotherOS and MAPS suites against the new Core. MotherCore 700, Mother OS 391, MAPS 46 (with the new test below) and Mother GUI 48 all pass.
-- [x] Add a MAPS test that a Mother GUI style script with no vocabulary resolves `ship altitude < 100` through MAPS. `SharedConditionTests` in the MAPS suite: the asker knows MAPS's names after a sync, and an inline `if` on `altitude` and on `inspace` and a `when` rule on `altitude` are answered by MAPS.
+- [x] Add a MAPS test that a Mother GUI style script with no vocabulary resolves `grid altitude < 100` through MAPS. `SharedConditionTests` in the MAPS suite: the asker knows MAPS's names after a sync, and an inline `if` on `altitude` and on `inspace` and a `when` rule on `altitude` are answered by MAPS.
 - [x] Build Mother GUI, Mother OS and MAPS with the optimizer and record the minified size change against the 100,000 character limit (Release builds, characters of the packaged `script.cs`, Core at the branch start against now):
 
   | Script | Before | After | Change | Left under 100,000 |
@@ -244,7 +244,7 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
   | Mother GUI | 95,054 | 99,175 | +4,121 | 825 |
 
   All three fit. Mother GUI has the least room, so the next addition to Core needs a size pass first.
-- [x] Check the Mother GUI blueprint on the construct: `approach`, `cruiseLights`, `if ship inspace` and `if ship ingravity` work with MAPS and Mother OS present. Checked in game by the author. The harness covers the failure case (a name no script owns reports once and the rule or `if` does not run), but removing MAPS from a live construct was not checked.
+- [x] Check the Mother GUI blueprint on the construct: `approach`, `cruiseLights`, `if grid inspace` and `if grid ingravity` work with MAPS and Mother OS present. Checked in game by the author. The harness covers the failure case (a name no script owns reports once and the rule or `if` does not run), but removing MAPS from a live construct was not checked.
 - [x] Update [ConditionalLogicSpec.md](../src/Specs/ConditionalLogicSpec.md) (vocabulary is shared across the construct), [src/README.md](../src/README.md) and add a CHANGELOG entry.
 - [x] Mark this spec's status as implemented.
 

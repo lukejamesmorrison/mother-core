@@ -74,7 +74,7 @@ Each phase ends with a **Done when** gate. Do not start the next phase until it 
   - [x] `charge` (battery, jump drive)
   - [x] `fill` (gas tank)
   - [x] `status` (connector, landing gear, door)
-  - [x] `ship speed`, `ship altitude` (registered as `speed` and `altitude` on `IMyShipController`, so `"$COCKPIT" speed` works too)
+  - [x] `grid speed`, `grid altitude` (registered as `speed` and `altitude` on `IMyShipController`, so `"$COCKPIT" speed` works too)
 - [x] Seed predicates: `on off working broken low critical empty full ready connected locked unlocked open closed`.
 - [x] `status` compares enums by name.
 

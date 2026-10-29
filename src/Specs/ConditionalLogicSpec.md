@@ -144,7 +144,7 @@ Land pressed
 [commands]
 Land=
 | if "$LANDING_GEAR" unlocked;
-|   if ship altitude < 100;
+|   if grid altitude < 100;
 |     block/on "BLD - Light - Landing";
 |     block/on "$SENSORS";
 |     if "$TANKS_H2" low;
@@ -175,7 +175,7 @@ Land=
 | if "$LANDING_GEAR" locked;
 |   view/notify "$MENU_SCREEN" "Gear already locked." --level=success;
 | else;
-|   if ship altitude < 100;
+|   if grid altitude < 100;
 |     landingSetup;
 |   else;
 |     view/notify "$MENU_SCREEN" "Descend below 100 m first." --level=error;
@@ -216,7 +216,7 @@ Readability guidance:
 Land=
 | if "$LANDING_GEAR" locked;
 |   view/notify "$MENU_SCREEN" "Gear already locked." --level=success;
-| elseif ship altitude >= 100;
+| elseif grid altitude >= 100;
 |   view/notify "$MENU_SCREEN" "Descend below 100 m first." --level=error;
 | else;
 |   landingSetup;
@@ -535,7 +535,7 @@ Some state does not belong to a block. A **bare word** target (unquoted) names a
 | `plan` | Current flight plan (Autopilot) | `FlightPlanningModule` |
 | `dock` | Docking state machine (Autopilot) | `DockingModule` |
 
-`ship` avoids naming the cockpit in every rule: `when ship speed > 30 --for=3;` vs `when "$COCKPIT" speed > 30 --for=3;`. A named controller remains valid for blocks other than the main one.
+`grid` avoids naming the cockpit in every rule: `when grid speed > 30 --for=3;` vs `when "$COCKPIT" speed > 30 --for=3;`. A named controller remains valid for blocks other than the main one.
 
 ### Tier 1 - blocks
 
@@ -569,10 +569,10 @@ Some state does not belong to a block. A **bare word** target (unquoted) names a
 
 | Target `key` | Source | Type | Predicates | Existing |
 |---|---|---|---|---|
-| `ship speed` | `IMyShipController.GetShipSpeed()` | m/s | - | new read (Autopilot only reads the velocity vector) |
-| `ship altitude` | `TryGetPlanetElevation(Surface)` | metres, `NaN` in space | - | new read |
-| `ship gravity` | `GetNaturalGravity().Length()` | m/s^2, 0 in space | `inspace`, `ingravity` | new read |
-| `ship moving` | `speed > 0.1` (derived in Core, no Autopilot needed) | bool | `moving`, `stopped` | `GridMovingEvent`/`GridStoppedEvent` (Autopilot) |
+| `grid speed` | `IMyShipController.GetShipSpeed()` | m/s | - | new read (Autopilot only reads the velocity vector) |
+| `grid altitude` | `TryGetPlanetElevation(Surface)` | metres, `NaN` in space | - | new read |
+| `grid gravity` | `GetNaturalGravity().Length()` | m/s^2, 0 in space | `inspace`, `ingravity` | new read |
+| `grid moving` | `speed > 0.1` (derived in Core, no Autopilot needed) | bool | `moving`, `stopped` | `GridMovingEvent`/`GridStoppedEvent` (Autopilot) |
 
 `altitude` is the one property the first pass is committed to for flight-aware rules (approach, landing lights). `storage`, `var` and the Autopilot targets (`fcs`, `plan`, `dock`) are tier 2.
 
@@ -624,9 +624,9 @@ Some state does not belong to a block. A **bare word** target (unquoted) names a
 | | Count |
 |---|---|
 | Tier 1 block keys | 17 keys over 23 (key, block type) rows |
-| Tier 1 system-target keys | 4 (`ship speed`, `altitude`, `gravity`, `moving`) |
+| Tier 1 system-target keys | 4 (`grid speed`, `altitude`, `gravity`, `moving`) |
 | Tier 1 predicates | `on off working broken low critical empty full ready stockpiling connected connectable disconnected locked unlocked open closed opening closing pressurized depressurized extended retracted extending retracting attached detached detected clear occupied weak moving stopped inspace ingravity` |
-| New API reads in Tier 1 | `oxygen`, `ship speed`, `ship altitude`, `ship gravity`, `effectiveness` |
+| New API reads in Tier 1 | `oxygen`, `grid speed`, `grid altitude`, `grid gravity`, `effectiveness` |
 | Already tracked by a module/hook/event | the rest |
 
 Registry keys added by extension scripts (`fcs`, `plan`, `dock`, tier 2) are registered by the Autopilot script through `RegisterProperty`/`RegisterPredicate`, not by Core, so Core stays small and an Autopilot-less grid simply has no such targets. The registration API itself is part of the MVP so tier 2 needs no Core change.
@@ -686,7 +686,7 @@ Time source: accumulate `Runtime.TimeSinceLastRun` rather than `DateTime`.
 
 ## Shared vocabulary across the construct
 
-A property, predicate or state word is defined by the one script that owns the blocks (Mother OS: `charge`, `low`; MAPS: `altitude`, `speed`). Any other Mother Core script on the same construct can use it in a condition without registering anything, so Mother GUI's `when ship altitude < 100` and `if ship inspace` work with MAPS present. See [construct-shared-conditions.md](../../specs/construct-shared-conditions.md) for the design.
+A property, predicate or state word is defined by the one script that owns the blocks (Mother OS: `charge`, `low`; MAPS: `altitude`, `speed`). Any other Mother Core script on the same construct can use it in a condition without registering anything, so Mother GUI's `when grid altitude < 100` and `if grid inspace` work with MAPS present. See [construct-shared-conditions.md](../../specs/construct-shared-conditions.md) for the design.
 
 - **Names travel in the existing `sync` ping** (`Props`, `Preds`), only on the construct channel. The condition itself is evaluated on the owner, because the property readers are delegates that cannot be sent over IGC.
 - **Local first.** A name registered locally is evaluated locally. Only a condition that no local block answers is sent to the scripts that advertise the name (for example `low` for a group of batteries when only the tank row is defined locally). The owner replies `1`, `0` or `?`, and the lowest script id that replies `1` or `0` decides. If every owner replies `?`, the condition is false.

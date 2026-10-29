@@ -393,7 +393,7 @@ namespace IngameScript
         /// script defines. Names only other scripts define are not asked of them
         /// here (see <see cref="Check"/>, and "when" rules).
         /// </summary>
-        /// <param name="command">ie. "Batteries" low, ship speed > 30.</param>
+        /// <param name="command">ie. "Batteries" low, grid speed > 30.</param>
         /// <param name="error">Why the condition is invalid, or null.</param>
         /// <returns>The result. False when there is an error.</returns>
         public bool Evaluate(TerminalCommand command, out string error)
@@ -408,7 +408,7 @@ namespace IngameScript
         /// is queued for them (see <see cref="Flush"/>) and the result comes
         /// from <paramref name="poll"/> once they reply.
         /// </summary>
-        /// <param name="command">ie. ship altitude &lt; 100.</param>
+        /// <param name="command">ie. grid altitude &lt; 100.</param>
         /// <param name="error">Why the condition is invalid, or null.</param>
         /// <param name="poll">Set when the result is 2. Returns null while waiting, then "1" or "0", or why it failed (no answer in time).</param>
         /// <returns>1 when true, 0 when false (or on error), and 2 when it must wait for a reply.</returns>
@@ -478,7 +478,7 @@ namespace IngameScript
         /// <summary>
         /// Answers a condition for another script on the construct.
         /// </summary>
-        /// <param name="condition">The condition text, ie. ship altitude &lt; 100.</param>
+        /// <param name="condition">The condition text, ie. grid altitude &lt; 100.</param>
         /// <param name="tripped">True when the asking rule is tripped, so its band applies.</param>
         /// <returns>"1", "0", "?" when no block here answers, or "!" and why the condition is invalid.</returns>
         public string Answer(string condition, bool tripped)
@@ -767,12 +767,12 @@ namespace IngameScript
                 }
             }
 
-            // An unquoted ship is the grid's controller, a quoted one is a block
-            bool ship = args[0] == "ship" && !command.CommandString.Contains("\"ship\"");
+            // An unquoted grid is the grid's controller, a quoted one is a block
+            bool grid = args[0] == "grid" && !command.CommandString.Contains("\"grid\"");
 
-            rule.Blocks = ship ? new List<IMyTerminalBlock>() : BlockCatalogue.GetBlocksByName<IMyTerminalBlock>(args[0]);
+            rule.Blocks = grid ? new List<IMyTerminalBlock>() : BlockCatalogue.GetBlocksByName<IMyTerminalBlock>(args[0]);
 
-            if (ship && Mother.ShipController != null)
+            if (grid && Mother.ShipController != null)
                 rule.Blocks.Add(Mother.ShipController);
 
             // The name the condition is built on: a property, or else a predicate
@@ -782,16 +782,16 @@ namespace IngameScript
             if (ask)
                 rule.Owners = OwnersOf(name);
 
-            // A name only another script defines is evaluated there, and the ship
+            // A name only another script defines is evaluated there, and the grid
             // is the controller that script sees. Any other target must exist here too,
             // which also catches a $VARIABLE that only another script defines.
-            if (rule.Blocks.Count == 0 && !(ship && rule.Owners != null && !known))
+            if (rule.Blocks.Count == 0 && !(grid && rule.Owners != null && !known))
                 return "no target: " + args[0];
 
             rule.Pending = ask && !known && rule.Owners == null;
             if (rule.Owners != null)
             {
-                rule.Cond = (ship ? "ship" : "\"" + args[0] + "\"") + " " + string.Join(" ", args.GetRange(1, args.Count - 1))
+                rule.Cond = (grid ? "grid" : "\"" + args[0] + "\"") + " " + string.Join(" ", args.GetRange(1, args.Count - 1))
                     + (at == null ? "" : " --at=" + at) + (band == null ? "" : " --band=" + band);
 
                 if (!known)
