@@ -69,6 +69,11 @@ namespace IngameScript
         readonly Dictionary<string, List<IMyTextSurface>> RegisteredDisplaySurfaces = new Dictionary<string, List<IMyTextSurface>>();
 
         /// <summary>
+        /// Display name to the content type its current holder claimed.
+        /// </summary>
+        readonly Dictionary<string, ContentType> claims = new Dictionary<string, ContentType>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// The default text size for the displays. This is used when 
         /// printing text to screens.
         /// </summary>
@@ -221,6 +226,59 @@ namespace IngameScript
             }
 
             return surfaces;
+        }
+
+        /// <summary>
+        /// Take a display for the caller in the given mode and tell the other
+        /// scripts on the construct to let go of it.
+        /// </summary>
+        /// <param name="name">The display name: <c>Block</c> or <c>Block:Index</c>.</param>
+        /// <param name="surface"></param>
+        /// <param name="type"></param>
+        public void Claim(string name, IMyTextSurface surface, ContentType type)
+        {
+            if (surface.ContentType != type)
+                surface.ContentType = type;
+
+            if (type == ContentType.SCRIPT && surface.Script != "")
+                surface.Script = "";
+
+            claims[name] = type;
+
+            var service = Mother.GetModule<IntergridMessageService>();
+
+            service.SendConstructBroadcastRequest(
+                service.CreateRequest(
+                    "view",
+                    new Dictionary<string, object> { { "View", "" }, { "Display", name }, { "Active", "0" } }
+                ),
+                null
+            );
+        }
+
+        /// <summary>
+        /// Whether the display is still held as claimed. False after a release,
+        /// or after another writer changed the content type or set a script.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="surface"></param>
+        /// <returns></returns>
+        public bool Holds(string name, IMyTextSurface surface)
+        {
+            ContentType type;
+
+            return claims.TryGetValue(name, out type)
+                && surface.ContentType == type
+                && (type != ContentType.SCRIPT || surface.Script == "");
+        }
+
+        /// <summary>
+        /// Forget the claim on a display.
+        /// </summary>
+        /// <param name="name"></param>
+        public void Release(string name)
+        {
+            claims.Remove(name);
         }
 
         /// <summary>

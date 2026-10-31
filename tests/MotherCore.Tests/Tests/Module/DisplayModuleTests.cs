@@ -3,6 +3,7 @@ using MotherCore.Tests.Utilities;
 using MotherCore.Tests.Utilities.Factories;
 using MotherCore.Tests.Utilities.Mocks;
 using NUnit.Framework;
+using VRage.Game.GUI.TextPanel;
 using VRage.Game.ModAPI.Ingame.Utilities;
 
 namespace MotherCore.Tests.Module
@@ -95,6 +96,67 @@ namespace MotherCore.Tests.Module
 
             Assert.That(displayModule.GetSurfacesForDisplayType("oldview"), Is.Empty);
             Assert.That(displayModule.GetSurfacesForDisplayType("newview"), Contains.Item(panel.Panel));
+        }
+
+        [Test]
+        public void Claim_Sets_Type_And_Clears_Script_Only_For_Script()
+        {
+            var displayModule = ScriptFactory().WithMother().Boot().Mother.GetModule<DisplayModule>();
+
+            var scriptSurface = TextSurfaceFactory.Create();
+            scriptSurface.Script = "SomeScript";
+            displayModule.Claim("A", scriptSurface, ContentType.SCRIPT);
+
+            Assert.That(scriptSurface.ContentType, Is.EqualTo(ContentType.SCRIPT));
+            Assert.That(scriptSurface.Script, Is.Empty);
+
+            var textSurface = TextSurfaceFactory.Create();
+            textSurface.Script = "SomeScript";
+            displayModule.Claim("B", textSurface, ContentType.TEXT_AND_IMAGE);
+
+            Assert.That(textSurface.ContentType, Is.EqualTo(ContentType.TEXT_AND_IMAGE));
+            Assert.That(textSurface.Script, Is.EqualTo("SomeScript"));
+        }
+
+        [Test]
+        public void Holds_Is_True_After_Claim_And_False_After_Release_Or_Foreign_Change()
+        {
+            var displayModule = ScriptFactory().WithMother().Boot().Mother.GetModule<DisplayModule>();
+            var surface = TextSurfaceFactory.Create();
+
+            Assert.That(displayModule.Holds("A", surface), Is.False);
+
+            displayModule.Claim("A", surface, ContentType.SCRIPT);
+            Assert.That(displayModule.Holds("A", surface), Is.True);
+
+            surface.Script = "Other";
+            Assert.That(displayModule.Holds("A", surface), Is.False);
+
+            displayModule.Claim("A", surface, ContentType.SCRIPT);
+            surface.ContentType = ContentType.TEXT_AND_IMAGE;
+            Assert.That(displayModule.Holds("A", surface), Is.False);
+
+            displayModule.Claim("A", surface, ContentType.TEXT_AND_IMAGE);
+            Assert.That(displayModule.Holds("A", surface), Is.True);
+
+            displayModule.Release("A");
+            Assert.That(displayModule.Holds("A", surface), Is.False);
+        }
+
+        [Test]
+        public void Second_Claim_Replaces_The_First()
+        {
+            var displayModule = ScriptFactory().WithMother().Boot().Mother.GetModule<DisplayModule>();
+            var surface = TextSurfaceFactory.Create();
+
+            displayModule.Claim("A", surface, ContentType.SCRIPT);
+            displayModule.Claim("A", surface, ContentType.TEXT_AND_IMAGE);
+
+            Assert.That(surface.ContentType, Is.EqualTo(ContentType.TEXT_AND_IMAGE));
+            Assert.That(displayModule.Holds("A", surface), Is.True);
+
+            surface.ContentType = ContentType.SCRIPT;
+            Assert.That(displayModule.Holds("A", surface), Is.False);
         }
     }
 }

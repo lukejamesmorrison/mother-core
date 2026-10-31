@@ -952,6 +952,7 @@ namespace IngameScript
 
         /// <summary>
         /// Handles a view activation request from another script on the construct.
+        /// An empty View means another script claimed the display, so we release it.
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -959,7 +960,9 @@ namespace IngameScript
         {
             Action<string, bool> onActivate;
 
-            if (Views.TryGetValue(request.BString("View"), out onActivate))
+            if (string.IsNullOrEmpty(request.BString("View")))
+                Mother.GetModule<DisplayModule>().Release(request.BString("Display"));
+            else if (Views.TryGetValue(request.BString("View"), out onActivate))
                 onActivate(request.BString("Display"), request.BString("Active") == "1");
 
             return null;

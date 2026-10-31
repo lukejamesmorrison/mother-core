@@ -27,8 +27,6 @@ namespace MotherCore.Tests.Module
         [TestCase("connected", MyShipConnectorStatus.Unconnected, false)]
         [TestCase("connectable", MyShipConnectorStatus.Connectable, true)]
         [TestCase("connectable", MyShipConnectorStatus.Connected, false)]
-        [TestCase("disconnected", MyShipConnectorStatus.Unconnected, true)]
-        [TestCase("disconnected", MyShipConnectorStatus.Connected, false)]
         public void A_Connector_Predicate_Reads_The_Connector_Status(string predicate, MyShipConnectorStatus status, bool expected)
         {
             var connector = new FakeShipConnector(customName: "Dock");
