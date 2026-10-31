@@ -126,8 +126,16 @@ namespace IngameScript
                     AlmanacRecord loadedRecord = AlmanacRecord.CreateFromDict(recordData);
                     
                     // Validate record before adding
-                    if (IsValidRecord(loadedRecord))
-                        Records.Add(loadedRecord);
+                    if (!IsValidRecord(loadedRecord))
+                        continue;
+
+                    // Skip stale records of this grid saved under a previous Mother.Id
+                    if (loadedRecord.EntityType == Literals.Grid
+                        && loadedRecord.Id != $"{Mother.Id}"
+                        && loadedRecord.DisplayName == Mother.Name)
+                        continue;
+
+                    Records.Add(loadedRecord);
                 }
                 catch
                 {
@@ -261,6 +269,9 @@ namespace IngameScript
                 if (isOnConstruct)
                     record.IFFCode = AlmanacRecord.TransponderCode.Construct;
             }
+
+            if (isOnConstruct)
+                record.IFFCode = AlmanacRecord.TransponderCode.Construct;
 
             // Non-public channels indicate friendly
             if (!channels.Contains("*") && record.IFFCode == AlmanacRecord.TransponderCode.Neutral)
