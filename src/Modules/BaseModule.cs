@@ -130,9 +130,8 @@ namespace IngameScript
         /// <param name="prefix">Prepended to command names with a slash, ie. door. Empty for none.</param>
         /// <returns>A set to chain Command, Number, Flag, Status and Hook calls on.</returns>
         public BlockSet<T> Block<T>(string prefix = "") where T : class, IMyTerminalBlock
-        {
-            return new BlockSet<T>(this, prefix);
-        }
+            => new BlockSet<T>(this, prefix);
+        
 
         /// <summary>
         /// Register a block type for ongoing state monitoring.
@@ -172,9 +171,7 @@ namespace IngameScript
         /// <param name="block"></param>
         /// <returns></returns>
         public object GetBlockCurrentState(IMyTerminalBlock block)
-        {
-            return _stateSelectors.ContainsKey(block) ? _stateSelectors[block](block) : null;
-        }
+            => _stateSelectors.ContainsKey(block) ? _stateSelectors[block](block) : null;
 
         /// <summary>
         /// Compare the current state of a block with a previous state.
@@ -220,9 +217,8 @@ namespace IngameScript
         /// <param name="name"></param>
         /// <returns></returns>
         public List<T> GetBlocksByName<T>(string name) where T : class, IMyTerminalBlock
-        {
-            return Mother.GetModule<BlockCatalogue>().GetBlocksByName<T>(name);
-        }
+            => Mother.GetModule<BlockCatalogue>().GetBlocksByName<T>(name);
+        
 
         /// <summary>
         /// Get a module registered with Mother.
@@ -231,9 +227,7 @@ namespace IngameScript
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public T GetModule<T>() where T : class, IModule
-        {
-            return Mother.GetModule<T>();
-        }
+            => Mother.GetModule<T>();
 
         /// <summary>
         /// Subscribe to an event. Accessor for EventBus.Subscribe.

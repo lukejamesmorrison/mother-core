@@ -97,28 +97,28 @@ namespace IngameScript
         /// <summary>
         /// The number of blocks to process in each program cycle.
         /// </summary>
-        const int BLOCKS_PER_CYCLE = 50;
+        const int BLOCKS_PER_CYCLE = 50,
 
         /// <summary>
             /// The most blocks whose Custom Data is re-read in one program cycle by the
         /// periodic refresh. The refresh also stops early when the cycle is over budget.
         /// </summary>
-        const int BLOCKS_PER_TICK_REFRESH = 100;
+        BLOCKS_PER_TICK_REFRESH = 100;
 
         /// <summary>
         /// The name of the general configuration section.
         /// </summary>
-        const string SECTION_GENERAL = "general";
+        const string SECTION_GENERAL = "general",
 
         /// <summary>
         /// The key for block tags in the a block configuration.
         /// </summary>
-        const string KEY_TAGS = "tags";
+        KEY_TAGS = "tags",
 
         /// <summary>
         /// The name of the hooks configuration section.
         /// </summary>
-        const string SECTION_HOOKS = "hooks";
+        SECTION_HOOKS = "hooks";
 
         /// <summary>
         /// Flag to indicate if a construct refresh is pending.
@@ -209,10 +209,7 @@ namespace IngameScript
         /// Run the module. This method is called every program cycle. 
         /// We check for changes in block state.
         /// </summary>
-        public override void Run()
-        {
-            CheckBlocksForStateChange();
-        }
+        public override void Run() => CheckBlocksForStateChange();
 
         /// <summary>
         /// Blocks registered for state monitoring, in a stable order so they can be
@@ -350,10 +347,8 @@ namespace IngameScript
         }
 
         bool HasBlockConfigurationChanged(IMyTerminalBlock block, MyIni newConfiguration)
-        {
-            return BlockConfigs.ContainsKey(block)
+            => BlockConfigs.ContainsKey(block)
                     && newConfiguration.ToString() != BlockConfigs[block].ToString();
-        }
 
         /// <summary>
         /// Records a configuration this script wrote itself as the known one, so
@@ -370,11 +365,6 @@ namespace IngameScript
                 if (known.EntityId == block.EntityId)
                     BlockConfigs[known] = accepted;
         }
-
-        //bool BlockIsMother(IMyTerminalBlock block)
-        //{
-        //    return block is IMyProgrammableBlock && block.EntityId == Mother.Id;
-        //}
 
         /// <summary>
         /// Load block configurations from the custom data of one block. We do 
@@ -442,6 +432,7 @@ namespace IngameScript
                 string[] keyParts = key.Split('.');
                 blockConfiguration.Set(keyParts[0], keyParts[1], Configuration.BlockConfigDefaults[key]);
             }
+
             block.CustomData = blockConfiguration.ToString();
         }
 
@@ -597,11 +588,9 @@ namespace IngameScript
         /// <param name="block"></param>
         /// <returns></returns>
         public MyIni GetBlockConfiguration(IMyTerminalBlock block)
-        {
-            return BlockConfigs.ContainsKey(block) 
+            => BlockConfigs.ContainsKey(block) 
                 ? BlockConfigs[block] 
                 : new MyIni();
-        }
 
         /// <summary>
         /// Get all blocks of a specific type based on a name. We can use the 
@@ -679,11 +668,9 @@ namespace IngameScript
         /// <param name="groupName"></param>
         /// <returns></returns>
         List<IMyBlockGroup> GetBlockGroups(string groupName)
-        {
-            return BlockGroups
+            => BlockGroups
                 .Where(group => string.Equals(group.Name, groupName, StringComparison.OrdinalIgnoreCase))
                 .ToList();
-        }
 
         /// <summary>
         /// Get a block by its name. Only the display name is used for this method.
@@ -706,21 +693,6 @@ namespace IngameScript
                 .OrderByDescending(c => c is IMyRemoteControl)
                 .ThenByDescending(c => c.IsMainCockpit)
                 .FirstOrDefault();
-
-            //IMyShipController controller =
-            //    TerminalBlocks.OfType<IMyRemoteControl>().FirstOrDefault()
-            //    ?? (IMyShipController)TerminalBlocks.OfType<IMyCockpit>().FirstOrDefault(c => c.IsMainCockpit)
-            //    ?? (IMyShipController)TerminalBlocks.OfType<IMyCockpit>().FirstOrDefault();
-
-            //Mother.ShipController = controller;
-
-            //if (controller is IMyRemoteControl)
-            //    return;
-
-            //if (controller is IMyCockpit)
-            //    Mother.Print("No Remote Control found. Using cockpit for telemetry. Autopilot unavailable.");
-            //else
-            //    Mother.Print("No ship controller found. Velocity, gravity and orientation unavailable.");
         }
 
         /// <summary>
@@ -747,12 +719,12 @@ namespace IngameScript
         /// Number of grids to traverse per tick when discovering the construct.
         /// Grids are connected via mechanical blocks (rotor, hinge, piston).
         /// </summary>
-        const int GRIDS_PER_TICK = 40;
+        const int GRIDS_PER_TICK = 40,
 
         /// <summary>
         /// Number of blocks to parse per tick when loading block configurations.
         /// </summary>
-        const int BLOCKS_PER_TICK_LOAD = 500;
+        BLOCKS_PER_TICK_LOAD = 500;
 
         /// <summary>
         /// Coroutine to discover all grids in the construct and load blocks in batches.

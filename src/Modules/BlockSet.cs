@@ -118,9 +118,7 @@ namespace IngameScript
         /// <param name="preserveState">Keep existing state history for known blocks, ie. after a construct refresh.</param>
         /// <returns>This set, for chaining.</returns>
         public BlockSet<T> Monitor(Func<T, object> read, bool preserveState = false)
-        {
-            return Monitor(read, Dispatch, preserveState);
-        }
+            => Monitor(read, Dispatch, preserveState);
 
         /// <summary>
         /// Declare what happens when a monitored block enters a state: emit the event 

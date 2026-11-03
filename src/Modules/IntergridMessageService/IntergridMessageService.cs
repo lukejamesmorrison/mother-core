@@ -79,6 +79,9 @@ namespace IngameScript
         /// </summary>
         readonly Dictionary<string, KeyValuePair<int, Action<IntergridMessageObject>>> AwaitedRequests = new Dictionary<string, KeyValuePair<int, Action<IntergridMessageObject>>>();
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         int Syncs;
 
         /// <summary>
@@ -387,53 +390,11 @@ namespace IngameScript
         /// Uses GridId for remote grids to ensure one record per construct.
         /// Stores OriginId as UnicastId for IGC targeting.
         /// </summary>
-        /// <param name="message"></param>
-        /// <returns></returns>
-        //AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(IntergridMessageObject message)
-        //{
-        //    long originId = message.HLong(Literals.OriginId);
-        //    string gridIdStr = message.HString(Literals.GridId),
-        //        recordId = !string.IsNullOrEmpty(gridIdStr) ? gridIdStr : $"{originId}";
-
-        //    // Extract orientation if present
-        //    Vector3D? forward = null,
-        //        up = null;
-
-        //    double fx, fy, fz, ux, uy, uz;
-
-        //    if (double.TryParse(message.HString("Fx"), out fx) &&
-        //        double.TryParse(message.HString("Fy"), out fy) &&
-        //        double.TryParse(message.HString("Fz"), out fz))
-        //    {
-        //        forward = new Vector3D(fx, fy, fz);
-        //    }
-        //    if (double.TryParse(message.HString("Ux"), out ux) &&
-        //        double.TryParse(message.HString("Uy"), out uy) &&
-        //        double.TryParse(message.HString("Uz"), out uz))
-        //    {
-        //        up = new Vector3D(ux, uy, uz);
-        //    }
-
-        //    return Almanac.UpdateOrCreateFromMessage(
-        //        recordId, originId,
-        //        message.HString(Literals.OriginName),
-        //        new Vector3D(message.HFloat("X"), message.HFloat("Y"), message.HFloat("Z")),
-        //        message.HFloat("Speed"),
-        //        message.Channels, OriginIsOnConstruct(originId),
-        //        forward, up
-        //    );
-        //}
-
-        /// <summary>
-        /// Update or create an AlmanacRecord from an incoming message.
-        /// Uses GridId for remote grids to ensure one record per construct.
-        /// Stores OriginId as UnicastId for IGC targeting.
-        /// </summary>
         AlmanacRecord UpdateOrCreateAlmanacRecordFromIncomingRequest(IntergridMessageObject message)
         {
             long originId = message.HLong(Literals.OriginId);
-            string gridIdStr = message.HString(Literals.GridId);
-            string recordId = !string.IsNullOrEmpty(gridIdStr) ? gridIdStr : originId.ToString();
+            string gridIdStr = message.HString(Literals.GridId),
+            recordId = !string.IsNullOrEmpty(gridIdStr) ? gridIdStr : originId.ToString();
 
             return Almanac.UpdateOrCreateFromMessage(
                 recordId, originId,
@@ -449,6 +410,7 @@ namespace IngameScript
         static Vector3D? TryReadVector(IntergridMessageObject message, string xKey, string yKey, string zKey)
         {
             double x, y, z;
+
             if (double.TryParse(message.HString(xKey), out x) &&
                 double.TryParse(message.HString(yKey), out y) &&
                 double.TryParse(message.HString(zKey), out z))
@@ -691,10 +653,11 @@ namespace IngameScript
             Dictionary<string, object> customHeader = null
         )
         {
-            Dictionary<string, object> header = GetStandardHeader();
+            Dictionary<string, object> header = GetStandardHeader(),
+            body = new Dictionary<string, object>();
+
             header["Path"] = path; // add the path to the customHeader
 
-            Dictionary<string, object> body = new Dictionary<string, object>();
 
             MergeDictionary(header, customHeader);
             MergeDictionary(body, customBody);
@@ -718,15 +681,15 @@ namespace IngameScript
             Dictionary<string, object> customHeader = null
         )
         {
-            Dictionary<string, object> standardHeader = GetStandardHeader();
-            Dictionary<string, object> responseHeader = new Dictionary<string, object>()
+            Dictionary<string, object> standardHeader = GetStandardHeader(),
+            responseHeader = new Dictionary<string, object>()
             {
                 { "Status", $"{Response.GetResponseCodeValue(code)}" },
                 { Literals.TargetId, request.Header[Literals.OriginId] },
                 { "TargetName", request.Header[Literals.OriginName] },
                 { Literals.RespondingToId, request.Header["Id"] },
-            };
-            Dictionary<string, object> responseBody = new Dictionary<string, object>();
+            },
+            responseBody = new Dictionary<string, object>();
 
             MergeDictionary(responseHeader, standardHeader);
             MergeDictionary(responseHeader, customHeader);
@@ -763,6 +726,7 @@ namespace IngameScript
             foreach (var key in new List<string>(AwaitedRequests.Keys))
                 if (AwaitedRequests[key].Key < Syncs - 1)
                     AwaitedRequests.Remove(key);
+
             Request request = CreateRequest(
                 "sync",
                 SyncBody(),
@@ -846,9 +810,7 @@ namespace IngameScript
         /// <param name="channel"></param>
         /// <returns></returns>
         string GetChannelPasscode(string channel)
-        {
-            return Channels.ContainsKey(channel) ? Channels[channel] : "";
-        }
+            => Channels.ContainsKey(channel) ? Channels[channel] : "";
 
         /// <summary>
         /// Merge entries from the source dictionary into the target dictionary.

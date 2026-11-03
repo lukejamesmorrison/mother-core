@@ -30,14 +30,14 @@ namespace IngameScript
         /// <summary>
         /// The original command string.
         /// </summary>
-        public string CommandString;
+        public string CommandString,
 
         /// <summary>
         /// The command name.
         /// 
         /// ie. rotor/rotate, light/blink
         /// </summary>
-        public string Name;
+        Name;
 
         /// <summary>
         /// The arguments of the command. Arguments are the parts of the command that are not options.
@@ -56,19 +56,19 @@ namespace IngameScript
         /// <summary>
         /// The increment value for the command.
         /// </summary>
-        public bool IsIncrement = false;
+        public bool IsIncrement = false,
 
         /// <summary>
         /// The decrement value for the command.
         /// </summary>
-        public bool IsDecrement = false;
+        IsDecrement = false,
 
         /// <summary>
         /// Indicates if the command should be forced to run locally,
         /// overriding any important commands on the construct.
         /// Set when the command is prefixed with "!!".
         /// </summary>
-        public bool IsForceLocal = false;
+        IsForceLocal = false;
 
         /// <summary>
         /// Creates a new terminal command from a command string.
@@ -160,9 +160,7 @@ namespace IngameScript
         /// <param name="value"></param>
         /// <returns></returns>
         public static bool GetBoolFromString(string value)
-        {
-            return value?.Trim().ToLower() == "true" || value?.Trim() == "1";
-        }
+            => value?.Trim().ToLower() == "true" || value?.Trim() == "1";
 
         /// <summary>
         /// Parses the command string into its parts (arguments, options). Options 

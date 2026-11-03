@@ -24,13 +24,13 @@ namespace IngameScript
         /// The target name of the routine. Defaults to "self". Remote commands 
         /// will be sent to this target using the name of their grid.
         /// </summary>  
-        public string Target = "self";
+        public string Target = "self",
 
         /// <summary>
         /// The unpacked routine string with all custom commands 
         /// expanded to their base commands.
         /// </summary>
-        public string UnpackedRoutineString = "";
+        UnpackedRoutineString = "";
 
         /// <summary>
         /// The commands that compose the routine. Used for sequential execution
@@ -54,6 +54,10 @@ namespace IngameScript
         /// The unpacked commands that compose the routine.
         /// </summary>
         List<TerminalCommand> UnpackedCommands = new List<TerminalCommand>();
+
+        // Keys are visited longest first, so one pass resolves nearly everything. Extra
+        // passes only matter for equal-length names that reference each other.
+        const int MaxExpansionPasses = 3;
 
         /// <summary>
         /// Constructor. We create from a routine string and immediately parse 
@@ -118,10 +122,8 @@ namespace IngameScript
                 List<string> commandStrings = SplitRoutineCommands(RoutineString);
 
                 foreach (var commandString in commandStrings)
-                {
                     if (!string.IsNullOrWhiteSpace(commandString))
                         Commands.Add(new TerminalCommand(commandString.Trim()));
-                }
             }
         }
 
@@ -249,6 +251,7 @@ namespace IngameScript
             var sb = new StringBuilder();
             foreach (TerminalCommand command in UnpackedCommands)
                 sb.Append(command.CommandString).Append(';');
+
             UnpackedRoutineString = sb.ToString();
 
             return this;
@@ -283,9 +286,10 @@ namespace IngameScript
         List<string> SplitRoutineCommands(string routine)
         {
             bool insideQuotes = false;
-            int braceDepth = 0;
-            int start = 0;
-            int i = 0;
+
+            int braceDepth = 0,
+            start = 0,
+            i = 0;
             var markers = new[] { ';', '"', '{', '}' };
             List<string> commands = new List<string>();
 
@@ -379,10 +383,6 @@ namespace IngameScript
 
             return result;
         }
-
-        // Keys are visited longest first, so one pass resolves nearly everything. Extra
-        // passes only matter for equal-length names that reference each other.
-        const int MaxExpansionPasses = 3;
 
         /// <summary>
         /// Replaces every whole-word occurrence of a name with its expansion.

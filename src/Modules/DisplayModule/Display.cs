@@ -165,11 +165,15 @@ namespace IngameScript
             Frame = Surface.DrawFrame();
 
             // random sprite vector
-            Random random = new Random();
-            Vector2 vector = new Vector2((float)random.NextDouble(), (float)random.NextDouble());
+            //Random random = new Random();
+            //Vector2 vector = new Vector2((float)random.NextDouble(), (float)random.NextDouble());
 
-            // add a random empty sprite to force the frame to render (workaround for SE bug where frame doesn't render without any sprites)
-            Frame.Add(SpriteFactory.CreateShape(Literals.Square, vector, vector, Color.Transparent));
+            //// add a random empty sprite to force the frame to render (workaround for SE bug where frame doesn't render without any sprites)
+            //Frame.Add(SpriteFactory.CreateShape(Literals.Square, vector, vector, Color.Transparent));
+
+            // add 0..2 random empty sprites to force the frame to render (workaround for SE bug where frame doesn't render without any sprites)
+            for (int p = (int)(new Random().Next() % 3); p > 0; p--)
+                Frame.Add(SpriteFactory.CreateShape(Literals.Square, new Vector2(-9, -9), new Vector2(p, p), Color.Black));
         }
 
         /// <summary>

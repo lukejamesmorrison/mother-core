@@ -36,17 +36,15 @@ namespace IngameScript
         /// <param name="rotation"></param>
         /// <returns></returns>
         public static MySprite CreateShape(string texture, Vector2 position, Vector2 size, Color color, float rotation = 0f)
-        {
-            return new MySprite
-            {
-                Type = SpriteType.TEXTURE,
-                Data = texture,
-                Position = position,
-                Size = size,
-                Color = color,
-                Alignment = TextAlignment.CENTER,
-                RotationOrScale = rotation
-            };
-        }
+            => new MySprite
+                {
+                    Type = SpriteType.TEXTURE,
+                    Data = texture,
+                    Position = position,
+                    Size = size,
+                    Color = color,
+                    Alignment = TextAlignment.CENTER,
+                    RotationOrScale = rotation
+                };
     }
 }

@@ -69,7 +69,18 @@ namespace IngameScript
         /// The ID of the entity. This is a unique identifier for the entity. For 
         /// grids, we use CubeGrid.EntityId. For GPS Waypoints, we use the name.
         /// </summary>
-        public string Id { get; }
+        public string Id,
+
+        /// <summary>
+        /// The type of entity. Value in EntityTypes.
+        /// </summary>
+        EntityType,
+
+        /// <summary>
+        /// The display name of the entity. This is the current name 
+        /// used for display and lookup purposes.
+        /// </summary>
+        DisplayName;
 
         /// <summary>
         /// The unicast target ID for IGC communication. For grids, this is the 
@@ -86,17 +97,17 @@ namespace IngameScript
         /// <summary>
         /// The last known position of the entity.
         /// </summary>
-        public Vector3D Position;
+        public Vector3D Position,
 
         /// <summary>
         /// The last known forward direction of the entity.
         /// </summary>
-        public Vector3D Forward = Vector3D.Forward;
+        Forward = Vector3D.Forward,
 
         /// <summary>
         /// The last known up direction of the entity.
         /// </summary>
-        public Vector3D Up = Vector3D.Up;
+        Up = Vector3D.Up;
 
         /// <summary>
         /// The last know speed of the entity.
@@ -108,18 +119,7 @@ namespace IngameScript
         /// navigate within an unsafe distance of an entity.
         /// </summary>
         public double SafeRadius;
-
-        /// <summary>
-        /// The type of entity. Value in EntityTypes.
-        /// </summary>
-        public string EntityType { get; set; }
-
-        /// <summary>
-        /// The display name of the entity. This is the current name 
-        /// used for display and lookup purposes.
-        /// </summary>
-        public string DisplayName { get; set; }
-
+ 
         ///<summary>
         /// The transponder code for the entity. This is used to 
         /// categorize the entity for communications and combat.

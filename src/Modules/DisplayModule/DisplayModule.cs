@@ -276,10 +276,7 @@ namespace IngameScript
         /// Forget the claim on a display.
         /// </summary>
         /// <param name="name"></param>
-        public void Release(string name)
-        {
-            claims.Remove(name);
-        }
+        public void Release(string name) => claims.Remove(name);
 
         /// <summary>
         /// Load all text panels on the grid. This includes LCD Panels, but not cockpit displays.
@@ -397,10 +394,7 @@ namespace IngameScript
         /// Render the console surfaces (Log). This is called on every 
         /// input cycle to ensure immediate feedback after terminal commands.
         /// </summary>
-        public void RenderConsoleSurfaces()
-        {
-            RenderLogSurfaces();
-        }
+        public void RenderConsoleSurfaces() => RenderLogSurfaces();
 
         /// <summary>
         /// Get the log string. This is used when displaying the log on screens.

@@ -78,17 +78,7 @@ namespace IngameScript
             /// <summary>
             /// False while any open if block is in a branch that does not run.
             /// </summary>
-            public bool Running
-            {
-                get
-                {
-                    foreach (var flags in Ifs)
-                        if ((flags & 1) == 0)
-                            return false;
-
-                    return true;
-                }
-            }
+            public bool Running => Ifs.All(flags => (flags & 1) != 0);
         }
         
         /// <summary>

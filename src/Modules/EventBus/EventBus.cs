@@ -97,9 +97,7 @@ namespace IngameScript
         /// <typeparam name="TEvent"></typeparam>
         /// <param name="eventData"></param>
         public new void Emit<TEvent>(object eventData = null) where TEvent : IEvent, new()
-        {
-            Emit(new TEvent(), eventData);
-        }
+            => Emit(new TEvent(), eventData);
 
         /// <summary>
         /// Emit an event to all subscribed Modules with optional event data.

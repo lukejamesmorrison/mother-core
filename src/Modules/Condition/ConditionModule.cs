@@ -43,32 +43,36 @@ namespace IngameScript
         /// </summary>
         class Rule
         {
-            public string Name, Then = "", Else = "";
+            public string Name, Then = "", Else = "",
+
+            Cond;
+
             public List<IMyTerminalBlock> Blocks;
+
             public readonly List<Term> Terms = new List<Term>();
 
             /// <summary>
             /// Active is the last fired result. Tripped is the condition after
             /// its band, before the --for debounce.
             /// </summary>
-            public bool Active, Tripped;
-
-            /// <summary>
-            /// Seconds from --for, --cooldown and --every (0 when not set).
-            /// </summary>
-            public double For, Cooldown, Every;
-
-            /// <summary>
-            /// Times on the module clock: when it tripped, when it last fired
-            /// and when --every makes it due next.
-            /// </summary>
-            public double Since, Due, LastFired = double.NegativeInfinity;
+            public bool Active, Tripped,
 
             /// <summary>
             /// Pending is true while the condition names something no script on
             /// the construct defines yet, so the rule is kept but never evaluated.
             /// </summary>
-            public bool Pending;
+            Pending;
+
+            /// <summary>
+            /// Seconds from --for, --cooldown and --every (0 when not set).
+            /// </summary>
+            public double For, Cooldown, Every,
+
+            /// <summary>
+            /// Times on the module clock: when it tripped, when it last fired
+            /// and when --every makes it due next.
+            /// </summary>
+            Since, Due, LastFired = double.NegativeInfinity;
 
             /// <summary>
             /// The scripts on the construct that define the name the condition is
@@ -76,7 +80,6 @@ namespace IngameScript
             /// has no vocabulary for. Cond is the condition text sent to them.
             /// </summary>
             public List<long> Owners;
-            public string Cond;
         }
 
         /// <summary>
@@ -258,6 +261,7 @@ namespace IngameScript
 
             if (shared || Fast)
                 EvaluateRules(shared);
+
             else
                 Flush();
         }
@@ -397,9 +401,7 @@ namespace IngameScript
         /// <param name="error">Why the condition is invalid, or null.</param>
         /// <returns>The result. False when there is an error.</returns>
         public bool Evaluate(TerminalCommand command, out string error)
-        {
-            return Check(command, false, false, out error) > 0;
-        }
+            => Check(command, false, false, out error) > 0;
 
         /// <summary>
         /// Starts evaluating an inline condition step. A condition this script

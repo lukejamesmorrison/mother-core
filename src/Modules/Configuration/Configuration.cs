@@ -43,6 +43,9 @@ namespace IngameScript
         /// </summary>
         BlockConfigDefaults = new Dictionary<string, string>();
 
+        /// <summary>
+        /// The default sections for the programmable block's custom data property.
+        /// </summary>
         readonly string[] DefaultSections = new string[]
         {
             Literals.General,
@@ -312,30 +315,8 @@ namespace IngameScript
                 // Do NOT substitute variables here — defer to runtime so that
                 // {{param:$VAR}} defaults and $VAR references are resolved after
                 // command parameters have been applied.
-
                 Mother.ConfigCommands[commandName] = commandValue;
             });
-
-            //foreach (var key in keys)
-            //{
-            //    string commandName = key.Name,
-            //    commandValue = $"{Ini.Get(Literals.Commands, commandName)}"
-            //        .Replace("\r", "")
-            //        .Replace("\n", " ")
-            //        .Trim();
-
-            //    // Collapse multiple spaces into a single space, but only outside quoted strings.
-            //    commandValue = CollapseWhitespaceOutsideQuotes(commandValue);
-
-            //    // Strip surrounding double quotes from command value
-            //    commandValue = Unquote(commandValue);
-
-            //    // Do NOT substitute variables here — defer to runtime so that
-            //    // {{param:$VAR}} defaults and $VAR references are resolved after
-            //    // command parameters have been applied.
-
-            //    Mother.ConfigCommands[commandName] = commandValue;
-            //}
         }
 
         /// <summary>

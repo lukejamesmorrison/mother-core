@@ -52,8 +52,6 @@ namespace IngameScript
         /// <param name="path"></param>
         /// <param name="route"></param>
         public void RegisterRoute(string path, Func<Request, Response> route)
-        {
-            Routes.Add(new Route(path, route));
-        }
+            => Routes.Add(new Route(path, route));
     }
 }
