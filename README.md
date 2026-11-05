@@ -41,6 +41,21 @@ Space Engineer 🚀🇨🇦
 [![YouTube](https://img.shields.io/badge/YouTube-%23FF0000.svg?style=for-the-badge&logo=YouTube&logoColor=white)](https://www.youtube.com/@agentluke)
 [![Steam](https://img.shields.io/badge/steam-%23000000.svg?style=for-the-badge&logo=steam&logoColor=white)](https://steamcommunity.com/id/agentluke/myworkshopfiles/)
 
+## Build Tools
+Releases include a `build/` folder, installed to `Core/build` in your script project. It shrinks the packaged script after MDK builds it, so your script fits in the programmable block:
+
+- `MotherCore.targets` runs after `MdkPack`. It runs the optimizer, then removes `private` and `readonly` keywords from the script.
+- `ScriptOptimizer/` is the optimizer. It runs with `dotnet run`, so the .NET SDK must be installed. If it cannot run, the script is left as MDK packed it and the build still succeeds.
+- `RemoveKeywords.ps1` removes the keywords.
+
+Projects created with `mother new` import the targets already. To add them to an existing project, put this in your `.csproj` and run `mother install` (or copy the `build/` folder from the latest release into `Core/`):
+
+```xml
+<Import Project="$(MSBuildProjectDirectory)\Core\build\MotherCore.targets" Condition="Exists('$(MSBuildProjectDirectory)\Core\build\MotherCore.targets')" />
+```
+
+Set `<MotherCoreOptimize>false</MotherCoreOptimize>` or `<MotherCoreRemoveKeywords>false</MotherCoreRemoveKeywords>` in the project to skip a step. If your project has its own post-pack target that edits the script (such as `MinifyScriptFile`), keep it after this import so it receives the optimized script.
+
 ## Deploying a New Version
 Mother Core is released through GitHub. Pushing a version tag runs the [Build and Release workflow](.github/workflows/copy-to-dist.yaml), which publishes a GitHub Release. [Mother CLI](../MotherCLI/README.md) installs Core from the latest release.
 
@@ -55,8 +70,8 @@ Mother Core is released through GitHub. Pushing a version tag runs the [Build an
    git push origin v1.2.0
    ```
 
-6. Wait for the **Build and Release** action to finish. It copies `src/Mother.cs`, `Commands/`, `Modules/`, `Utilities/`, `CHANGELOG.md`, `LICENSE.md` and `README.md` into `dist/`, zips them as `mother-core.zip`, and attaches the zip to a new GitHub Release.
-7. Verify the release contains `mother-core.zip` and that a fresh Core install through Mother CLI pulls the new version.
+6. Wait for the **Build and Release** action to finish. It copies `src/Mother.cs`, `Commands/`, `Modules/`, `Utilities/`, `CHANGELOG.md`, `LICENSE.md`, `README.md` and the build tools (`build/MotherCore.targets`, `build/RemoveKeywords.ps1`, `build/ScriptOptimizer/`) into `dist/`, zips them as `mother-core-vX.Y.Z.zip`, and attaches the zip to a new GitHub Release.
+7. Verify the release contains the zip with a `build/` folder, and that a fresh Core install through Mother CLI pulls the new version.
 
 Use semantic versioning (`major.minor.patch`). Only tags are released, so pushing to a branch does not publish anything.
 

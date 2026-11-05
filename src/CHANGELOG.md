@@ -1,5 +1,11 @@
 # Changelog - Mother Core
 
+## [Unreleased]
+
+### Added
+
+- Releases now include the build tools in `build/` (`MotherCore.targets`, `RemoveKeywords.ps1` and the `ScriptOptimizer` sources), so scripts built outside the Mother repo can shrink their packaged script the same way Mother OS, Mother GUI and MAPS do. Import `Core\build\MotherCore.targets` from the script's `.csproj`; see the README, "Build Tools". Needs the .NET SDK, and is skipped without failing the build if the optimizer cannot run.
+
 ## [1.2.0] - 4 Nov 2026
 
 ### Added
