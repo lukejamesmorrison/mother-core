@@ -1,15 +1,10 @@
 # Changelog - Mother Core
 
-## [Unreleased]
-
-### Added
-
-- Releases now include the build tools in `build/` (`MotherCore.targets`, `RemoveKeywords.ps1` and the `ScriptOptimizer` sources), so scripts built outside the Mother repo can shrink their packaged script the same way Mother OS, Mother GUI and MAPS do. Import `Core\build\MotherCore.targets` from the script's `.csproj`; see the README, "Build Tools". Needs the .NET SDK, and is skipped without failing the build if the optimizer cannot run.
-
 ## [1.2.0] - 4 Nov 2026
 
 ### Added
 
+- Releases now include the build tools in `build/` (`MotherCore.targets`, `RemoveKeywords.ps1` and the `ScriptOptimizer` sources), so scripts built outside the Mother repo can shrink their packaged script the same way Mother OS, Mother GUI and MAPS do. Import `Core\build\MotherCore.targets` from the script's `.csproj`; see the README, "Build Tools". Needs the .NET SDK, and is skipped without failing the build if the optimizer cannot run.
 - `DisplayModule` display claims: `Claim` records which script holds a display and broadcasts a `view` release to the others, `Holds` reports whether a claim is still valid, and `Release` forgets it. `IntergridMessageService` treats a view activation with an empty `View` as a release, so scripts no longer compete for the same display.
 - Condition vocabulary is shared across the construct. A property, predicate or state word that only another script defines (Mother GUI using MAPS's `altitude` or `inspace`, or Mother OS's `charge`) now works in `when` rules and inline `if` / `elseif` with nothing registered in the script that uses it. Scripts advertise the names they define in the existing `sync` ping (`Props`, `Preds`, kept in `IntergridMessageService.ConstructVocab`, with `ConstructVocabChangedEvent` when a set changes), and the owner evaluates the condition and replies over a new construct-only, read-only `cond` route. A name registered locally is always evaluated locally, and only a condition no local block answers is sent out. Conditions are batched, one request per owner per cycle. See `specs/construct-shared-conditions.md`.
   - `when` rules on a remote name keep their state on the script that holds the rule, use the last answer received (and act on a reply as soon as it arrives, not on the next pass), and go false when the owner stops answering. A rule on a name no script defines yet is kept and starts working when the owner appears.
