@@ -28,6 +28,13 @@ jobs:
           cp -r src/Modules dist/
           cp -r src/Utilities dist/
 
+          # build tools used by extension scripts (see README, "Build Tools")
+          mkdir -p dist/build
+          cp build/MotherCore.targets dist/build/
+          cp build/RemoveKeywords.ps1 dist/build/
+          cp -r build/ScriptOptimizer dist/build/
+          find dist/build -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+
           cp src/CHANGELOG.md dist/
           cp LICENSE.md dist/
           cp README.md dist/

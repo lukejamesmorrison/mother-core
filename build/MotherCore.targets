@@ -14,6 +14,14 @@
       MotherCoreScriptPath  The packaged script. Defaults to the MDK output for the project.
   -->
 
+  <!--
+    When this file ships inside a script project (Core\build), keep the optimizer sources, and the obj and bin
+    folders `dotnet run` creates beside them, out of the script's own compilation.
+  -->
+  <ItemGroup>
+    <Compile Remove="$(MSBuildThisFileDirectory)**" />
+  </ItemGroup>
+
   <Target Name="MotherCoreOptimizeScript" AfterTargets="MdkPack" BeforeTargets="MinifyScriptFile" Condition="'$(MotherCoreOptimize)' != 'false'">
     <PropertyGroup>
       <_MotherCoreScript>$(MotherCoreScriptPath)</_MotherCoreScript>
