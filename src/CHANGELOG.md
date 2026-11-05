@@ -1,6 +1,6 @@
 # Changelog - Mother Core
 
-## [1.2.0] - Unreleased
+## [1.2.0] - 4 Nov 2026
 
 ### Added
 

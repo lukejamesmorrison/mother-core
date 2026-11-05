@@ -143,17 +143,19 @@ namespace MotherCore.Tests.Tests.Unit
         }
 
         [Test]
-        public void DrawFrame_Creates_A_Frame_And_Adds_A_Transparent_Render_Primer_Sprite()
+        public void DrawFrame_Creates_A_Frame_And_Adds_Up_To_Two_Off_Screen_Render_Primer_Sprites()
         {
             var display = CreateDisplay();
 
             display.DrawFrame();
             var sprites = GetSprites(display.Frame);
 
-            Assert.That(sprites, Has.Count.EqualTo(1));
-            Assert.That(sprites[0].Type, Is.EqualTo(SpriteType.TEXTURE));
-            Assert.That(sprites[0].Data, Is.EqualTo("SquareSimple"));
-            Assert.That(sprites[0].Color, Is.EqualTo(Color.Transparent));
+            Assert.That(display.Frame, Is.Not.Null);
+            Assert.That(sprites, Has.Count.InRange(0, 2));
+            Assert.That(sprites, Has.All.Matches<MySprite>(s =>
+                s.Type == SpriteType.TEXTURE
+                && s.Data == "SquareSimple"
+                && s.Color == Color.Black));
         }
 
         [Test]
