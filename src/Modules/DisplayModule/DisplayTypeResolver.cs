@@ -1,4 +1,4 @@
-using Sandbox.ModAPI.Ingame;
+﻿using Sandbox.ModAPI.Ingame;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +25,7 @@ namespace IngameScript
         public int Index;
 
         /// <summary>The view name that should be rendered on this surface (case-insensitive).</summary>
-        public string ViewName;
+        public string ViewName,
 
         /// <summary>
         /// Optional source or parameter following the view name.
@@ -33,7 +33,7 @@ namespace IngameScript
         /// For other views it is forwarded as a view parameter.
         /// Surrounding quotes are stripped automatically.
         /// </summary>
-        public string Parameter;
+        Parameter;
     }
 
     /// <summary>
@@ -62,7 +62,9 @@ namespace IngameScript
         {
             var entries = new List<SurfaceEntry>();
             var keys = new List<MyIniKey>();
+
             blockConfig.GetKeys(SECTION_SURFACES, keys);
+
             foreach (MyIniKey key in keys)
             {
                 int index;

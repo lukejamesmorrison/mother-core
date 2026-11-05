@@ -39,22 +39,37 @@ namespace IngameScript
         public MyGridProgram Program;
 
         /// <summary>
+        /// The Id of the system. This is equal to IGC.Me to ensure 
+        /// uniqueness when communications with other grids.
+        /// </summary>
+        public long Id,
+
+        /// <summary>
+        /// The EntityId of the grid connected to the programmable block.
+        /// </summary>
+        GridId;
+
+        /// <summary>
         /// The Name of the system.
         /// </summary>
-        public string SystemName = "Mother Program";
+        public string SystemName = "Mother Program",
+
+        /// <summary>
+        /// The name of the grid. This can be used by 
+        /// other players or grids to run commands on this grid.
+        /// </summary>
+        Name,
+
+        /// <summary>
+        /// The short Id of the system. We use the last 5 digits of the Id.
+        /// </summary>
+        ShortId;
 
         /// <summary>
         /// The command line tool used to parse Arguments and 
         /// options from the Space Engineers terminal.
         /// </summary>
         public MyCommandLine commandLine;
-
-        /// <summary>
-        /// Is Autopilot engaged?
-        /// 
-        /// We should move this to the FCS module.
-        /// </summary>
-        public bool AutopilotEngaged = false;
 
         /// <summary>
         /// The CubeGrid that this program is running on.
@@ -89,28 +104,9 @@ namespace IngameScript
         /// </summary>
         public IMyGridProgramRuntimeInfo Runtime;
 
-        /// <summary>
-        /// The Id of the system. This is equal to IGC.Me to ensure 
-        /// uniqueness when communications with other grids.
-        /// </summary>
-        public long Id;
+     
 
-        /// <summary>
-        /// The short Id of the system. We use the last 5 digits of the Id.
-        /// </summary>
-        public string ShortId;
-
-        /// <summary>
-        /// The EntityId of the grid connected to the programmable block.
-        /// </summary>
-        public long GridId;
-
-        /// <summary>
-        /// The name of the grid. This can be used by 
-        /// other players or grids to run commands on this grid.
-        /// <see cref="AlmanacRecord.Nicknames"/>
-        /// </summary>
-        public string Name;
+  
 
         /// <summary>
         /// The SafeZone is a bounding sphere around the grid. This is used for 
@@ -159,7 +155,21 @@ namespace IngameScript
         /// <summary>
         /// Is debug mode enabled?
         /// </summary>
-        public bool DebugMode = false;
+        public bool DebugMode = false,
+
+        /// <summary>
+        /// When true, Boot() will be called at the start of the next Run() cycle.
+        /// Use this instead of calling Boot() directly from within a coroutine to
+        /// avoid BootSequence being picked up by the still-executing Clock.Run() loop.
+        /// </summary>
+        PendingBoot = false,
+
+        /// <summary>
+        /// Is Autopilot engaged?
+        /// 
+        /// We should move this to the FCS module.
+        /// </summary>
+        AutopilotEngaged = false;
 
         /// <summary>
         /// The list of all modules registered with Mother. This includes both core 
@@ -193,20 +203,15 @@ namespace IngameScript
         /// <summary>
         /// The list commands defined within the programmable block's Custom Data.
         /// </summary>
-        public Dictionary<string, string> ConfigCommands = new Dictionary<string, string>();
+        public Dictionary<string, string> ConfigCommands = new Dictionary<string, string>(),
 
         /// <summary>
         /// The list of variables defined within the programmable block's Custom Data.
         /// These are used for substitution in config commands.
         /// </summary>
-        public Dictionary<string, string> ConfigVariables = new Dictionary<string, string>();
+        ConfigVariables = new Dictionary<string, string>();
 
-        /// <summary>
-        /// When true, Boot() will be called at the start of the next Run() cycle.
-        /// Use this instead of calling Boot() directly from within a coroutine to
-        /// avoid BootSequence being picked up by the still-executing Clock.Run() loop.
-        /// </summary>
-        public bool PendingBoot = false;
+
 
         /// <summary>
         /// Constructor. We initialize our system with the Program class 
@@ -268,6 +273,7 @@ namespace IngameScript
                 // BLOCK MANAGEMENT
                 new BlockCatalogue(this),
                 new ActivityMonitor(this),
+                new ConditionModule(this),
 
                 new ConnectorModule(this),
                 new MechanicalBlockModule(this),
@@ -282,10 +288,7 @@ namespace IngameScript
         /// Set the system state.
         /// </summary>
         /// <param name="state"></param>
-        void SetState(SystemStates state)
-        {
-            SystemState = state;
-        }
+        void SetState(SystemStates state) => SystemState = state;
 
         /// <summary>
         /// Boot the system. This is called after all core and extension modules have been registered. 
@@ -349,13 +352,12 @@ namespace IngameScript
         IEnumerable<double> BootModulesCoroutine()
         {
             int total = ModulesInOrderOfRegistration.Count;
+
             for (int i = 0; i < total; i++)
             {
                 var module = ModulesInOrderOfRegistration[i];
 
                 Print($"Booting modules: ({i + 1} / {total})");
-
-                //module.Boot();
 
                 var boot = module.BootCoroutine();
 
@@ -383,9 +385,70 @@ namespace IngameScript
         /// </summary>
         void RegisterCoreCommands()
         {
-            RegisterCommand(new PurgeCommand(this));
-            RegisterCommand(new BootCommand(this));
-            RegisterCommand(new RenameCommand(this));
+            RegisterCommand("purge", 0, c =>
+            {
+                var force = c.GetOption("force");
+
+                if (force != "true" && force != "1")
+                    return "Run command with --force to purge";
+
+                if (c.Arguments.Count == 0)
+                    return CommandBus.Messages.NoArgumentsProvided;
+
+                var names = c.Arguments[0].Split(',');
+                var purged = new List<string>();
+
+                foreach (var name in new[] { Literals.Almanac, Literals.Storage })
+                {
+                    if (!names.Contains("*") && !names.Contains(name))
+                        continue;
+
+                    if (name == Literals.Almanac)
+                        GetModule<Almanac>().Clear();
+                    else
+                        GetModule<LocalStorage>().Clear();
+
+                    purged.Add(name);
+                }
+
+                return purged.Count == 0
+                    ? "No modules purged"
+                    : $"Purged {purged.Count} modules: {string.Join(", ", purged)}";
+            });
+
+            RegisterCommand("boot", 0, c =>
+            {
+                // Set a pending boot flag rather than calling Boot() directly.
+                // Calling Boot() from inside a coroutine shifts BootSequence to a
+                // lower Coroutines index, causing it to execute in the same Clock.Run()
+                // tick while the system is still in WORKING state (crash).
+                PendingBoot = true;
+
+                return "Rebooting...";
+            });
+
+            RegisterCommand("rename", 1, c =>
+            {
+                var newName = c.Arguments[0];
+
+                if (TerminalCommand.GetBoolFromString(c.GetOption("unique")))
+                    newName = $"{newName}-{new Random().Next(10000, 99999)}";
+
+                CubeGrid.CustomName = newName;
+                Name = newName;
+
+                // Store the name in the programmable block's custom data
+                var config = GetModule<Configuration>();
+                config.Raw.Set(Literals.General, "name", newName);
+                ProgrammableBlock.CustomData = $"{config.Raw}";
+
+                // Broadcast the name change to this construct and to remote grids
+                var igms = GetModule<IntergridMessageService>();
+                igms.ConstructPing();
+                igms.Ping();
+
+                return $"Grid name set to: {newName}";
+            });
         }
 
         /// <summary>
@@ -402,21 +465,6 @@ namespace IngameScript
             // current topology rather than stale references captured at Initialize().
             GridTerminalSystem = Program.GridTerminalSystem;
             CubeGrid = ProgrammableBlock.CubeGrid;
-
-            //string state = "";
-
-            //switch (SystemState)
-            //{
-            //    case SystemStates.UNINITIALIZED:
-            //        state = "Uninitialized";
-            //        break;
-            //    case SystemStates.BOOT:
-            //        state = "Booting";
-            //        break;
-            //    case SystemStates.WORKING:
-            //        state = "Working";
-            //        break;
-            //}
 
             // If a reboot was requested (e.g. from a menu command coroutine), handle it
             // here at the top of the cycle before any state-dependent code runs.
@@ -435,8 +483,6 @@ namespace IngameScript
             else if (SystemState == SystemStates.BOOT)
             {
                 GetModule<Clock>().Run();
-
-                //GetModule<Terminal>()?.Highlight($"State: {state}");
 
                 // update terminal during boot
                 GetModule<Terminal>()?.UpdateTerminal();
@@ -461,10 +507,7 @@ namespace IngameScript
 
                 // Otherwise we run all modules and assume a runtime update (Update10).
                 else
-                {
                     RunModules();
-                    OtherRuntimeItems();
-                }
 
                 // Update terminal and console surfaces (Log/Debug) on every cycle
                 GetModule<Terminal>().UpdateTerminal();
@@ -473,37 +516,41 @@ namespace IngameScript
 
             // Print debug stats
             if(DebugMode)
-            {
                 GetModule<Terminal>().Highlight("Complexity:  " + Program.Runtime.CurrentInstructionCount.ToString() + "/50000");
-            }
 
         }
 
         /// <summary>
         /// Run all modules. This is called on every program cycle.
         /// </summary>
-        void RunModules() => AllModules.Values.ToList().ForEach(module => module.Run());
-
-        /// <summary>
-        /// Placeholder for other runtime items. This is useful for producing system 
-        /// output during runtime.
-        /// </summary>
-        void OtherRuntimeItems()
+        void RunModules()
         {
-           //
+            // Rebuilt only after a module is registered, so the per-cycle run does not allocate.
+            // Registration swaps the list rather than changing it, so a module registered
+            // during a run cannot disturb the loop below.
+            var order = _runOrder ?? (_runOrder = new List<IModule>(AllModules.Values));
+
+            for (int i = 0; i < order.Count; i++)
+                order[i].Run();
         }
 
         /// <summary>
-        /// UNUSED
-        /// 
-        /// Set the update frequency of the program. This allows the player to determine 
-        /// the program speed. This is currently unused and is subject to ongoing 
-        /// experimentation.
+        /// Modules in the order <see cref="RunModules"/> runs them. Null until needed.
         /// </summary>
-        //public void SetUpdateFrequency()
-        //{
-        //    //Runtime.UpdateFrequency = Configuration.Get("general.update_frequency") == "10" ? UpdateFrequency.Update10 : UpdateFrequency.Update100;
-        //}
+        List<IModule> _runOrder;
+
+        /// <summary>
+        /// Registered module names by requested module type. Cleared when a module is registered.
+        /// </summary>
+        readonly Dictionary<Type, string> _moduleNames = new Dictionary<Type, string>();
+
+        /// <summary>
+        /// Whether the current cycle has used more than the given share of the
+        /// instruction limit. Batched work checks this to decide when to yield.
+        /// </summary>
+        /// <param name="share">The share of the instruction limit, from 0 to 1.</param>
+        public bool IsOverBudget(double share = 0.4)
+            => Runtime.CurrentInstructionCount > Runtime.MaxInstructionCount * share;
 
         /// <summary>
         /// Save the storage string to the Program's Storage property. We do this to 
@@ -520,6 +567,8 @@ namespace IngameScript
             ExtensionModules[module.GetModuleName()] = module;
 
             AllModules[module.GetModuleName()] = module;
+            _moduleNames.Clear();
+            _runOrder = null;
 
             ModulesInOrderOfRegistration.Add(module);
         }
@@ -540,9 +589,17 @@ namespace IngameScript
         /// <returns></returns>
         public string GetModuleName<T>() where T : IModule
         {
+            string name;
+
+            if (_moduleNames.TryGetValue(typeof(T), out name))
+                return name;
+
             foreach (var entry in AllModules)
                 if (entry.Value is T)
+                {
+                    _moduleNames[typeof(T)] = entry.Key;
                     return entry.Key;
+                }
 
             return typeof(T).Name; // fallback
         }
@@ -574,6 +631,8 @@ namespace IngameScript
             CoreModules[module.GetModuleName()] = module;
             AllModules[module.GetModuleName()] = module;
             ModulesInOrderOfRegistration.Add(module);
+            _moduleNames.Clear();
+            _runOrder = null;
 
             return module;
         }
@@ -586,6 +645,19 @@ namespace IngameScript
         public void RegisterCommand(IModuleCommand command)
         {
             GetModule<CommandBus>().RegisterCommand(command);
+        }
+
+        /// <summary>
+        /// Register a lambda command with Mother.
+        /// Accessor for CommandBus.RegisterCommand()
+        /// </summary>
+        /// <param name="name">The command name.</param>
+        /// <param name="minArgs">Fewer arguments than this are answered with <paramref name="usage"/>.</param>
+        /// <param name="run">Runs the command and returns the response text.</param>
+        /// <param name="usage">Response for too few arguments. Defaults to <see cref="CommandBus.Messages.NoArgumentsProvided"/>.</param>
+        public void RegisterCommand(string name, int minArgs, Func<TerminalCommand, string> run, string usage = null)
+        {
+            RegisterCommand(new LambdaCommand(name, minArgs, run, usage));
         }
 
         /// <summary>
@@ -635,9 +707,7 @@ namespace IngameScript
         /// </summary>
         /// <returns></returns>
         public MatrixD GetWorldMatrix()
-        {
-            return ShipController?.WorldMatrix ?? CubeGrid.WorldMatrix;
-        }
+            => ShipController?.WorldMatrix ?? CubeGrid.WorldMatrix;
 
         /// <summary>
         /// Get the current position of the ship. Uses the ShipController if available,
@@ -673,41 +743,55 @@ namespace IngameScript
         public double? GetShipSpeed() => ShipController?.GetShipSpeed();
 
         /// <summary>
-        /// Substitute variables into a string. Variables are referenced using the 
-        /// $VARIABLE_NAME syntax and are replaced with their corresponding 
-        /// values from the [variables] section. Variables are replaced 
-        /// longest-first to prevent shorter names from partially 
-        /// matching longer ones.
+        /// Substitute variables into a string, reporting whether nesting went too deep.
+        /// The work is done by the Configuration module, which owns the variables. If
+        /// the module is not registered the input is returned unchanged.
+        /// </summary>
+        /// <param name="input">The text to resolve.</param>
+        /// <param name="result">The resolved text.</param>
+        /// <param name="error">A description of the failure, or null.</param>
+        /// <returns>True if no error occurred.</returns>
+        public bool TrySubstituteVariables(string input, out string result, out string error, bool quoteValues = false)
+        {
+            var configuration = GetModule<Configuration>();
+
+            result = input;
+            error = null;
+
+            return configuration == null || configuration.TrySubstituteVariables(input, out result, out error, quoteValues);
+        }
+
+        /// <summary>
+        /// Substitute variables into a string. See Configuration.TrySubstituteVariables for
+        /// the rules. If nesting is too deep the $NAME text is left in place; use
+        /// TrySubstituteVariables to receive the error.
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
         public string SubstituteVariables(string input)
         {
-            if (ConfigVariables.Count == 0) return input;
+            string result, error;
+            TrySubstituteVariables(input, out result, out error);
 
-            var sorted = ConfigVariables.OrderByDescending(v => v.Key.Length);
-
-            foreach (var variable in sorted)
-                input = input.Replace("$" + variable.Key, variable.Value);
-
-            return input;
+            return result;
         }
 
         /// <summary>
         /// Substitutes command parameter placeholders in a command template string.
         /// Parameters use the {{name}} or {{name:default}} syntax. Provided options
         /// (from --name=value arguments) override the default values. After parameter
-        /// substitution, any remaining $VARIABLE references are also resolved.
+        /// substitution, any remaining $VARIABLE references are also resolved unless
+        /// substituteVariables is false.
         /// </summary>
         /// <param name="template">The raw command template containing {{param}} placeholders.</param>
         /// <param name="options">The --option key-value pairs provided at invocation time.</param>
+        /// <param name="substituteVariables">When false, $VARIABLE references are left for the caller to resolve.</param>
         /// <returns>The fully resolved command string.</returns>
-        public string SubstituteCommandParameters(string template, Dictionary<string, string> options)
+        public string SubstituteCommandParameters(string template, Dictionary<string, string> options, bool substituteVariables = true)
         {
             // Fast path: no placeholders at all
-            if (template.IndexOf("{{")
- == -1)
-                return SubstituteVariables(template);
+            if (template.IndexOf("{{") == -1)
+                return substituteVariables ? SubstituteVariables(template) : template;
 
             var result = new StringBuilder();
             int i = 0;
@@ -738,10 +822,9 @@ namespace IngameScript
                 }
 
                 // Extract content between {{ and }}
-                string placeholder = template.Substring(openIndex + 2, closeIndex - openIndex - 2);
-
-                string paramName;
-                string defaultValue = "";
+                string placeholder = template.Substring(openIndex + 2, closeIndex - openIndex - 2),
+                    paramName,
+                    defaultValue = "";
 
                 int colonIndex = placeholder.IndexOf(':');
                 if (colonIndex >= 0)
@@ -755,18 +838,55 @@ namespace IngameScript
                 }
 
                 string value;
+
                 if (options != null && options.ContainsKey(paramName))
                     value = options[paramName];
                 else
                     value = defaultValue;
 
                 result.Append(value);
+
                 i = closeIndex + 2;
             }
 
             // After parameter substitution, resolve any $VARIABLE references
             // (including those that came from default values like {{player:$PLAYER}})
-            return SubstituteVariables(result.ToString());
+            return substituteVariables 
+                ? SubstituteVariables($"{result}") 
+                : $"{result}";
         }
     }
-}
+} 
+
+//                  ███████████████████████████              
+//                 ███                       ███             
+//               ███                           ███           
+//             ███                               ███         
+//           ███                                   ███       
+//         ███                                       ███     
+//       ████                                         ████   
+//     ████                                             ████ 
+//    ███                                                 ███
+//    ██                      ███████                      ██
+//    ██                  ███████████████                  ██
+//    ██                 █████████████████                 ██
+//    ██                ███████████████████                ██
+//    ██               █████████████████████               ██
+//    ██               █████████████████████               ██
+//    ██               █████████████████████               ██
+//    ██               █████████████████████               ██
+//    ██                ███████████████████                ██
+//    ██                 █████████████████                 ██
+//    ██                  ███████████████                  ██
+//    ██                      ███████                      ██
+//    ███                                                 ███
+//     ████                                             ████ 
+//       ████                                          ███   
+//         ███                                       ███     
+//           ███                                   ███       
+//             ███                               ███         
+//              ███                           ███           
+//                ███                       ███             
+//                 ███████████████████████████
+//              
+//                    The Empire must grow.

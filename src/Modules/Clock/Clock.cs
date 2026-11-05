@@ -37,12 +37,12 @@ namespace IngameScript
             /// <summary>
             /// The delay before the task should run, in seconds.
             /// </summary>
-            public double Interval;
+            public double Interval,
 
             /// <summary>
             /// The time remaining before the task should be run.
             /// </summary>
-            public double TimeRemaining;
+            TimeRemaining;
 
             /// <summary>
             /// The task to be run when time remaining reaches 0.
@@ -54,12 +54,12 @@ namespace IngameScript
         /// The system task to run at continuous interval.
         /// ie. Update displays, update Almanac, etc.
         /// </summary>
-        readonly List<ScheduledTask> SystemTasks = new List<ScheduledTask>();
+        readonly List<ScheduledTask> SystemTasks = new List<ScheduledTask>(),
 
         /// <summary>
         /// The tasks queued for future execution.
         /// </summary>
-        readonly List<ScheduledTask> QueuedTasks = new List<ScheduledTask>();
+        QueuedTasks = new List<ScheduledTask>();
 
         /// <summary>
         /// A coroutine that can yield execution over multiple game cycles
@@ -71,7 +71,9 @@ namespace IngameScript
             public double WaitTime;
         }
 
-        // NEW: List to hold active coroutines
+        /// <summary>
+        /// List to hold active coroutines.
+        /// </summary>
         readonly List<Coroutine> Coroutines = new List<Coroutine>();
 
         /// <summary>
@@ -91,8 +93,6 @@ namespace IngameScript
         public Clock(Mother mother) : base (mother)
         {
             Program = mother.Program;
-            //Program.Runtime.UpdateFrequency = UpdateFrequency.Update10;
-            //Program.Runtime.UpdateFrequency = UpdateFrequency.Update1;
         }
 
         /// <summary>
@@ -227,18 +227,12 @@ namespace IngameScript
         /// <summary>
         /// Get the count of queued tasks.
         /// </summary>
-        public int QueuedTaskCount
-        {
-            get { return QueuedTasks.Count; }
-        }
+        public int QueuedTaskCount => QueuedTasks.Count;
 
         /// <summary>
         /// Get the count of active coroutines.
         /// </summary>
-        public int CoroutineCount
-        {
-            get { return Coroutines.Count; }
-        }
+        public int CoroutineCount => Coroutines.Count;
 
         /// <summary>
         /// The nominal seconds per program update derived from the configured
@@ -247,18 +241,10 @@ namespace IngameScript
         /// Use this as the authoritative tick-seconds constant throughout the
         /// system rather than hard-coding a frequency assumption.
         /// </summary>
-        public double TickSeconds
-        {
-            get
-            {
-                switch (Program.Runtime.UpdateFrequency)
-                {
-                    case UpdateFrequency.Update1:   return 1.0  / 60.0;
-                    case UpdateFrequency.Update100: return 100.0 / 60.0;
-                    default:                        return 10.0 / 60.0;  // Update10
-                }
-            }
-        }
+        public double TickSeconds =>
+            Program.Runtime.UpdateFrequency == UpdateFrequency.Update1 ? 1.0 / 60.0
+            : Program.Runtime.UpdateFrequency == UpdateFrequency.Update100 ? 100.0 / 60.0
+            : 10.0 / 60.0; // Update10
 
         /// <summary>
         /// Update the loader indicator state.

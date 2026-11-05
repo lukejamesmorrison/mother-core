@@ -11,9 +11,7 @@
         /// <param name="message"></param>
         /// <param name="args"></param>
         /// <returns></returns>
-        public static string Format(string message, params object[] args)
-        {
-            return string.Format(message, args);
-        }
+        public static string Format(string message, params object[] args) 
+            => string.Format(message, args);
     }
 }

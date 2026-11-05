@@ -98,6 +98,18 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Register a command whose behaviour is a lambda closing over the module.
+        /// </summary>
+        /// <param name="name">The command name, ie. view/up.</param>
+        /// <param name="minArgs">Fewer arguments than this are answered with <paramref name="usage"/> and the lambda is not called.</param>
+        /// <param name="run">Runs the command and returns the response text.</param>
+        /// <param name="usage">Response for too few arguments. Defaults to <see cref="CommandBus.Messages.NoArgumentsProvided"/>.</param>
+        public void RegisterCommand(string name, int minArgs, Func<TerminalCommand, string> run, string usage = null)
+        {
+            RegisterCommand(new LambdaCommand(name, minArgs, run, usage));
+        }
+
+        /// <summary>
         /// Register a command that applies an action to all blocks of type T 
         /// matching the name argument.
         /// </summary>
@@ -109,6 +121,17 @@ namespace IngameScript
         {
             RegisterCommand(new BlockCommand<T>(this, name, action, message));
         }
+
+        /// <summary>
+        /// Start a group of registrations for block type T, ie. 
+        /// <c>Block&lt;IMyDoor&gt;("door").Command("open", Open, "Opened {0}").Flag(...)</c>.
+        /// </summary>
+        /// <typeparam name="T">The block type the group targets.</typeparam>
+        /// <param name="prefix">Prepended to command names with a slash, ie. door. Empty for none.</param>
+        /// <returns>A set to chain Command, Number, Flag, Status and Hook calls on.</returns>
+        public BlockSet<T> Block<T>(string prefix = "") where T : class, IMyTerminalBlock
+            => new BlockSet<T>(this, prefix);
+        
 
         /// <summary>
         /// Register a block type for ongoing state monitoring.
@@ -123,7 +146,7 @@ namespace IngameScript
         /// in-flight transitions are not discarded. Always updates the block reference and
         /// re-registers with BlockCatalogue regardless of this flag.
         /// </param>
-        protected void RegisterBlockTypeForStateMonitoring<T>(
+        protected internal void RegisterBlockTypeForStateMonitoring<T>(
             Func<T, object> stateSelector,
             Action<IMyTerminalBlock, object> stateHandler,
             bool preserveState = false
@@ -148,9 +171,7 @@ namespace IngameScript
         /// <param name="block"></param>
         /// <returns></returns>
         public object GetBlockCurrentState(IMyTerminalBlock block)
-        {
-            return _stateSelectors.ContainsKey(block) ? _stateSelectors[block](block) : null;
-        }
+            => _stateSelectors.ContainsKey(block) ? _stateSelectors[block](block) : null;
 
         /// <summary>
         /// Compare the current state of a block with a previous state.
@@ -196,9 +217,8 @@ namespace IngameScript
         /// <param name="name"></param>
         /// <returns></returns>
         public List<T> GetBlocksByName<T>(string name) where T : class, IMyTerminalBlock
-        {
-            return Mother.GetModule<BlockCatalogue>().GetBlocksByName<T>(name);
-        }
+            => Mother.GetModule<BlockCatalogue>().GetBlocksByName<T>(name);
+        
 
         /// <summary>
         /// Get a module registered with Mother.
@@ -207,9 +227,7 @@ namespace IngameScript
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public T GetModule<T>() where T : class, IModule
-        {
-            return Mother.GetModule<T>();
-        }
+            => Mother.GetModule<T>();
 
         /// <summary>
         /// Subscribe to an event. Accessor for EventBus.Subscribe.

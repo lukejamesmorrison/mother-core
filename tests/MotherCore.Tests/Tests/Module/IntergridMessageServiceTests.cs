@@ -537,6 +537,34 @@ namespace MotherCore.Tests.Module
         }
 
         [Test]
+        public void Claim_Releases_Display_On_Other_Scripts_Without_Invoking_View_Callbacks()
+        {
+            var world = WorldFactory().Boot();
+            var sharedGrid = world.CreateGrid("SharedConstruct");
+
+            var claimer = world.CreateScript(sharedGrid).WithMother().OnNetwork().Boot();
+            var holder = world.CreateScript(sharedGrid).WithMother().OnNetwork().Boot();
+
+            var calls = new List<string>();
+            holder.Mother.GetModule<IntergridMessageService>()
+                .RegisterView("MapView", (display, active) => calls.Add(display));
+
+            var holderDisplays = holder.Mother.GetModule<DisplayModule>();
+            var surface = MotherCore.Tests.Utilities.Factories.TextSurfaceFactory.Create();
+
+            holderDisplays.Claim("Cockpit:0", surface, VRage.Game.GUI.TextPanel.ContentType.SCRIPT);
+            world.DeliverMessages();
+            Assert.That(holderDisplays.Holds("Cockpit:0", surface), Is.True);
+
+            claimer.Mother.GetModule<DisplayModule>()
+                .Claim("Cockpit:0", surface, VRage.Game.GUI.TextPanel.ContentType.SCRIPT);
+            world.DeliverMessages();
+
+            Assert.That(holderDisplays.Holds("Cockpit:0", surface), Is.False);
+            Assert.That(calls, Is.Empty);
+        }
+
+        [Test]
         public void Remote_Communication_Can_Send_And_Executes_On_Remote_Script()
         {
             var world = WorldFactory().Boot();

@@ -85,6 +85,40 @@ namespace MotherCore.Tests.Module
         }
 
         [Test]
+        public void Run_When_A_Locked_Connector_Becomes_Connectable_Emits_Unlock_And_Not_Ready()
+        {
+            var primaryGrid = GridFactory.Create();
+            var dockedGrid = GridFactory.Create();
+
+            var script = ScriptFactory(primaryGrid)
+                .WithMother()
+                .Create();
+            var connector = script.ConnectGridsViaConnector(
+                primaryGrid,
+                dockedGrid,
+                baseConnectorName: "CarrierDock",
+                otherConnectorName: "ShuttleDock",
+                initialStatus: MyShipConnectorStatus.Connected);
+
+            connector.CustomData = new CustomDataComposer()
+                .With("hooks", "onUnlock", "rename CarrierUnlocked")
+                .With("hooks", "onReady", "rename CarrierReady")
+                .Build();
+
+            script.Boot();
+
+            var catalogue = script.Mother.GetModule<BlockCatalogue>();
+
+            ConnectorConnectionFactory.SetStatus(connector, MyShipConnectorStatus.Connectable);
+            catalogue.Run();
+            script.Clock.RunToIdle(50);
+
+            script.AssertEventEmitted<ConnectorUnlockedEvent>();
+            script.AssertEventEmitted<ConnectorReadyToLockEvent>(0);
+            Assert.That(script.Mother.Name, Is.EqualTo("CarrierUnlocked"));
+        }
+
+        [Test]
         public void Run_When_A_Connector_Becomes_Ready_Emits_Event_And_Runs_Hook()
         {
             var primaryGrid = GridFactory.Create();

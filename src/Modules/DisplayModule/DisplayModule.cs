@@ -69,6 +69,11 @@ namespace IngameScript
         readonly Dictionary<string, List<IMyTextSurface>> RegisteredDisplaySurfaces = new Dictionary<string, List<IMyTextSurface>>();
 
         /// <summary>
+        /// Display name to the content type its current holder claimed.
+        /// </summary>
+        readonly Dictionary<string, ContentType> claims = new Dictionary<string, ContentType>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// The default text size for the displays. This is used when 
         /// printing text to screens.
         /// </summary>
@@ -130,8 +135,8 @@ namespace IngameScript
         {
             return
                 $" {Mother.SystemName} - {screenName}     ({Clock.GetLoader()})\n" +
-                $" {Mother.Name} *{Mother.ShortId}                                  {GetIndicators()}\n" +
-                "------------------------------------------------------"
+                $" {Mother.Name} *{Mother.ShortId}                                    {GetIndicators()}\n" +
+                Literals.Rule
                 ;
         }
 
@@ -144,17 +149,17 @@ namespace IngameScript
         /// <returns></returns>
         public string GetIndicators()
         {
-            string activityMonitorIndicator = Mother.GetModule<ActivityMonitor>().ActiveBlocks.Count() > 0 ? "M" : "   ";
-            string activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ";
-            string almanacCount = $"{Mother.GetModule<Almanac>()?.Records.Count() ?? 0}";
-            string autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ";
-            string waitQueueIndicator = Clock.QueuedTaskCount > 0 ? "W" : "   ";
+            string activityMonitorIndicator = Mother.GetModule<ActivityMonitor>().ActiveBlocks.Count() > 0 ? "M" : "   ",
+                //activeRequests = Mother.GetModule<IntergridMessageService>().activeRequests.Count() > 0 ? "C" : "    ",
+                almanacCount = $"{Mother.GetModule<Almanac>()?.Records.Count() ?? 0}",
+                autopilotIndication = Mother.AutopilotEngaged ? "A" : "   ",
+                waitQueueIndicator = Clock.QueuedTaskCount > 0 ? "W" : "   ";
 
             return String.Join(
                 "  ",
                 waitQueueIndicator,
                 autopilotIndication,
-                activeRequests,
+                //activeRequests,
                 activityMonitorIndicator,
                 almanacCount
             );
@@ -183,6 +188,7 @@ namespace IngameScript
                 for (int i = 0; i < blocks.Count; i++)
                 {
                     var provider = blocks[i] as IMyTextSurfaceProvider;
+
                     if (provider == null)
                         continue;
 
@@ -223,6 +229,56 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Take a display for the caller in the given mode and tell the other
+        /// scripts on the construct to let go of it.
+        /// </summary>
+        /// <param name="name">The display name: <c>Block</c> or <c>Block:Index</c>.</param>
+        /// <param name="surface"></param>
+        /// <param name="type"></param>
+        public void Claim(string name, IMyTextSurface surface, ContentType type)
+        {
+            if (surface.ContentType != type)
+                surface.ContentType = type;
+
+            if (type == ContentType.SCRIPT && surface.Script != "")
+                surface.Script = "";
+
+            claims[name] = type;
+
+            var service = Mother.GetModule<IntergridMessageService>();
+
+            service.SendConstructBroadcastRequest(
+                service.CreateRequest(
+                    "view",
+                    new Dictionary<string, object> { { "View", "" }, { "Display", name }, { "Active", "0" } }
+                ),
+                null
+            );
+        }
+
+        /// <summary>
+        /// Whether the display is still held as claimed. False after a release,
+        /// or after another writer changed the content type or set a script.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="surface"></param>
+        /// <returns></returns>
+        public bool Holds(string name, IMyTextSurface surface)
+        {
+            ContentType type;
+
+            return claims.TryGetValue(name, out type)
+                && surface.ContentType == type
+                && (type != ContentType.SCRIPT || surface.Script == "");
+        }
+
+        /// <summary>
+        /// Forget the claim on a display.
+        /// </summary>
+        /// <param name="name"></param>
+        public void Release(string name) => claims.Remove(name);
+
+        /// <summary>
         /// Load all text panels on the grid. This includes LCD Panels, but not cockpit displays.
         /// </summary>
         void LoadTextPanelSurfaces()
@@ -247,7 +303,7 @@ namespace IngameScript
 
                 TextSurfaces.Add(panel);
 
-                if (string.Equals(entry.ViewName, VIEW_NAME_LOG, StringComparison.OrdinalIgnoreCase)
+                if (entry.ViewName == VIEW_NAME_LOG
                     && DisplayTypeResolver.CanWriteToDisplay(entry.Parameter, Mother))
                 {
                     panel.ContentType = ContentType.TEXT_AND_IMAGE;
@@ -338,10 +394,7 @@ namespace IngameScript
         /// Render the console surfaces (Log). This is called on every 
         /// input cycle to ensure immediate feedback after terminal commands.
         /// </summary>
-        public void RenderConsoleSurfaces()
-        {
-            RenderLogSurfaces();
-        }
+        public void RenderConsoleSurfaces() => RenderLogSurfaces();
 
         /// <summary>
         /// Get the log string. This is used when displaying the log on screens.
@@ -364,11 +417,6 @@ namespace IngameScript
             LogSurfaces.ForEach(surface => surface.WriteText($"{logString}", false));
         }
 
-        /// <summary>
-        /// Register a custom display type. Extension modules should call this to 
-        /// register their display types so surfaces can be collected.
-        /// </summary>
-        /// <param name="displayType">The display type name (case-insensitive).</param>
         /// <summary>
         /// Get all surfaces registered for a specific view name.
         /// Extension modules use this to retrieve surfaces claimed for them via

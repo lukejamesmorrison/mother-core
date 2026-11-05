@@ -166,6 +166,11 @@ namespace MotherCore.Tests.Utilities
             return Configure(script => script.WithCommands(commands));
         }
 
+        public ScriptBuilder<TProgram> WithModules(params Func<Mother, IExtensionModule>[] modules)
+        {
+            return Configure(script => script.WithModules(modules));
+        }
+
         /// <summary>
         /// Creates an unbooted script harness with all queued configuration applied.
         /// </summary>

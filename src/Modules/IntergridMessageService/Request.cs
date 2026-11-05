@@ -30,12 +30,12 @@ namespace IngameScript
         /// <summary>
         /// The target grid's Id.
         /// </summary>
-        public string TargetId;
+        public string TargetId,
 
         /// <summary>
         /// The target grid's name / nickname.
         /// </summary>
-        public string TargetName;
+        TargetName;
 
         /// <summary>
         /// Constructor.
@@ -51,8 +51,8 @@ namespace IngameScript
         /// <returns></returns>
         public Request To(AlmanacRecord record)
         {
-            Header["TargetId"] = $"{record.Id}";
-            Header["TargetName"] = record.DisplayName ?? record.Id;
+            Header[Literals.TargetId] = $"{record.Id}";
+            Header[Literals.TargetName] = record.DisplayName ?? record.Id;
 
             // set the channels to be used to by the request
             Channels = record.Channels;
@@ -64,7 +64,7 @@ namespace IngameScript
         /// Serialize the Request object.
         /// </summary>
         /// <returns></returns>
-        public override string Serialize() => "REQUEST::" + base.Serialize(); 
+        public override string Serialize() => Literals.Request + base.Serialize(); 
 
         /// <summary>
         /// De-serialize a Request object from a message string. We remove the message 
@@ -74,10 +74,10 @@ namespace IngameScript
         /// <returns></returns>
         public static Request Deserialize(string message)
         {
-            message = message.Replace("REQUEST::", "");
+            message = message.Replace(Literals.Request, "");
 
-            string headersPart = ExtractTagContent(message, "header");
-            string bodyPart = ExtractTagContent(message, "body");
+            string headersPart = ExtractTagContent(message, "header"),
+                bodyPart = ExtractTagContent(message, "body");
 
             return new Request(
                 Serializer.DeserializeDictionary(bodyPart),

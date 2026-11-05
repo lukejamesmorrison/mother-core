@@ -77,6 +77,16 @@ namespace MotherCore.Tests.Utilities.Mocks
         public float OxygenFilledRatio { get; set; } = 1f;
 
         /// <summary>
+        /// Gets or sets the speed reported by <see cref="GetShipSpeed"/>.
+        /// </summary>
+        public double ShipSpeed { get; set; }
+
+        /// <summary>
+        /// Gets or sets the surface elevation. Null means no planet is nearby.
+        /// </summary>
+        public double? PlanetElevation { get; set; }
+
+        /// <summary>
         /// Gets the number of text surfaces exposed by the cockpit.
         /// </summary>
         public int SurfaceCount => _surfaces.Count;
@@ -98,12 +108,17 @@ namespace MotherCore.Tests.Utilities.Mocks
 
         public Vector3D GetNaturalGravity()
         {
-            return Vector3D.Zero;
+            return NaturalGravity;
         }
+
+        /// <summary>
+        /// Gets or sets the gravity reported by <see cref="GetNaturalGravity"/>.
+        /// </summary>
+        public Vector3D NaturalGravity { get; set; } = Vector3D.Zero;
 
         public double GetShipSpeed()
         {
-            return 0d;
+            return ShipSpeed;
         }
 
         public MyShipVelocities GetShipVelocities()
@@ -130,12 +145,13 @@ namespace MotherCore.Tests.Utilities.Mocks
         }
 
         /// <summary>
-        /// Attempts to resolve planet elevation. The fake reports unavailable by default.
+        /// Attempts to resolve planet elevation. Unavailable unless a test sets
+        /// <see cref="PlanetElevation"/>.
         /// </summary>
         public bool TryGetPlanetElevation(MyPlanetElevation detail, out double elevation)
         {
-            elevation = 0d;
-            return false;
+            elevation = PlanetElevation ?? 0d;
+            return PlanetElevation.HasValue;
         }
 
         /// <summary>

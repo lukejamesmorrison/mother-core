@@ -115,6 +115,9 @@ namespace MotherCore.Tests.Utilities.Factories
             if (typeof(TBlock) == typeof(IMyGyro))
                 return new FakeGyro(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
 
+            if (typeof(TBlock) == typeof(IMyJumpDrive))
+                return new FakeJumpDrive(customName: customName, customData: customData, entityId: entityId, cubeGrid: grid) as TBlock;
+
             return null;
         }
 

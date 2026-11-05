@@ -44,12 +44,12 @@ namespace IngameScript
         /// been queued — ConstructGridIds still reflects the old topology. Running the hook
         /// after the refresh ensures block lookups resolve correctly.
         /// </summary>
-        readonly List<IMyShipMergeBlock> _pendingMergeHooks = new List<IMyShipMergeBlock>();
+        readonly List<IMyShipMergeBlock> _pendingMergeHooks = new List<IMyShipMergeBlock>(),
 
         /// <summary>
         /// Merge blocks whose "onUnmerge" hook should run after the next construct refresh.
         /// </summary>
-        readonly List<IMyShipMergeBlock> _pendingUnmergeHooks = new List<IMyShipMergeBlock>();
+        _pendingUnmergeHooks = new List<IMyShipMergeBlock>();
 
         /// <summary>
         /// Constructor.
@@ -76,9 +76,9 @@ namespace IngameScript
             Subscribe<ConstructRefreshedEvent>();
 
             // Monitor State for all merge blocks currently on grid
-            RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
+            Block<IMyShipMergeBlock>().Monitor(
                 mergeBlock => mergeBlock.State,
-                (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state)
+                HandleMergeBlockStateChange
             );
         }
 
@@ -115,8 +115,6 @@ namespace IngameScript
                             // Defer hook - ConstructGridIds is updated by RefreshConstruct which
                             // has only been queued at this point, not yet executed.
                             _pendingUnmergeHooks.Add(mergeBlock);
-
-                            //Mother.Print($"Merge block unlocked: {status}");
                         }
                         break;
 
@@ -128,8 +126,6 @@ namespace IngameScript
 
                             // Defer hook for the same reason as above.
                             _pendingMergeHooks.Add(mergeBlock);
-
-                            //Mother.Print($"Merge block locked: {status}");
                         }
                         break;
                 }
@@ -148,10 +144,10 @@ namespace IngameScript
                 // Register any merge blocks that arrived from the newly merged/attached grid.
                 // preserveState: true keeps existing PreviousStates so in-flight transitions
                 // (e.g. Locked recorded before the refresh) are not discarded.
-                RegisterBlockTypeForStateMonitoring<IMyShipMergeBlock>(
+                Block<IMyShipMergeBlock>().Monitor(
                     mergeBlock => mergeBlock.State,
-                    (block, state) => HandleMergeBlockStateChange(block as IMyShipMergeBlock, state),
-                    preserveState: true
+                    HandleMergeBlockStateChange,
+                    true
                 );
 
                 // ConstructGridIds is now up to date — run any deferred hooks.

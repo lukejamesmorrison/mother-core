@@ -30,7 +30,7 @@ namespace IngameScript
         /// <summary>
         /// The storage string.
         /// </summary>
-        public string StorageString { get; private set; } = "";
+        public string StorageString = "";
 
         /// <summary>
         /// The storage dictionary.
@@ -56,8 +56,20 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
-            RegisterCommand(new SetCommand(this));
-            RegisterCommand(new GetCommand(this));
+            RegisterCommand("set", 1, c =>
+            {
+                if (c.Arguments.Count < 2)
+                    return CommandBus.Messages.InvalidCommandFormat;
+
+                string key = c.Arguments[0],
+                    value = c.Arguments[1];
+
+                Set(key, value);
+
+                return $"{key}={value}";
+            });
+
+            RegisterCommand("get", 1, c => Get(c.Arguments[0]));
         }
 
         /// <summary>

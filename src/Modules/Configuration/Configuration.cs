@@ -1,5 +1,6 @@
 ﻿using Sandbox.Game.EntityComponents;
 using Sandbox.Game.GameSystems;
+using Sandbox.Game.Localization;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -33,30 +34,26 @@ namespace IngameScript
         /// Default configuration values for Mother. We will insert these into the custom 
         /// data for the programmable block if it is completely empty on boot.
         /// </summary>
-        readonly Dictionary<string, string> MotherConfigDefaults = new Dictionary<string, string>()
-        {
-            //{ "general.debug", "false" },
-            //{ "channels.*", "" },
-        };
+        public readonly Dictionary<string, string> MotherConfigDefaults = new Dictionary<string, string>(),
 
         /// <summary>
         /// Default configuration values for blocks. We will insert these into blocks on 
         /// boot if custom data is complete empty. It would be nice to scope this by 
         /// block type in the future.
         /// </summary>
-        public readonly Dictionary<string, string> BlockConfigDefaults = new Dictionary<string, string>()
-        {
-            // { "hooks.onOn", "" },
-            // { "hooks.onOff", "" },
-        };
+        BlockConfigDefaults = new Dictionary<string, string>();
 
+        /// <summary>
+        /// The default sections for the programmable block's custom data property.
+        /// </summary>
         readonly string[] DefaultSections = new string[]
         {
-            "general",
-            "channels",
-            "variables",
-            "commands",
-            "hooks",
+            Literals.General,
+            Literals.Channels,
+            Literals.Variables,
+            Literals.CommandsSection,
+            Literals.Hooks,
+            Literals.Rules,
         };
 
         /// <summary>
@@ -68,6 +65,30 @@ namespace IngameScript
         /// Raw MyIni object. This is used to access the raw configuration data.
         /// </summary>
         public MyIni Raw => Ini;
+
+        /// <summary>
+        /// The maximum depth to which variable values that reference other variables
+        /// are expanded.
+        /// </summary>
+        public const int MaxVariableDepth = 5;
+
+        /// <summary>
+        /// Variable names grouped by first character, longest name first. Holds names only,
+        /// so values are always read live from Mother.ConfigVariables.
+        /// </summary>
+        Dictionary<char, string[]> VariableIndex;
+
+        /// <summary>
+        /// The values the variables had in the Custom Data at the last load. A
+        /// reload keeps a variable's runtime value unless its entry changed.
+        /// </summary>
+        Dictionary<string, string> Declared = new Dictionary<string, string>();
+
+        /// <summary>
+        /// The number of variables when VariableIndex was built. A differing count
+        /// triggers a rebuild.
+        /// </summary>
+        int VariableIndexCount;
 
         /// <summary>
         /// Constructor. We load the configuration of the programmable block running Mother.
@@ -94,6 +115,9 @@ namespace IngameScript
         /// </summary>
         public override void Boot()
         {
+            // A reboot starts from the Custom Data, not from runtime values
+            Declared.Clear();
+
             // Load and process configuration
             LoadConfiguration();
 
@@ -104,7 +128,18 @@ namespace IngameScript
             Mother.GetModule<EventBus>()?.Subscribe<SystemConfigChangedEvent>(this);
 
             // Commands
-            RegisterCommand(new SetVariableCommand(this));
+            RegisterCommand("var/set", 2, c =>
+            {
+                string name = c.Arguments[0],
+                    value = c.Arguments[1];
+                bool save = c.Options.ContainsKey("save");
+
+                SetVariable(name, value, save);
+
+                return save
+                    ? $"${name} = \"{value}\" (saved)"
+                    : $"${name} = \"{value}\"";
+            });
         }
 
         /// <summary>
@@ -112,10 +147,7 @@ namespace IngameScript
         /// This is called when the system config changes during runtime, allowing
         /// modules to pick up new values without a full system reboot.
         /// </summary>
-        public void Reload()
-        {
-            LoadConfiguration();
-        }
+        public void Reload() => LoadConfiguration();
 
         /// <summary>
         /// Load and process configuration from the programmable block's custom data.
@@ -136,15 +168,10 @@ namespace IngameScript
             RegisterCommands();
 
             // Update Mother debug mode
-            Mother.DebugMode = Get("general.debug").ToLower() == "true";
+            Mother.DebugMode = Get($"{Literals.General}.debug").ToLower() == "true";
 
             // Update Mother name from config if set, otherwise use grid name
-            var configName = Get("general.name");
-            //if (!string.IsNullOrEmpty(configName))
-            //    Mother.Name = Unquote(configName);
-            //else
-            //    Mother.Name = Mother.ProgrammableBlock.CubeGrid.CustomName;
-
+            var configName = Get($"{Literals.General}.name");
             Mother.Name = !string.IsNullOrEmpty(configName)
                 ? Unquote(configName)
                 : Mother.CubeGrid.CustomName;
@@ -175,7 +202,7 @@ namespace IngameScript
             // split token string by delimiter '.'
             List<string> tokenParts = new List<string>(token.Split('.'));
 
-            if (tokenParts.Count != 2) return $"";
+            if (tokenParts.Count != 2) return "";
 
             else
             {
@@ -199,36 +226,20 @@ namespace IngameScript
             return input;
         }
 
+        /// <summary>
+        /// Collapses runs of spaces and tabs into one space, outside quoted strings.
+        /// Splitting on quotes makes even parts unquoted and odd parts quoted, so large
+        /// quoted blocks (ie. screen art) are never scanned character by character,
+        /// which would exhaust the instruction limit at boot.
+        /// </summary>
         static string CollapseWhitespaceOutsideQuotes(string input)
         {
-            var sb = new StringBuilder(input.Length);
-            bool inQuotes = false;
-            bool lastWasSpace = false;
+            string[] parts = input.Split('"');
 
-            foreach (char c in input)
-            {
-                if (c == '"')
-                {
-                    inQuotes = !inQuotes;
-                    lastWasSpace = false;
-                    sb.Append(c);
-                }
-                else if (!inQuotes && (c == ' ' || c == '\t'))
-                {
-                    if (!lastWasSpace)
-                    {
-                        sb.Append(' ');
-                        lastWasSpace = true;
-                    }
-                }
-                else
-                {
-                    lastWasSpace = false;
-                    sb.Append(c);
-                }
-            }
+            for (int i = 0; i < parts.Length; i += 2)
+                parts[i] = System.Text.RegularExpressions.Regex.Replace(parts[i], "[ \t]+", " ");
 
-            return sb.ToString();
+            return string.Join("\"", parts);
         }
 
         /// <summary>
@@ -239,16 +250,20 @@ namespace IngameScript
         /// </summary>
         void LoadVariables()
         {
+            var runtime = new Dictionary<string, string>(Mother.ConfigVariables);
+            var declared = new Dictionary<string, string>();
+
             Mother.ConfigVariables.Clear();
-            var sectionName = "variables";
+            var sectionName = Literals.Variables;
 
             List<MyIniKey> keys = new List<MyIniKey>();
             Ini.GetKeys(sectionName, keys);
 
-            foreach (var key in keys)
+            keys.ForEach(key =>
             {
-                string variableName = key.Name;
-                string variableValue = $"{Ini.Get(sectionName, variableName)}";
+                string variableName = key.Name,
+                    variableValue = $"{Ini.Get(sectionName, variableName)}",
+                    current, before;
 
                 // Strip leading '$' from variable name if present
                 if (variableName.StartsWith("$"))
@@ -256,9 +271,17 @@ namespace IngameScript
 
                 // Strip surrounding double quotes from value
                 variableValue = Unquote(variableValue);
-                
+                declared[variableName] = variableValue;
+
+                // A variable the player did not edit keeps the value set at runtime
+                if (Declared.TryGetValue(variableName, out before) && before == variableValue && runtime.TryGetValue(variableName, out current))
+                    variableValue = current;
+
                 Mother.ConfigVariables[variableName] = variableValue;
-            }
+            });
+
+            Declared = declared;
+            VariableIndex = null;
         }
 
         /// <summary>
@@ -273,12 +296,12 @@ namespace IngameScript
             Mother.ConfigCommands.Clear();
             
             List<MyIniKey> keys = new List<MyIniKey>();
-            Ini.GetKeys("Commands", keys);
+            Ini.GetKeys(Literals.Commands, keys);
 
-            foreach (var key in keys)
+            keys.ForEach(key =>
             {
-                string commandName = key.Name;
-                string commandValue = $"{Ini.Get("Commands", commandName)}"
+                string commandName = key.Name,
+                commandValue = $"{Ini.Get(Literals.Commands, commandName)}"
                     .Replace("\r", "")
                     .Replace("\n", " ")
                     .Trim();
@@ -292,9 +315,171 @@ namespace IngameScript
                 // Do NOT substitute variables here — defer to runtime so that
                 // {{param:$VAR}} defaults and $VAR references are resolved after
                 // command parameters have been applied.
-
                 Mother.ConfigCommands[commandName] = commandValue;
+            });
+        }
+
+        /// <summary>
+        /// Finds the longest variable name that matches the text at the given position.
+        /// Matching is ordinal and case-sensitive. CompareOrdinal never matches a name
+        /// that runs past the end of the text.
+        /// </summary>
+        /// <returns>The variable name, or null if none matches.</returns>
+        string MatchVariableName(string text, int position)
+        {
+            string[] candidates;
+
+            if (position >= text.Length || !VariableIndex.TryGetValue(text[position], out candidates))
+                return null;
+
+            foreach (var name in candidates)
+                if (string.CompareOrdinal(text, position, name, 0, name.Length) == 0)
+                    return name;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Scans text and appends it to the builder with variables resolved. Values that
+        /// reference other variables are scanned in turn, down to MaxVariableDepth.
+        /// </summary>
+        void AppendWithVariables(string text, StringBuilder output, int depth, string[] chain, bool quoteValues, ref bool inQuotes, ref string error)
+        {
+            int i = 0;
+
+            while (i < text.Length)
+            {
+                int dollar = text.IndexOf('$', i);
+
+                if (dollar < 0)
+                {
+                    AppendLiteral(text, i, text.Length - i, output, ref inQuotes);
+                    return;
+                }
+
+                AppendLiteral(text, i, dollar - i, output, ref inQuotes);
+
+                // $$ is an escaped literal $
+                if (dollar + 1 < text.Length && text[dollar + 1] == '$')
+                {
+                    output.Append('$');
+                    i = dollar + 2;
+                    continue;
+                }
+
+                string name = MatchVariableName(text, dollar + 1);
+
+                if (name == null)
+                {
+                    output.Append('$');
+                    i = dollar + 1;
+                    continue;
+                }
+
+                i = dollar + 1 + name.Length;
+                string value = Mother.ConfigVariables[name];
+
+                if (depth >= MaxVariableDepth && value.IndexOf('$') >= 0)
+                {
+                    output.Append('$').Append(name);
+                    error = error ?? $"variable nesting deeper than {MaxVariableDepth}: {string.Join(" > ", chain)}";
+                    continue;
+                }
+
+                // When resolving a step, a value with whitespace used as an argument is
+                // quoted so it stays a single token. Values holding steps or quotes are
+                // left alone.
+                if (quoteValues && !inQuotes && IsArgumentPosition(output)
+                    && value.IndexOfAny(new[] { '$', ';', '"', '{', '}' }) < 0
+                    && value.IndexOfAny(new[] { ' ', '\t' }) >= 0)
+                {
+                    output.Append('"').Append(value).Append('"');
+                    continue;
+                }
+
+                chain[depth] = name;
+                AppendWithVariables(value, output, depth + 1, chain, quoteValues, ref inQuotes, ref error);
             }
+        }
+
+        /// <summary>
+        /// Whether the text so far holds a command name in the current step, so the next
+        /// token is an argument.
+        /// </summary>
+        static bool IsArgumentPosition(StringBuilder output)
+        {
+            for (int k = output.Length - 1; k >= 0; k--)
+            {
+                char c = output[k];
+
+                if (c == ';' || c == '{' || c == '}')
+                    return false;
+
+                if (!char.IsWhiteSpace(c))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Appends a slice of literal text and tracks whether it ends inside double quotes.
+        /// </summary>
+        static void AppendLiteral(string text, int start, int length, StringBuilder output, ref bool inQuotes)
+        {
+            output.Append(text, start, length);
+
+            for (int k = start; k < start + length; k++)
+                if (text[k] == '"')
+                    inQuotes = !inQuotes;
+        }
+
+        /// <summary>
+        /// Substitute variables into a string, reporting whether nesting went too deep.
+        /// Variables are referenced using $VARIABLE_NAME and replaced with their values
+        /// from the [variables] section. At each $ the longest matching name wins, so a
+        /// shorter name never partially matches a longer one, and text with no matching
+        /// name is left unchanged. $$ yields a literal $. A value may reference other
+        /// variables; these are resolved when used, to a depth of MaxVariableDepth. At the
+        /// limit the $NAME text is left in place and error names the chain of variables.
+        /// </summary>
+        /// <param name="input">The text to resolve.</param>
+        /// <param name="result">The resolved text. The same reference as input if it contains no $.</param>
+        /// <param name="error">A description of the failure, or null.</param>
+        /// <returns>True if no error occurred.</returns>
+        public bool TrySubstituteVariables(string input, out string result, out string error, bool quoteValues = false)
+        {
+            result = input;
+            error = null;
+
+            if (string.IsNullOrEmpty(input) || input.IndexOf('$') < 0)
+                return true;
+
+            var variables = Mother.ConfigVariables;
+
+            // Rebuilt when loaded variables are cleared or a name is added
+            if (VariableIndex == null || VariableIndexCount != variables.Count)
+            {
+                VariableIndex = variables.Keys
+                    .Where(k => k.Length > 0)
+                    .GroupBy(k => k[0])
+                    .ToDictionary(
+                        g => g.Key, 
+                        g => g.OrderByDescending(k => k.Length).ToArray()
+                    );
+
+                VariableIndexCount = variables.Count;
+            }
+
+            var output = new StringBuilder(input.Length + 16);
+            var chain = new string[MaxVariableDepth + 1];
+
+            bool inQuotes = false;
+
+            AppendWithVariables(input, output, 0, chain, quoteValues, ref inQuotes, ref error);
+            result = $"{output}";   
+
+            return error == null;
         }
 
         /// <summary>
@@ -313,8 +498,11 @@ namespace IngameScript
 
             if (save)
             {
-                Ini.Set("variables", name, value);
+                Ini.Set(Literals.Variables, name, value);
                 Mother.ProgrammableBlock.CustomData = $"{Ini}";
+
+                // The write is this script's own, so it must not reload the configuration
+                Mother.GetModule<BlockCatalogue>()?.Accept(Mother.ProgrammableBlock, Ini);
             }
         }
 
@@ -335,9 +523,9 @@ namespace IngameScript
             foreach (KeyValuePair<string, string> defaultPair in MotherConfigDefaults)
             {
                 string[] keyParts = defaultPair.Key.Split('.');
-                string section = keyParts[0];
-                string key = keyParts[1];
-                string value = defaultPair.Value;
+                string section = keyParts[0], 
+                    key = keyParts[1],
+                    value = defaultPair.Value;
 
                 // if key has value, don't change, otherwise create.
                 if (Ini.Get(section, key).IsEmpty) 
@@ -345,6 +533,9 @@ namespace IngameScript
             }
 
             Mother.ProgrammableBlock.CustomData = $"{Ini}";
+
+            // Writing the defaults is this script's own change too
+            Mother.GetModule<BlockCatalogue>()?.Accept(Mother.ProgrammableBlock, Ini);
         }
     }
 }

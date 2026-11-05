@@ -67,8 +67,8 @@ namespace IngameScript
         /// <param name="prefix"></param>
         void AddRecord(string record, string prefix = "")
         {
-            string time = DateTime.Now.ToString("HH:mm:ss");
-            string cleanPrefix = prefix != "" ? "." + prefix : "";
+            string time = DateTime.Now.ToString("HH:mm:ss"),
+            cleanPrefix = prefix != "" ? "." + prefix : "";
 
             if (Records.Count > MAX_RECORDS)
                 Records.RemoveAt(Records.Count - 1);

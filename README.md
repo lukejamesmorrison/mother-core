@@ -41,5 +41,24 @@ Space Engineer 🚀🇨🇦
 [![YouTube](https://img.shields.io/badge/YouTube-%23FF0000.svg?style=for-the-badge&logo=YouTube&logoColor=white)](https://www.youtube.com/@agentluke)
 [![Steam](https://img.shields.io/badge/steam-%23000000.svg?style=for-the-badge&logo=steam&logoColor=white)](https://steamcommunity.com/id/agentluke/myworkshopfiles/)
 
+## Deploying a New Version
+Mother Core is released through GitHub. Pushing a version tag runs the [Build and Release workflow](.github/workflows/copy-to-dist.yaml), which publishes a GitHub Release. [Mother CLI](../MotherCLI/README.md) installs Core from the latest release.
+
+1. Finish and merge your changes into the release branch, and confirm the MotherCore tests pass.
+2. Update `src/CHANGELOG.md` with a new `## [x.y.z] - date` entry. It ships inside the release.
+3. Update the version badge in `src/README.md` to `x.y.z`.
+4. Commit the changes.
+5. Tag the commit with a `v` prefix and push the tag. The workflow only runs for tags matching `v*`.
+
+   ```powershell
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+
+6. Wait for the **Build and Release** action to finish. It copies `src/Mother.cs`, `Commands/`, `Modules/`, `Utilities/`, `CHANGELOG.md`, `LICENSE.md` and `README.md` into `dist/`, zips them as `mother-core.zip`, and attaches the zip to a new GitHub Release.
+7. Verify the release contains `mother-core.zip` and that a fresh Core install through Mother CLI pulls the new version.
+
+Use semantic versioning (`major.minor.patch`). Only tags are released, so pushing to a branch does not publish anything.
+
 ## Contributions
 Contributions are welcome. Please submit a pull request and share why you decided to start building your own programmable block script :)

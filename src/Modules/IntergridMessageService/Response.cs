@@ -88,7 +88,7 @@ namespace IngameScript
         /// Serialize the Response object to a string.
         /// </summary>
         /// <returns></returns>
-        public override string Serialize() => "RESPONSE::" + base.Serialize();
+        public override string Serialize() => Literals.Response + base.Serialize();
 
         /// <summary>
         /// De-serialize a string message to a Response object. We remove the message 
@@ -98,10 +98,10 @@ namespace IngameScript
         /// <returns></returns>
         public static Response Deserialize(string message)
         {
-            message = message.Replace("RESPONSE::", "");
+            message = message.Replace(Literals.Response, "");
 
-            string headersPart = ExtractTagContent(message, "header");
-            string bodyPart = ExtractTagContent(message, "body");
+            string headersPart = ExtractTagContent(message, "header"),
+                bodyPart = ExtractTagContent(message, "body");
 
             return new Response(
                 Serializer.DeserializeDictionary(bodyPart),

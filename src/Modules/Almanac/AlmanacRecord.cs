@@ -35,8 +35,8 @@ namespace IngameScript
         /// </summary>
         public static readonly Dictionary<string, string> EntityTypes = new Dictionary<string, string>
         {
-            { "grid", "grid" },
-            { "waypoint", "waypoint" }
+            { Literals.Grid, Literals.Grid },
+            { Literals.Waypoint, Literals.Waypoint }
         };
 
         /// <summary>
@@ -69,7 +69,18 @@ namespace IngameScript
         /// The ID of the entity. This is a unique identifier for the entity. For 
         /// grids, we use CubeGrid.EntityId. For GPS Waypoints, we use the name.
         /// </summary>
-        public string Id { get; }
+        public string Id,
+
+        /// <summary>
+        /// The type of entity. Value in EntityTypes.
+        /// </summary>
+        EntityType,
+
+        /// <summary>
+        /// The display name of the entity. This is the current name 
+        /// used for display and lookup purposes.
+        /// </summary>
+        DisplayName;
 
         /// <summary>
         /// The unicast target ID for IGC communication. For grids, this is the 
@@ -86,17 +97,17 @@ namespace IngameScript
         /// <summary>
         /// The last known position of the entity.
         /// </summary>
-        public Vector3D Position;
+        public Vector3D Position,
 
         /// <summary>
         /// The last known forward direction of the entity.
         /// </summary>
-        public Vector3D Forward = Vector3D.Forward;
+        Forward = Vector3D.Forward,
 
         /// <summary>
         /// The last known up direction of the entity.
         /// </summary>
-        public Vector3D Up = Vector3D.Up;
+        Up = Vector3D.Up;
 
         /// <summary>
         /// The last know speed of the entity.
@@ -108,18 +119,7 @@ namespace IngameScript
         /// navigate within an unsafe distance of an entity.
         /// </summary>
         public double SafeRadius;
-
-        /// <summary>
-        /// The type of entity. Value in EntityTypes.
-        /// </summary>
-        public string EntityType { get; set; }
-
-        /// <summary>
-        /// The display name of the entity. This is the current name 
-        /// used for display and lookup purposes.
-        /// </summary>
-        public string DisplayName { get; set; }
-
+ 
         ///<summary>
         /// The transponder code for the entity. This is used to 
         /// categorize the entity for communications and combat.
@@ -199,14 +199,14 @@ namespace IngameScript
         {
             Dictionary<string, object> fieldDictionary = new Dictionary<string, object>
             {
-                { "Id", $"{Id}" },
+                { Literals.Id, $"{Id}" },
                 { "UnicastId", $"{UnicastId}" },
                 { "DisplayName", $"{DisplayName}" },
                 { "UpdatedAt", $"{UpdatedAt.Ticks}" },
                 { "pos", $"{Position}" },
                 { "LastKnownSpeed", $"{Speed}" },
                 { "EntityType", EntityTypes[EntityType] },
-                { "SafeRadius", $"{SafeRadius}" },
+                { Literals.SafeRadius, $"{SafeRadius}" },
                 { "fx", $"{Forward.X}" },
                 { "fy", $"{Forward.Y}" },
                 { "fz", $"{Forward.Z}" },
@@ -227,12 +227,12 @@ namespace IngameScript
         public static AlmanacRecord CreateFromDict(Dictionary<string, object> dict)
         {
             string[] vectorParts = $"{dict["pos"]}".Split(' ');
+            string entityType = $"{dict["EntityType"]}";
 
             // get value and exclude first 2 characters, and convert to double
-            double x = double.Parse(vectorParts[0].Substring(2));
-            double y = double.Parse(vectorParts[1].Substring(2));
-            double z = double.Parse(vectorParts[2].Substring(2));
-            string entityType = $"{dict["EntityType"]}";
+            double x = double.Parse(vectorParts[0].Substring(2)),
+                y = double.Parse(vectorParts[1].Substring(2)),
+                z = double.Parse(vectorParts[2].Substring(2));
 
             AlmanacRecord almanacRecord = new AlmanacRecord(
                 $"{dict["Id"]}",
@@ -244,6 +244,7 @@ namespace IngameScript
             // Load UnicastId if present (for backward compatibility)
             object unicastIdObj;
             long unicastId;
+
             if (dict.TryGetValue("UnicastId", out unicastIdObj) &&
                 unicastIdObj != null &&
                 long.TryParse(unicastIdObj.ToString(), out unicastId))
@@ -253,6 +254,7 @@ namespace IngameScript
 
             // Load DisplayName if present (for backward compatibility)
             object displayNameObj;
+
             if (dict.TryGetValue("DisplayName", out displayNameObj) &&
                 displayNameObj != null &&
                 !string.IsNullOrEmpty(displayNameObj.ToString()))
@@ -263,7 +265,7 @@ namespace IngameScript
             double safeRadius;
             object safeRadiusObj;
 
-            if (dict.TryGetValue("SafeRadius", out safeRadiusObj) &&
+            if (dict.TryGetValue(Literals.SafeRadius, out safeRadiusObj) &&
                 safeRadiusObj != null &&
                 double.TryParse(safeRadiusObj.ToString(), out safeRadius))
             {
@@ -273,6 +275,7 @@ namespace IngameScript
             // Load orientation if present (for backward compatibility)
             double fx, fy, fz, ux, uy, uz;
             object fxObj, fyObj, fzObj, uxObj, uyObj, uzObj;
+
             if (dict.TryGetValue("fx", out fxObj) && double.TryParse($"{fxObj}", out fx) &&
                 dict.TryGetValue("fy", out fyObj) && double.TryParse($"{fyObj}", out fy) &&
                 dict.TryGetValue("fz", out fzObj) && double.TryParse($"{fzObj}", out fz))

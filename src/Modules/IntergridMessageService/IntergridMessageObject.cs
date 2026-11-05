@@ -30,12 +30,12 @@ namespace IngameScript
         /// <summary>
         /// The header of the message object.
         /// </summary>
-        public Dictionary<string, object> Header = new Dictionary<string, object>();
+        public Dictionary<string, object> Header = new Dictionary<string, object>(),
 
         /// <summary>
         /// The body of the message object.
         /// </summary>
-        public Dictionary<string, object> Body = new Dictionary<string, object>();
+        Body = new Dictionary<string, object>();
 
         /// <summary>
         /// The channels that the message should be sent via.
@@ -164,6 +164,12 @@ namespace IngameScript
         }
 
         /// <summary>
+        /// Counts the identifiers generated, so messages created in the same
+        /// instant (a batch of requests) never share one.
+        /// </summary>
+        static int Sequence;
+
+        /// <summary>
         /// Generate a unique identifier for the message object. We use a random 
         /// number for simplicity.
         /// </summary>
@@ -173,7 +179,7 @@ namespace IngameScript
             long timestamp = DateTime.UtcNow.Ticks;
             int counter = new Random().Next(0, 1000);
 
-            return $"{timestamp}_{counter}";
+            return $"{timestamp}_{counter}_{Sequence++}";
         }
 
         /// <summary>
@@ -182,11 +188,11 @@ namespace IngameScript
         /// <returns></returns>
         public virtual string Serialize()
         {
-            string headerTag = "header";
-            string bodyTag = "body";
+            string headerTag = "header",
+            bodyTag = "body",
 
-            string headersSerialized = Serializer.SerializeDictionary(Header);
-            string bodySerialized = Serializer.SerializeDictionary(Body);
+            headersSerialized = Serializer.SerializeDictionary(Header),
+            bodySerialized = Serializer.SerializeDictionary(Body);
 
             return $"<{headerTag}>{headersSerialized}</{headerTag}>" +
                     $"<{bodyTag}>{bodySerialized}</{bodyTag}>";
@@ -201,16 +207,16 @@ namespace IngameScript
         /// <returns></returns>
         public static string ExtractTagContent(string message, string tagName)
         {
-            string startTag = $"<{tagName}>";
-            string endTag = $"</{tagName}>";
+            string startTag = $"<{tagName}>",
+            endTag = $"</{tagName}>";
 
             int startTagIndex = message.IndexOf(startTag);
 
             if (startTagIndex == -1)
                 return "";
 
-            int startIndex = startTagIndex + startTag.Length;
-            int endIndex = message.IndexOf(endTag, startIndex, StringComparison.Ordinal);
+            int startIndex = startTagIndex + startTag.Length,
+            endIndex = message.IndexOf(endTag, startIndex, StringComparison.Ordinal);
 
             if (startIndex == -1 || endIndex == -1 || startIndex >= endIndex)
                 return "";

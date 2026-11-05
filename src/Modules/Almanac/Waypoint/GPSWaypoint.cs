@@ -21,13 +21,13 @@ namespace IngameScript
         /// The name of the waypoint. This is the name of the GPS waypoint 
         /// as it appears in the GPS String and on the player HUD.
         /// </summary>
-        readonly string Name;
+        readonly string Name,
 
         /// <summary>
         /// The color of the waypoint. This is the color of the GPS waypoint 
         /// in hexadecimal format as it appears on the player HUD.
         /// </summary>
-        readonly string Color;
+        Color;
 
         /// <summary>
         /// The vector of the waypoint. This is the position of the GPS waypoint.

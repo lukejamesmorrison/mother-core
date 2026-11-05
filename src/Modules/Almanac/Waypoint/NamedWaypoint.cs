@@ -41,18 +41,12 @@ namespace IngameScript
         /// Get the vector (position) of the waypoint.
         /// </summary>
         /// <returns></returns>
-        public Vector3D GetVector()
-        {
-            return Vector;
-        }
+        public Vector3D GetVector() => Vector;
 
         /// <summary>
         /// Get the name of the waypoint.
         /// </summary>
         /// <returns></returns>
-        public string GetName()
-        {
-            return Name;
-        }
+        public string GetName() => Name;
     }
 }
